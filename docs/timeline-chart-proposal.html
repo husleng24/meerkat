@@ -1,0 +1,199 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<style>
+  html,body{margin:0;background:#f6f1e7;}
+  svg{display:block;}
+  text{font-family:'Segoe UI','Microsoft YaHei',system-ui,sans-serif;fill:#3a2921;}
+</style>
+</head>
+<body>
+<svg width="1240" height="900" viewBox="0 0 1240 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#f1e7dc"/>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#d9c4a8" stroke-width="2.2"/>
+    </pattern>
+    <pattern id="hatchlight" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#e3d5c3" stroke-width="1.6"/>
+    </pattern>
+  </defs>
+
+  <rect width="1240" height="900" fill="#f6f1e7"/>
+
+  <!-- header -->
+  <text x="24" y="38" font-size="19" font-weight="700">具身智能 · 四域变化时间轴</text>
+  <text x="24" y="61" font-size="11.5" fill="#b78d5a">共享一条时间轴 · 每条泳道上层放「量 / 结构」，下层放「事件锚点」 · 标记形状按该领域的「变化语义」选择，不共用一套图例</text>
+  <text x="1216" y="38" font-size="10" text-anchor="end" fill="#b78d5a">版式提案 · 实心数字取自 2026-10-31 期，其余为结构示意</text>
+
+  <!-- month grid -->
+  <g>
+    <line x1="150" y1="96" x2="1210" y2="96" stroke="#e0d2bf"/>
+    <g font-size="10.5" fill="#b78d5a">
+      <text x="226" y="90" text-anchor="middle">6 月</text>
+      <text x="377" y="90" text-anchor="middle">7 月</text>
+      <text x="529" y="90" text-anchor="middle">8 月</text>
+      <text x="680" y="90" text-anchor="middle">9 月</text>
+      <text x="832" y="90" text-anchor="middle">10 月</text>
+      <text x="983" y="90" text-anchor="middle">11 月</text>
+      <text x="1135" y="90" text-anchor="middle">12 月</text>
+    </g>
+    <g stroke="#eee3d4">
+      <line x1="226" y1="96" x2="226" y2="700"/><line x1="377" y1="96" x2="377" y2="700"/>
+      <line x1="529" y1="96" x2="529" y2="700"/><line x1="680" y1="96" x2="680" y2="700"/>
+      <line x1="832" y1="96" x2="832" y2="700"/><line x1="983" y1="96" x2="983" y2="700"/>
+      <line x1="1135" y1="96" x2="1135" y2="700"/>
+    </g>
+    <!-- today marker -->
+    <line x1="906" y1="96" x2="906" y2="700" stroke="#3a2921" stroke-dasharray="3 4" stroke-opacity="0.45"/>
+    
+  </g>
+
+  <!-- ============ lane 1 ============ -->
+  <g>
+    <line x1="24" y1="120" x2="1210" y2="120" stroke="#e8dccb"/>
+    <text x="24" y="145" font-size="13" font-weight="700">① 人形本体</text>
+    <text x="24" y="163" font-size="10" fill="#b78d5a">存量 ∧ 阶段</text>
+    <text x="24" y="196" font-size="9.5" fill="#a58d72">阶梯线 + 阶段带</text>
+
+    <!-- phase band -->
+    <rect x="150" y="228" width="454" height="15" fill="#f1e7dc"/>
+    <rect x="604" y="228" width="303" height="15" fill="#e0c9a8"/>
+    <rect x="907" y="228" width="303" height="15" fill="url(#hatch)"/>
+    <g font-size="9.5" fill="#7a6753">
+      <text x="346" y="239" text-anchor="middle">样机 → 小批量</text>
+      <text x="755" y="239" text-anchor="middle">量产</text>
+      <text x="1058" y="239" text-anchor="middle">部署（进行中）</text>
+    </g>
+
+    <!-- step line -->
+    <polyline points="170,205 420,205 420,196 604,196 604,178 755,178 755,163 906,163"
+              fill="none" stroke="#b78d5a" stroke-width="2.2"/>
+    <polyline points="906,163 1000,152 1135,146 1210,143" fill="none" stroke="#b78d5a"
+              stroke-width="2.2" stroke-dasharray="5 4"/>
+    <circle cx="906" cy="163" r="4.5" fill="#b78d5a"/>
+    <text x="175" y="199" font-size="9.5" fill="#a58d72">整机产量（示意）</text>
+
+    <!-- callout -->
+    <line x1="906" y1="158" x2="906" y2="140" stroke="#b78d5a"/>
+    <rect x="742" y="104" width="268" height="36" rx="5" fill="#fffdf8" stroke="#e0d2bf"/>
+    <text x="752" y="120" font-size="10.5" font-weight="600">10/30 工信部：全年整机产量破 10 万台</text>
+    <text x="752" y="133" font-size="9.5" fill="#a58d72">但 60% 仍流向舞台/实验室，进厂·进仓不足 20%</text>
+  </g>
+
+  <!-- ============ lane 2 ============ -->
+  <g>
+    <line x1="24" y1="258" x2="1210" y2="258" stroke="#e8dccb"/>
+    <text x="24" y="283" font-size="13" font-weight="700">② 操作算法</text>
+    <text x="24" y="301" font-size="10" fill="#b78d5a">稀疏事件流</text>
+    <text x="24" y="334" font-size="9.5" fill="#a58d72">累计曲线 + 点阵</text>
+
+    <!-- cumulative -->
+    <polyline points="170,348 300,345 450,341 604,336 755,331 880,326" fill="none"
+              stroke="#b78d5a" stroke-width="1.4" stroke-dasharray="4 4" opacity="0.8"/>
+    <text x="176" y="341" font-size="9" fill="#a58d72">累计篇数（示意）</text>
+
+    <!-- cluster -->
+    <g fill="#3a2921">
+      <circle cx="888" cy="300" r="3"/><circle cx="897" cy="310" r="3"/>
+      <circle cx="888" cy="320" r="3"/><circle cx="897" cy="330" r="3"/>
+    </g>
+    <line x1="900" y1="326" x2="930" y2="326" stroke="#b78d5a" opacity="0"/>
+    <rect x="936" y="288" width="274" height="62" rx="5" fill="#fffdf8" stroke="#e0d2bf"/>
+    <text x="946" y="303" font-size="10.5" font-weight="600">10/29–30 集中 4 篇</text>
+    <text x="946" y="317" font-size="9.5" fill="#a58d72">PRIME W0 · HiFOR · MoMaBond</text>
+    <text x="946" y="330" font-size="9.5" fill="#a58d72">未知环境物体级推-抓</text>
+    <text x="946" y="343" font-size="9" fill="#b78d5a">日更窗口里每天 0–2 篇 → 只看单日等于噪声</text>
+  </g>
+
+  <!-- ============ lane 3 ============ -->
+  <g>
+    <line x1="24" y1="392" x2="1210" y2="392" stroke="#e8dccb"/>
+    <text x="24" y="417" font-size="13" font-weight="700">③ 具身大模型</text>
+    <text x="24" y="435" font-size="10" fill="#b78d5a">发布节拍 ∧ 承诺</text>
+    <text x="24" y="466" font-size="9.5" fill="#a58d72">刻度 + 状态轨道</text>
+
+    <!-- state rail -->
+    <line x1="150" y1="490" x2="906" y2="490" stroke="#3a2921" stroke-width="2.5"/>
+    <line x1="906" y1="490" x2="1180" y2="490" stroke="#b78d5a" stroke-width="2.5" stroke-dasharray="6 5"/>
+    <rect x="907" y="479" width="303" height="22" fill="url(#hatchlight)"/>
+
+    <!-- release ticks -->
+    <line x1="880" y1="470" x2="880" y2="512" stroke="#3a2921" stroke-width="2"/>
+    <text x="866" y="474" font-size="9.5" text-anchor="end" fill="#3a2921">10/29 GO-3 Preview</text>
+    <circle cx="880" cy="490" r="5" fill="#3a2921" stroke="#fffdf8" stroke-width="2"/>
+    <circle cx="906" cy="490" r="5" fill="#3a2921" stroke="#fffdf8" stroke-width="2"/>
+    <text x="916" y="476" font-size="9" fill="#a58d72">10/30 登顶三榜</text>
+
+    <!-- promise -->
+    <circle cx="1180" cy="490" r="5" fill="#fffdf8" stroke="#b78d5a" stroke-width="2"/>
+    <text x="1176" y="474" font-size="9.5" text-anchor="end" fill="#b78d5a">承诺：2026 年底全量开源</text>
+    <text x="150" y="473" font-size="9" fill="#a58d72">实线 = 已交付</text>
+    <text x="256" y="473" font-size="9" fill="#b78d5a">· 虚线段 = 未兑现承诺（到期回访，未落地即降级标记）</text>
+  </g>
+
+  <!-- ============ lane 4 ============ -->
+  <g transform="translate(0,24)">
+    <line x1="24" y1="522" x2="1210" y2="522" stroke="#e8dccb"/>
+    <text x="24" y="547" font-size="13" font-weight="700">④ 融资 / 人员</text>
+    <text x="24" y="565" font-size="10" fill="#b78d5a">流量 ∧ 出清</text>
+    <text x="24" y="596" font-size="9.5" fill="#a58d72">月柱 + 下探事件</text>
+
+    <!-- baseline -->
+    <line x1="150" y1="648" x2="1210" y2="648" stroke="#d8c8b4"/>
+    <text x="144" y="651" font-size="9" text-anchor="end" fill="#a58d72">0</text>
+
+    <!-- bars: height ∝ count -->
+    <rect x="199" y="562" width="54" height="86" rx="2" fill="#b78d5a"/>
+    <text x="226" y="553" font-size="11" font-weight="700" text-anchor="middle">55 起</text>
+    <text x="226" y="664" font-size="9" text-anchor="middle" fill="#a58d72">308.9 亿</text>
+
+    <rect x="653" y="554" width="54" height="94" rx="2" fill="#e0c9a8"/>
+    <text x="680" y="545" font-size="11" font-weight="700" text-anchor="middle">60 起</text>
+    <text x="680" y="664" font-size="9" text-anchor="middle" fill="#a58d72">金额未披露</text>
+
+    <rect x="805" y="596" width="54" height="52" rx="2" fill="#b78d5a"/>
+    <text x="832" y="587" font-size="11" font-weight="700" text-anchor="middle">33 起</text>
+    <text x="832" y="664" font-size="9" text-anchor="middle" fill="#a58d72">101.1 亿</text>
+
+    <!-- cooling annotation -->
+    <path d="M680 530 C 730 522, 780 520, 805 530" fill="none" stroke="#c0392b" stroke-width="1.6"/>
+    <path d="M800 526 L 806 531 L 799 534" fill="none" stroke="#c0392b" stroke-width="1.6"/>
+    <text x="742" y="556" font-size="9.5" fill="#c0392b">笔数 −45% · 金额 −67%</text>
+
+    <!-- positive event above -->
+    <line x1="890" y1="648" x2="890" y2="626" stroke="#3a2921"/>
+    <circle cx="890" cy="624" r="3.5" fill="#3a2921"/>
+    <text x="916" y="628" font-size="9.5" fill="#3a2921">10/28 辉羲智能启动 IPO 辅导</text>
+    <text x="916" y="642" font-size="9" fill="#a58d72">年内股权融资 25 亿元+</text>
+
+    <!-- exits below -->
+    <line x1="800" y1="648" x2="800" y2="676" stroke="#c0392b" stroke-width="2"/>
+    <path d="M794 670 L 800 678 L 806 670" fill="none" stroke="#c0392b" stroke-width="2"/>
+    <text x="842" y="690" font-size="9.5" fill="#c0392b">达闼破产清算 · 盈合 / 深兰相继破产 —— 出清进行时</text>
+  </g>
+
+  <!-- legend -->
+  <g>
+    <line x1="24" y1="740" x2="1210" y2="740" stroke="#e0d2bf"/>
+    <g font-size="9.5" fill="#7a6753">
+      <rect x="24" y="756" width="16" height="3" fill="#b78d5a"/>
+      <text x="46" y="762">实线 / 实心 = 已发生</text>
+      <rect x="186" y="756" width="16" height="3" fill="#b78d5a" opacity="0.55"/>
+      <text x="208" y="762">淡色 / 虚线 = 未披露、未兑现承诺</text>
+      <line x1="360" y1="758" x2="376" y2="758" stroke="#c0392b" stroke-width="2"/>
+      <text x="382" y="762">红 = 负向 / 出清事件</text>
+      <rect x="520" y="752" width="16" height="12" fill="url(#hatch)"/>
+      <text x="542" y="762">斜纹 = 未走完的阶段</text>
+      <line x1="700" y1="746" x2="700" y2="764" stroke="#3a2921" stroke-dasharray="3 3" opacity="0.5"/>
+      <text x="708" y="762">虚线竖线 = 今天（10/31）</text>
+    </g>
+    <text x="24" y="796" font-size="10" fill="#a58d72">为什么不是一条四色折线：四个领域量纲不同（台 / 篇 / 名次 / 亿元），叠在一条 y 轴上只能用双轴——双轴是最容易被误读的图表形式。</text>
+    <text x="24" y="816" font-size="10" fill="#a58d72">共同的不变量是「日期」，所以共享 x 轴、各自 y 轴；读者横向看的是同一时刻四个域各自在发生什么，纵向看的是一个域自己的走势。</text>
+    <text x="24" y="848" font-size="9.5" fill="#c9b69d">AI Radar · Timeline 页提案 v1 · 2026-10-31</text>
+  </g>
+</svg>
+</body>
+</html>

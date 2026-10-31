@@ -1,0 +1,41 @@
+# 依赖
+node_modules/
+
+# 构建产物
+out/
+release/
+dist/
+
+# 本地数据：抓取内容、已读状态、简报都在这里，不进仓库
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# 验收与临时目录（真机验证时生成的 userData）
+.verify-*/
+.verify-data/
+.verify-nosandbox/
+.verify-packaged/
+.selfcheck-tmp/
+.e2e-tmp/
+vd[0-9]*/
+logs/
+*.log
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 打包与签名
+*.pfx
+*.p12
+*.cer

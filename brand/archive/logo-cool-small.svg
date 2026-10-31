@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="狐獴 小尺寸版">
+  <defs>
+    <mask id="cut">
+      <rect width="1000" height="1000" fill="#fff"/>
+      <path d="M560 246 C625 246 666 300 668 350 C670 400 654 444 620 470 C604 486 590 510 582 545 C574 620 568 700 566 745 L452 745 C450 700 444 620 436 545 C430 508 428 486 418 462 C400 456 360 458 320 470 C342 446 366 420 388 400 C414 356 440 310 466 280 C498 250 530 246 560 246 Z"
+            fill="#000"/>
+    </mask>
+  </defs>
+
+  <circle cx="500" cy="486" r="252" fill="#0E6B77" mask="url(#cut)"/>
+
+  <!-- 只留两块镜片，其余细节全去 -->
+  <ellipse cx="442" cy="408" rx="46" ry="34" transform="rotate(-14 442 408)" fill="#06262B"/>
+  <ellipse cx="524" cy="390" rx="42" ry="30" transform="rotate(-10 524 390)" fill="#06262B"/>
+</svg>

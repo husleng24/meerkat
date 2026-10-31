@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="弦 Chord 24px">
+  <defs><clipPath id="c24"><circle cx="500" cy="500" r="400"/></clipPath></defs>
+  <circle cx="500" cy="500" r="400" fill="#0E6B77"/>
+  <path d="M699.6 153.4 L153.4 699.6 A400 400 0 0 1 699.6 153.4 Z" fill="#E1663A"/>
+  <path d="M44.6 751.8 L751.8 44.6" stroke="#0B1A1E" stroke-width="104" clip-path="url(#c24)"/>
+</svg>

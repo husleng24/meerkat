@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800" role="img" aria-label="狐獴 Meerkat mascot logo">
+  <defs>
+    <radialGradient id="bg" cx=".5" cy=".34" r=".82">
+      <stop offset="0" stop-color="#533418"/><stop offset=".5" stop-color="#281808"/><stop offset="1" stop-color="#0B0602"/>
+    </radialGradient>
+    <radialGradient id="halo" cx=".44" cy=".4" r=".54">
+      <stop offset="0" stop-color="#FFC24A" stop-opacity=".48"/>
+      <stop offset=".55" stop-color="#E8862A" stop-opacity=".13"/>
+      <stop offset="1" stop-color="#E8862A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fur" x1=".15" y1="0" x2=".8" y2="1">
+      <stop offset="0" stop-color="#FBE2B4"/><stop offset=".4" stop-color="#E7BC80"/><stop offset="1" stop-color="#A96E36"/>
+    </linearGradient>
+    <linearGradient id="muzzle" x1="0" y1="0" x2=".5" y2="1">
+      <stop offset="0" stop-color="#FFF6E4"/><stop offset="1" stop-color="#F0D4A8"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFEF8"/><stop offset=".46" stop-color="#F6E8CB"/>
+      <stop offset=".54" stop-color="#D3B78C"/><stop offset="1" stop-color="#FDF3DC"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E4462F"/><stop offset=".55" stop-color="#B52718"/><stop offset="1" stop-color="#7E1509"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="eyeGlow" x="-140%" y="-140%" width="380%" height="380%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <g filter="url(#soft)" opacity=".2" fill="#8A5423">
+    <path d="M80 720c0-170 48-272 122-272s122 102 122 272z"/>
+    <path d="M500 720c0-210 60-330 150-330s150 120 150 330z"/>
+  </g>
+  <circle cx="372" cy="340" r="350" fill="url(#halo)"/>
+
+  <!-- 耳：叶片形，先画，头部盖住根部 -->
+  <path d="M474 246c-6-34 30-56 56-34 24 20 16 62-16 70-20 5-36-12-40-36z"
+        fill="#2A1B0E" stroke="#171008" stroke-width="12" paint-order="stroke"/>
+  <path d="M492 244c0-18 16-28 30-20" fill="none" stroke="#7A5230" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 轮廓光 -->
+  <g filter="url(#glow)" opacity=".9">
+    <path d="M176 352C210 322 262 296 318 282 358 230 406 204 454 208 516 214 556 262 562 322 568 374 554 416 526 442 504 462 486 476 474 496 486 520 512 540 546 556L648 574 648 640 300 640 300 574 356 548C372 534 382 516 380 498 348 472 300 430 262 400 244 386 226 370 176 352z"
+          fill="none" stroke="#FFE45C" stroke-width="23"/>
+  </g>
+
+  <!-- 主体 -->
+  <path d="M176 352C210 322 262 296 318 282 358 230 406 204 454 208 516 214 556 262 562 322 568 374 554 416 526 442 504 462 486 476 474 496 486 520 512 540 546 556L648 574 648 640 300 640 300 574 356 548C372 534 382 516 380 498 348 472 300 430 262 400 244 386 226 370 176 352z"
+        fill="url(#fur)" stroke="#171008" stroke-width="14" stroke-linejoin="round" paint-order="stroke"/>
+
+  <!-- 颈部阴影，把头从肩上分离出来 -->
+  <path d="M380 498c-6 26-16 50-24 76l18 24c14-30 24-62 30-92z" fill="#8C5A26" opacity=".28"/>
+
+  <!-- 眼罩：收窄，不再抢戏 -->
+  <ellipse cx="408" cy="300" rx="62" ry="33" transform="rotate(-7 408 300)" fill="#3A2717" opacity=".9"/>
+  <ellipse cx="408" cy="299" rx="50" ry="24" transform="rotate(-7 408 299)" fill="#221507"/>
+
+  <!-- 吻部 -->
+  <path d="M176 352c30-24 68-44 108-58l22 38c-18 30-52 48-86 52-16-10-30-21-44-32z" fill="url(#muzzle)"/>
+  <!-- 颊部毛簇，打破光滑边 -->
+  <path d="M300 372c10 6 16 14 20 24-8-2-16-6-22-12z" fill="#D9A868"/>
+
+  <!-- 眉 -->
+  <path d="M352 268c22-13 48-15 70-8" fill="none" stroke="#171008" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- 眼 -->
+  <ellipse cx="406" cy="300" rx="29" ry="21" transform="rotate(-7 406 300)" fill="#FFF8E8" stroke="#171008" stroke-width="8"/>
+  <ellipse cx="404" cy="301" rx="17" ry="17" fill="#FF3B2F" filter="url(#eyeGlow)" opacity=".9"/>
+  <ellipse cx="404" cy="301" rx="15" ry="15" fill="#E8331F"/>
+  <ellipse cx="404" cy="301" rx="6.5" ry="8.5" fill="#190A04"/>
+  <circle cx="398" cy="294" r="3.8" fill="#FFEDE4" opacity=".92"/>
+
+  <!-- 鼻 -->
+  <path d="M176 352c8-13 25-17 35-8 8 8 4 21-8 24-12 3-24-4-27-16z" fill="#2A1B0E"/>
+
+  <!-- 嘴 -->
+  <path d="M214 378c16 10 34 14 52 11" fill="none" stroke="#171008" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+
+  <!-- 徽章 -->
+  <g>
+    <path d="M118 556H682L660 616l22 60H118l22-60z" fill="#150C07" transform="translate(0 12)" opacity=".85"/>
+    <path d="M118 556H682L660 616l22 60H118l22-60z" fill="url(#badge)" stroke="#171008" stroke-width="9" stroke-linejoin="round" paint-order="stroke"/>
+    <path d="M136 570H664L646 616l18 46H136l18-46z" fill="none" stroke="#FFD98A" stroke-width="3" opacity=".45"/>
+    <text x="400" y="641" text-anchor="middle"
+          font-family="Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"
+          font-size="96" font-weight="900" letter-spacing="12"
+          fill="url(#chrome)" stroke="#171008" stroke-width="15" paint-order="stroke">狐獴</text>
+  </g>
+</svg>

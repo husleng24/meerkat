@@ -1,0 +1,58 @@
+{
+  "ts": "2026-10-30T09:49:02.954Z",
+  "ok": true,
+  "steps": [
+    [
+      "better-sqlite3 加载",
+      "ok"
+    ],
+    [
+      "electron",
+      "45.1.0"
+    ],
+    [
+      "node",
+      "24.22.1"
+    ],
+    [
+      "electron_abi",
+      "150"
+    ],
+    [
+      "node_abi",
+      "10"
+    ],
+    [
+      "journal_mode",
+      "wal"
+    ],
+    [
+      "sqlite_version",
+      "3.53.4"
+    ],
+    [
+      "schema",
+      "table + index + fts5 + trigger"
+    ],
+    [
+      "inserted",
+      3
+    ],
+    [
+      "fts_match",
+      "Gemini 4 Carbon 发布"
+    ],
+    [
+      "fts_trigger_rows",
+      3
+    ],
+    [
+      "fts_chinese_match",
+      1
+    ],
+    [
+      "user_version",
+      3
+    ]
+  ]
+}

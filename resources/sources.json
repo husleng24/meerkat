@@ -1,0 +1,356 @@
+[
+    {
+        "id":  "openai-blog",
+        "name":  "OpenAI",
+        "kind":  "rss",
+        "tier":  1,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://openai.com/news/rss.xml"
+    },
+    {
+        "id":  "anthropic-news",
+        "name":  "Anthropic",
+        "kind":  "html",
+        "tier":  1,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.anthropic.com/news"
+    },
+    {
+        "id":  "google-ai",
+        "name":  "Google AI",
+        "kind":  "rss",
+        "tier":  1,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://blog.google/technology/ai/rss/"
+    },
+    {
+        "id":  "deepmind",
+        "name":  "Google DeepMind",
+        "kind":  "rss",
+        "tier":  1,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://deepmind.google/blog/rss.xml"
+    },
+    {
+        "id":  "hf-blog",
+        "name":  "Hugging Face",
+        "kind":  "rss",
+        "tier":  1,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://huggingface.co/blog/feed.xml"
+    },
+    {
+        "id":  "msr",
+        "name":  "Microsoft Research",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.microsoft.com/en-us/research/feed/"
+    },
+    {
+        "id":  "qwen",
+        "name":  "Qwen",
+        "kind":  "rss",
+        "tier":  1,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://qwenlm.github.io/blog/index.xml"
+    },
+    {
+        "id":  "arxiv",
+        "name":  "arXiv",
+        "kind":  "arxiv",
+        "tier":  2,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "windowHours":  96,
+        "parser":  "cs.AI,cs.CL,cs.LG"
+    },
+    {
+        "id":  "hf-papers",
+        "name":  "HF 热门论文",
+        "kind":  "hfpapers",
+        "tier":  2,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://huggingface.co/papers"
+    },
+    {
+        "id":  "bair",
+        "name":  "Berkeley BAIR",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://bair.berkeley.edu/blog/feed.xml"
+    },
+    {
+        "id":  "import-ai",
+        "name":  "Import AI",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "opinion",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://importai.substack.com/feed",
+        "insecure":  true
+    },
+    {
+        "id":  "latent-space",
+        "name":  "Latent Space",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "opinion",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.latent.space/feed"
+    },
+    {
+        "id":  "simon-willison",
+        "name":  "Simon Willison",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "agent",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://simonwillison.net/atom/everything/"
+    },
+    {
+        "id":  "mit-tr",
+        "name":  "MIT Tech Review",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "business",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    },
+    {
+        "id":  "tldr-ai",
+        "name":  "TLDR AI",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "opinion",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://tldr.tech/api/rss/ai"
+    },
+    {
+        "id":  "bens-bites",
+        "name":  "Ben\u0027s Bites",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.bensbites.com/feed"
+    },
+    {
+        "id":  "hn",
+        "name":  "Hacker News",
+        "kind":  "hn",
+        "tier":  3,
+        "bucketHint":  "community",
+        "enabled":  true,
+        "failStreak":  0,
+        "windowHours":  48
+    },
+    {
+        "id":  "reddit-localllama",
+        "name":  "r/LocalLLaMA",
+        "kind":  "rss",
+        "tier":  3,
+        "bucketHint":  "community",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.reddit.com/r/LocalLLaMA/.rss"
+    },
+    {
+        "id":  "reddit-ml",
+        "name":  "r/MachineLearning",
+        "kind":  "rss",
+        "tier":  3,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.reddit.com/r/MachineLearning/.rss"
+    },
+    {
+        "id":  "yt-openai",
+        "name":  "OpenAI (YouTube)",
+        "kind":  "youtube",
+        "tier":  2,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCXZCJLdBC09xxGZ6gcdrc6A",
+        "alwaysKeep":  true
+    },
+    {
+        "id":  "yt-anthropic",
+        "name":  "Anthropic (YouTube)",
+        "kind":  "youtube",
+        "tier":  2,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCrDwWp7EBBv4NwvScIpBDOA",
+        "alwaysKeep":  true
+    },
+    {
+        "id":  "yt-deepmind",
+        "name":  "DeepMind (YouTube)",
+        "kind":  "youtube",
+        "tier":  2,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCP7jMXSY2xbc3KCAE0MHQ-A",
+        "alwaysKeep":  true
+    },
+    {
+        "id":  "yt-aiexplained",
+        "name":  "AI Explained",
+        "kind":  "youtube",
+        "tier":  2,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCNJ1Ymd5yFuUPtn21xtRbbw"
+    },
+    {
+        "id":  "yt-2min",
+        "name":  "Two Minute Papers",
+        "kind":  "youtube",
+        "tier":  3,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCbfYPyITQ-7l4upoX8nvctg"
+    },
+    {
+        "id":  "yt-mberman",
+        "name":  "Matthew Berman",
+        "kind":  "youtube",
+        "tier":  3,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCawZsQWqfGSbCI5yjkdVkTA"
+    },
+    {
+        "id":  "yt-dwarkesh",
+        "name":  "Dwarkesh Patel",
+        "kind":  "youtube",
+        "tier":  2,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCZa18YV7qayTh-MRIrBhDpA"
+    },
+    {
+        "id":  "yt-lex",
+        "name":  "Lex Fridman",
+        "kind":  "youtube",
+        "tier":  3,
+        "bucketHint":  "video",
+        "enabled":  true,
+        "failStreak":  0,
+        "channelId":  "UCJIfeSCssxSC_Dhc5s7woww"
+    },
+    {
+        "id":  "github-trending",
+        "name":  "GitHub Trending",
+        "kind":  "github-trending",
+        "tier":  3,
+        "bucketHint":  "agent",
+        "enabled":  true,
+        "failStreak":  0
+    },
+    {
+        "id":  "producthunt",
+        "name":  "Product Hunt",
+        "kind":  "rss",
+        "tier":  3,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.producthunt.com/feed"
+    },
+    {
+        "id":  "techcrunch-ai",
+        "name":  "TechCrunch AI",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "business",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://techcrunch.com/category/artificial-intelligence/feed/"
+    },
+    {
+        "id":  "ars-ai",
+        "name":  "Ars Technica AI",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "policy",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://arstechnica.com/ai/feed/"
+    },
+    {
+        "id":  "theverge-ai",
+        "name":  "The Verge AI",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+    },
+    {
+        "id":  "qbitai",
+        "name":  "量子位",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "product",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.qbitai.com/feed"
+    },
+    {
+        "id":  "reddit-openai",
+        "name":  "r/OpenAI",
+        "kind":  "rss",
+        "tier":  3,
+        "bucketHint":  "community",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://www.reddit.com/r/OpenAI/.rss"
+    },
+    {
+        "id":  "google-research",
+        "name":  "Google Research",
+        "kind":  "rss",
+        "tier":  2,
+        "bucketHint":  "research",
+        "enabled":  true,
+        "failStreak":  0,
+        "url":  "https://research.google/blog/rss/"
+    }
+]

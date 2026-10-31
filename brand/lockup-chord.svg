@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 200" width="620" height="200" role="img" aria-label="弦 Chord">
+  <g transform="translate(84 96) scale(0.155) translate(-500 -500)">
+  <defs><clipPath id="lc"><circle cx="500" cy="500" r="400"/></clipPath></defs>
+  <circle cx="500" cy="500" r="400" fill="#0E6B77"/>
+  <path d="M699.6 153.4 L153.4 699.6 A400 400 0 0 1 699.6 153.4 Z" fill="#E1663A"/>
+  <path d="M44.6 751.8 L751.8 44.6" stroke="#0B1A1E" stroke-width="80" clip-path="url(#lc)"/>
+  </g>
+  <text x="150" y="104" font-family="Microsoft YaHei, PingFang SC, Noto Sans SC, sans-serif"
+        font-size="76" font-weight="800" letter-spacing="4" fill="#0B1A1E">弦</text>
+  <text x="152" y="144" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif"
+        font-size="22" font-weight="600" letter-spacing="5" fill="#5D7479">CHORD</text>
+</svg>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Segoe UI","Microsoft YaHei",sans-serif; background:#F6F1E7; }
+  .band { padding:24px 32px; }
+  .dark { background:#0B1A1E; } .light { background:#F6F1E7; } .paper { background:#FFFFFF; }
+  h4 { margin:0 0 14px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; }
+  .dark h4 { color:#7FC8D4; } .light h4, .paper h4 { color:#0E6B77; }
+  .row { display:flex; align-items:flex-end; gap:28px; }
+  .cell { text-align:center; }
+  .cap { font-size:10px; letter-spacing:.1em; opacity:.45; margin-top:6px; }
+  .dark .cap { color:#fff; } .light .cap, .paper .cap { color:#0B1A1E; }
+  img { display:block; }
+  .mono-d { color:#EFE6D6; } .mono-l { color:#12222A; }
+  .tile { background:#2A2E33; border-radius:8px; padding:8px 12px; display:flex; gap:14px; align-items:center; }
+</style>
+</head>
+<body>
+
+<div class="band dark">
+  <h4>01 · App icon</h4>
+  <div class="row">
+    <div class="cell"><img src="icon.svg" width="176"><div class="cap">176</div></div>
+    <div class="cell"><img src="icon.svg" width="96"><div class="cap">96</div></div>
+    <div class="cell"><img src="icon.svg" width="56"><div class="cap">56</div></div>
+    <div class="cell"><img src="icon.svg" width="32"><div class="cap">32</div></div>
+    <div class="cell"><img src="icon.svg" width="16"><div class="cap">16</div></div>
+  </div>
+</div>
+
+<div class="band light">
+  <h4>02 · Lockup</h4>
+  <img src="lockup.svg" width="420">
+</div>
+
+<div class="band paper">
+  <h4>03 · Mark &amp; monochrome</h4>
+  <div class="row">
+    <div class="cell mono-l"><img src="mark.svg" width="128"><div class="cap">mark 128</div></div>
+    <div class="cell mono-l"><img src="mark-mono.svg" width="128"><div class="cap">mono 128</div></div>
+    <div class="cell mono-l"><img src="mark-mono.svg" width="32"><div class="cap">mono 32</div></div>
+    <div style="width:26px"></div>
+    <div class="cell mono-d"><img src="mark-mono.svg" width="96"><div class="cap">mono 96 on dark</div></div>
+    <div class="cell mono-d"><img src="mark-mono.svg" width="24"><div class="cap">24</div></div>
+  </div>
+</div>
+
+<div class="band light" style="padding-top:0">
+  <h4>04 · Tray — 16px 专用</h4>
+  <div class="row">
+    <div class="cell mono-l"><img src="mark-16.svg" width="16"><div class="cap">16</div></div>
+    <div class="cell mono-l"><img src="mark-16.svg" width="32"><div class="cap">32 (2x)</div></div>
+    <div style="width:26px"></div>
+    <div class="tile">
+      <span class="mono-d"><img src="mark-16.svg" width="16"></span>
+      <span class="mono-d"><img src="mark-16.svg" width="20"></span>
+      <span style="color:#7A8489;font-size:11px;letter-spacing:.06em">狐獴 · 今日 24 条</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

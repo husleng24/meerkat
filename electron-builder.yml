@@ -1,0 +1,68 @@
+appId: com.meerkat.daily
+productName: Meerkat
+copyright: Meerkat
+
+directories:
+  output: release
+  buildResources: build
+
+# asar 打包，但原生模块必须解包：better-sqlite3 的 .node 文件
+# 在 asar 里无法 dlopen（经典坑，表现为启动即崩）
+asar: true
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+  - '**/*.node'
+
+files:
+  - out/**
+  - package.json
+
+# 开发态从 app.getAppPath() 读，打包后从 process.resourcesPath 读（见 src/main/paths.ts）
+extraResources:
+  - from: resources
+    to: resources
+  - from: brand
+    to: brand
+
+win:
+  # 注意：nsis 目标在本机不可用（见 README「打包」一节）。
+  # electron-builder 生成卸载器时会**执行**刚产出的未签名 exe，
+  # 这一步被系统的实时防护拦下，返回 exit 2。
+  # portable 与 zip 不需要执行任何东西，因此可用。
+  target:
+    - target: portable
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-便携版.${ext}
+  requestExecutionLevel: user
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Meerkat
+  deleteAppDataOnUninstall: false
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  icon: build/icon.icns
+  category: public.app-category.productivity
+
+linux:
+  target: [AppImage]
+  icon: build/icon.png
+  category: Office
+
+# 自动更新在 P2-2 接；这里先声明发布渠道形状
+publish:
+  provider: generic
+  url: https://example.invalid/meerkat/updates
