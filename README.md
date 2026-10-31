@@ -161,6 +161,20 @@ user_version         3
 （13977 输出 token），但适配器只判了"正文为空"，把截断当成了成功。
 现在通过 `finish_reason === 'length'` 检测截断，并做结构校验（缺「今日一句」「三句话速览」都会报 issue）。
 
+### 导出：Markdown / HTML / PDF / 富文本
+
+![导出](docs/assets/ui-export.png)
+
+四种格式共用一份 HTML：渲染层用 `parseBrief` 的结果渲染（解析器只有一份），主进程只负责落地。
+
+- **HTML**：自带样式，发给别人双击就能看
+- **PDF**：隐藏窗口 `printToPDF`，排版与 HTML 完全一致；中文用系统字体，链接保留为 PDF 注解
+- **富文本**：同时写 `text/html` 与 `text/plain`，粘到邮件/Word 里保留标题层级
+- **Markdown**：原有通道，写 `.md` 到「文档/Meerkat/」
+
+为什么不在主进程引 markdown 库：那样 PDF 和界面会各有一套"什么叫一条简报"的定义，
+模型换了写法之后，两边必然只有一个是对的。
+
 ### P1-4 · 阅读界面
 
 界面从 markdown 派生，不额外维护一份 IR（markdown 是唯一真源，见 `src/renderer/src/lib/parseBrief.ts`）。

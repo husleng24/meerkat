@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { describeNext, describeSchedule, type ScheduleConfig } from '../../../app/schedule'
 import type { AutoLaunchState, KeyStatusPayload } from '../lib/ipc-types'
+import { parseBrief } from '../lib/parseBrief'
+import { renderBriefDocument } from '../lib/briefHtml'
 import type { SchedulePayload } from '../lib/ipc-types'
 
 const DEFAULT: SchedulePayload = { enabled: true, hour: 8, minute: 30, lastRunAt: null }
@@ -72,6 +74,34 @@ export function SettingsPage(): React.JSX.Element {
       return
     }
     const r = await api()
+    setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
+  }, [])
+
+  /**
+   * 三种格式共用一条链路：取最新简报 → 解析 → 同一份 HTML。
+   * 只有渲染层会解析 markdown，主进程只负责落地（见 src/main/export.ts）。
+   */
+  const doExportAs = useCallback(async (kind: 'html' | 'pdf' | 'richtext') => {
+    const api = window.meerkat
+    if (!api?.briefLatest || !api.exportHtml) {
+      setMessage('预览模式下不可用：需要在桌面应用内运行')
+      return
+    }
+    const res = await api.briefLatest()
+    if (!res) {
+      setMessage('还没有简报可导出')
+      return
+    }
+    const doc = renderBriefDocument(parseBrief(res.markdown), res.date)
+    if (kind === 'richtext') {
+      const r = (await api.copyRich?.({ html: doc.html, text: doc.text })) ?? { ok: false }
+      setMessage(r.ok ? '已复制为富文本，可直接粘到邮件或文档里' : '复制失败')
+      return
+    }
+    const r =
+      kind === 'html'
+        ? await api.exportHtml({ html: doc.html, date: res.date })
+        : ((await api.exportPdf?.({ html: doc.html, date: res.date })) ?? { ok: false, error: '不支持' })
     setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
   }, [])
 
@@ -154,7 +184,9 @@ export function SettingsPage(): React.JSX.Element {
 
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">手动运行</h2>
-        <p className="mb-4 text-[12px] text-ink-3">立即抓取全部启用的源并重新生成简报。</p>
+        <p className="mb-4 text-[12px] text-ink-3">
+          立即抓取全部启用的源并重新生成简报。导出文件落在「文档/Meerkat/」。
+        </p>
         <div className="flex items-center gap-3">
           <button
             onClick={() => void runNow()}
@@ -167,7 +199,25 @@ export function SettingsPage(): React.JSX.Element {
             onClick={() => void doExport()}
             className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
           >
-            导出今日简报
+            导出 Markdown
+          </button>
+          <button
+            onClick={() => void doExportAs('richtext')}
+            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
+          >
+            复制富文本
+          </button>
+          <button
+            onClick={() => void doExportAs('html')}
+            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
+          >
+            导出 HTML
+          </button>
+          <button
+            onClick={() => void doExportAs('pdf')}
+            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
+          >
+            导出 PDF
           </button>
         </div>
         {message && (

@@ -18,6 +18,7 @@ import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { getApiKey } from './keystore'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, readSchedule, writeSchedule } from './scheduler'
+import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
 import { runDaily } from './daily'
 import { resourcePath } from './paths'
 import { exportDiagnostic } from './diagnostic'
@@ -77,6 +78,10 @@ const feedbackSchema = z.object({
 const feedbackTextSchema = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(20_000)
+})
+const exportDocSchema = z.object({
+  html: z.string().min(1).max(2_000_000),
+  date: z.string().min(1).max(40)
 })
 const searchSchema = z.object({
   q: z.string().max(200),
@@ -375,6 +380,35 @@ export function registerIpc(): void {
   ipcMain.handle('key:importDsh', () => importFromDsh())
 
   ipcMain.handle('diag:export', () => exportDiagnostic(requireStore()))
+
+  ipcMain.handle('export:html', (_e, raw: unknown) => {
+    const parsed = exportDocSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    try {
+      return { ok: true, path: exportBriefHtml(parsed.data.html, parsed.data.date) }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('export:pdf', async (_e, raw: unknown) => {
+    const parsed = exportDocSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    try {
+      return { ok: true, path: await exportBriefPdf(parsed.data.html, parsed.data.date) }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('export:richtext', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ html: z.string().min(1).max(2_000_000), text: z.string().max(2_000_000) })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    copyBriefRichText(parsed.data.html, parsed.data.text)
+    return { ok: true }
+  })
 
   ipcMain.handle('brief:export', () => {
     const b = requireStore().briefs.latest()

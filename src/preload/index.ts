@@ -96,6 +96,15 @@ const api = {
   runNow: (): Promise<{ ok: boolean; nKept: number; nOk: number; nSources: number; degraded: boolean }> =>
     ipcRenderer.invoke('run:now'),
 
+  exportHtml: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke('export:html', input),
+
+  exportPdf: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
+    ipcRenderer.invoke('export:pdf', input),
+
+  copyRich: (input: { html: string; text: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('export:richtext', input),
+
   exportBrief: (): Promise<{ ok: boolean; path?: string; error?: string }> => ipcRenderer.invoke('brief:export'),
 
   exportDiagnostic: (): Promise<{ ok: boolean; path?: string; summary?: string; error?: string }> =>
