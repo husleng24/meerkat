@@ -102,7 +102,14 @@ export interface MeerkatBridge {
   sources?: SourcesBridge
   flags?: FlagsBridge
   items?: {
-    search: (q: string) => Promise<SearchHit[]>
+    search: (input: {
+      q: string
+      bucket?: string
+      sourceId?: string
+      /** 只搜最近 N 天 */
+      days?: number
+      sort?: 'score' | 'time'
+    }) => Promise<SearchHit[]>
   }
   key?: {
     status: () => Promise<KeyStatusPayload>

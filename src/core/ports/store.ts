@@ -17,6 +17,16 @@ export interface SourceStore {
   recordFailure(id: string, error: string): void
 }
 
+export interface SearchOptions {
+  limit?: number
+  bucket?: string
+  sourceId?: string
+  /** 只返回此时间之后发布的条目；没有发布时间时按抓取时间算 */
+  sinceTs?: number
+  /** 相关度（默认）或最新 */
+  sort?: 'score' | 'time'
+}
+
 export interface ItemStore {
   upsertMany(items: Item[]): number
   get(id: string): Item | undefined
@@ -26,7 +36,7 @@ export interface ItemStore {
   briefedIds(sinceTs: number): Set<string>
   markBriefed(ids: string[], ts: number): void
   /** 全文检索；空查询返回空数组 */
-  search(query: string, opts?: { limit?: number; bucket?: string }): Item[]
+  search(query: string, opts?: SearchOptions): Item[]
   count(): number
 }
 

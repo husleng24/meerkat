@@ -194,6 +194,54 @@ describe('全文检索', () => {
     expect(s.items.search('Gemini', { bucket: 'research' })).toEqual([])
     expect(s.items.search('Gemini', { bucket: 'product' })).toHaveLength(1)
   })
+
+  it('筛选在 SQL 里生效，不是取回来再过滤（否则 50 条上限会造假空结果）', () => {
+    // a 是 product，c 是 research；按 research 过滤时 a 必须缺席而不是"被截断"
+    expect(s.items.search('Gemini', { bucket: 'research' })).toEqual([])
+    expect(s.items.search('Gemini', { bucket: 'product', limit: 1 }).map((x) => x.id)).toEqual(['a'])
+  })
+})
+
+describe('检索筛选：来源 / 时间 / 排序', () => {
+  let s: Store
+  const DAY = 86_400_000
+  beforeEach(() => {
+    s = createMemoryStore()
+    s.sources.upsertMany([src('s1'), src('s2')])
+    s.items.upsertMany([
+      item('old', { title: 'Gemini 旧闻', sourceId: 's1', publishedAt: T - 20 * DAY, score: 30 }),
+      item('mid', { title: 'Gemini 中闻', sourceId: 's2', publishedAt: T - 5 * DAY, score: 10 }),
+      item('new', { title: 'Gemini 新文', sourceId: 's1', publishedAt: T - 1 * DAY, score: 20 })
+    ])
+  })
+
+  it('按来源过滤', () => {
+    expect(s.items.search('Gemini', { sourceId: 's1' }).map((x) => x.id).sort()).toEqual(['new', 'old'])
+    expect(s.items.search('Gemini', { sourceId: 's2' }).map((x) => x.id)).toEqual(['mid'])
+  })
+
+  it('按时间窗口过滤（sinceTs）', () => {
+    const ids = s.items.search('Gemini', { sinceTs: T - 7 * DAY }).map((x) => x.id).sort()
+    expect(ids).toEqual(['mid', 'new'])
+  })
+
+  it('没有发布时间的条目按抓取时间参与时间筛选', () => {
+    s.items.upsertMany([item('fresh', { title: 'Gemini 无发布时间', sourceId: 's1', fetchedAt: T })])
+    expect(s.items.search('Gemini', { sinceTs: T - 7 * DAY }).map((x) => x.id)).toContain('fresh')
+  })
+
+  it('默认按相关度（分数）排序', () => {
+    expect(s.items.search('Gemini').map((x) => x.id)).toEqual(['old', 'new', 'mid'])
+  })
+
+  it('sort=time 时按发布时间倒序', () => {
+    expect(s.items.search('Gemini', { sort: 'time' }).map((x) => x.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('组合条件：来源 + 时间 + 时间排序', () => {
+    const ids = s.items.search('Gemini', { sourceId: 's1', sinceTs: T - 7 * DAY, sort: 'time' }).map((x) => x.id)
+    expect(ids).toEqual(['new'])
+  })
 })
 
 describe('增量：briefed 标记', () => {

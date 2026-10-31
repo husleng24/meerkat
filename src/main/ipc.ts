@@ -78,6 +78,14 @@ const feedbackTextSchema = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(20_000)
 })
+const searchSchema = z.object({
+  q: z.string().max(200),
+  bucket: z.string().max(30).optional(),
+  sourceId: z.string().max(80).optional(),
+  /** 只搜最近 N 天；不传就是全部 */
+  days: z.number().int().min(1).max(3650).optional(),
+  sort: z.enum(['score', 'time']).optional()
+})
 const flagsSetSchema = z.object({
   itemId: z.string().min(1),
   patch: z
@@ -242,12 +250,20 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('items:search', (_e, raw: unknown) => {
-    const q = z.string().safeParse(raw)
-    if (!q.success) return []
+    const parsed = searchSchema.safeParse(raw)
+    if (!parsed.success) return []
+    const { q, bucket, sourceId, days, sort } = parsed.data
     const store = requireStore()
     const sourceNameById = new Map(store.sources.list().map((x) => [x.id, x.name]))
+    const sinceTs = days === undefined ? undefined : Date.now() - days * 86_400_000
     return store
-      .items.search(q.data, { limit: 50 })
+      .items.search(q, {
+        limit: 50,
+        ...(bucket ? { bucket } : {}),
+        ...(sourceId ? { sourceId } : {}),
+        ...(sinceTs !== undefined ? { sinceTs } : {}),
+        ...(sort ? { sort } : {})
+      })
       .map((it) => ({
         id: it.id,
         title: it.title,

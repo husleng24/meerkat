@@ -59,7 +59,7 @@ const api = {
 
   items: {
     search: (
-      q: string
+      input: { q: string; bucket?: string; sourceId?: string; days?: number; sort?: 'score' | 'time' }
     ): Promise<
       Array<{
         id: string
@@ -71,7 +71,7 @@ const api = {
         publishedAt?: number
         sourceName: string
       }>
-    > => ipcRenderer.invoke('items:search', q)
+    > => ipcRenderer.invoke('items:search', input)
   },
 
   schedule: {

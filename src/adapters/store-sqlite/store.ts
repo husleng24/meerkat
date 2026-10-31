@@ -1,6 +1,8 @@
 import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
-import type { Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore } from '../../core/ports/store'
+import type {
+  Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions
+} from '../../core/ports/store'
 import type { Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -247,32 +249,44 @@ class SqliteItemStore implements ItemStore {
     })(ids)
   }
 
-  search(query: string, opts?: { limit?: number; bucket?: string }): Item[] {
+  search(query: string, opts: SearchOptions = {}): Item[] {
     const q = query.trim()
     if (!q) return []
-    const limit = opts?.limit ?? 50
-    const bucket = opts?.bucket
+    const limit = opts.limit ?? 50
+
+    // 筛选条件对两条查询路径是同一套，只是表别名不同
+    const filters: string[] = []
+    const filterArgs: unknown[] = []
+    if (opts.bucket) {
+      filters.push('i.bucket = ?')
+      filterArgs.push(opts.bucket)
+    }
+    if (opts.sourceId) {
+      filters.push('i.source_id = ?')
+      filterArgs.push(opts.sourceId)
+    }
+    if (opts.sinceTs !== undefined) {
+      // 没有发布时间的条目按抓取时间算，否则它们会被时间筛选整批吞掉
+      filters.push('COALESCE(i.published_at, i.fetched_at) >= ?')
+      filterArgs.push(opts.sinceTs)
+    }
+    const where = filters.length > 0 ? ' AND ' + filters.join(' AND ') : ''
+    const order = opts.sort === 'time' ? 'COALESCE(i.published_at, i.fetched_at) DESC' : 'i.score DESC'
 
     // trigram 分词要求查询至少 3 个字符，短查询退化为 LIKE
     if (q.length < 3) {
       const like = `%${q}%`
-      const rows = bucket
-        ? (this.db
-            .prepare('SELECT * FROM items WHERE (title LIKE ? OR summary LIKE ?) AND bucket = ? ORDER BY score DESC LIMIT ?')
-            .all(like, like, bucket, limit) as ItemRow[])
-        : (this.db
-            .prepare('SELECT * FROM items WHERE (title LIKE ? OR summary LIKE ?) ORDER BY score DESC LIMIT ?')
-            .all(like, like, limit) as ItemRow[])
+      const sql = `SELECT i.* FROM items i WHERE (i.title LIKE ? OR i.summary LIKE ?)${where} ORDER BY ${order} LIMIT ?`
+      const rows = this.db.prepare(sql).all(like, like, ...filterArgs, limit) as ItemRow[]
       return rows.map(toItem)
     }
 
     const sql = `
       SELECT i.* FROM items i
       JOIN items_fts f ON f.rowid = i.rowid
-      WHERE items_fts MATCH ?${bucket ? ' AND i.bucket = ?' : ''}
-      ORDER BY i.score DESC LIMIT ?`
-    const args: unknown[] = bucket ? [ftsPhrase(q), bucket, limit] : [ftsPhrase(q), limit]
-    const rows = this.db.prepare(sql).all(...args) as ItemRow[]
+      WHERE items_fts MATCH ?${where}
+      ORDER BY ${order} LIMIT ?`
+    const rows = this.db.prepare(sql).all(ftsPhrase(q), ...filterArgs, limit) as ItemRow[]
     return rows.map(toItem)
   }
 
