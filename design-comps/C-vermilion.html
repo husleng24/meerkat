@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>C 朱砂</title>
+<style>
+  :root{
+    --bg:#FFFFFF; --ink:#0A0A0A; --ink-2:#3D3D3D; --ink-3:#8A8A8A;
+    --line:#E8E6E2; --red:#E2372B; --red-deep:#B42118; --tint:#FFF3F1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);
+    font-family:'PingFang SC','Microsoft YaHei',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .app{display:flex;height:100%}
+  .side{width:200px;flex:0 0 200px;border-right:1px solid var(--line);padding:24px 14px;display:flex;flex-direction:column;gap:22px}
+  .brand{display:flex;gap:9px;align-items:center;padding:0 8px}
+  .brand .mark{width:28px;height:28px;border-radius:7px;background:var(--red);display:grid;place-items:center;font-size:14px}
+  .brand b{display:block;font-size:13.5px;letter-spacing:-.02em}
+  .brand span{font-size:10px;color:var(--ink-3);letter-spacing:.06em}
+  .nav{display:flex;flex-direction:column;gap:1px}
+  .nav a{display:flex;justify-content:space-between;padding:7px 8px;text-decoration:none;color:var(--ink-2);font-size:13px}
+  .nav a:hover{background:#FAF9F7}
+  .nav a.on{color:var(--red);font-weight:700}
+  .nav a.on::before{content:"—";margin-right:6px;color:var(--red)}
+  .stats{margin-top:auto;font-size:11px;color:var(--ink-2);display:flex;flex-direction:column;gap:5px;padding:0 8px}
+  .stats div{display:flex;justify-content:space-between}
+  .stats b{font-variant-numeric:tabular-nums}
+  .main{flex:1;min-width:0;overflow-y:auto}
+  /* 报头：通栏朱砂 */
+  .band{background:var(--red);color:#fff;padding:26px 40px 22px}
+  .band .in{max-width:700px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:20px}
+  .band h1{margin:0;font-size:38px;line-height:1;letter-spacing:-.045em;font-weight:900}
+  .band h1 small{display:block;font-size:12px;font-weight:600;letter-spacing:.22em;opacity:.85;margin-top:9px}
+  .band .count{text-align:right;font-size:11px;letter-spacing:.14em;line-height:2;opacity:.9}
+  .wrap{max-width:700px;margin:0 auto;padding:30px 40px 72px}
+  /* 速览 */
+  .brief{border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:4px 0}
+  .brief-h{font-size:10.5px;letter-spacing:.24em;color:var(--red);font-weight:800;padding:12px 0 2px}
+  .brief .row{display:flex;gap:14px;padding:12px 0;border-top:1px solid var(--line);font-size:16.5px;line-height:1.62;letter-spacing:-.012em}
+  .brief .row:first-of-type{border-top:0}
+  .brief .n{font-size:12px;font-weight:800;color:var(--red);padding-top:6px;font-variant-numeric:tabular-nums}
+  /* 板块 */
+  .sec{margin-top:32px}
+  .sec h2{display:flex;align-items:baseline;gap:10px;margin:0 0 2px;font-size:15px;font-weight:800;letter-spacing:-.02em;
+    border-top:2px solid var(--ink);padding-top:9px}
+  .sec h2 .c{font-size:11px;color:var(--red);font-weight:700}
+  .item{padding:16px 0 18px;border-bottom:1px solid var(--line)}
+  .item:hover h3{color:var(--red)}
+  .item h3{margin:0 0 7px;font-size:18px;line-height:1.45;font-weight:800;letter-spacing:-.028em;max-width:30ch;transition:color .15s}
+  .item p{margin:0;font-size:14.5px;line-height:1.75;color:#2B2B2B;max-width:64ch}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:10.5px;color:var(--ink-3);letter-spacing:.04em}
+  .meta .src{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line)}
+  .meta .src:hover{color:var(--red);border-color:var(--red)}
+  .dot{width:3px;height:3px;background:var(--ink-3);border-radius:50%}
+  .date{margin-left:auto;font-variant-numeric:tabular-nums}
+  /* 今日一句 */
+  .punch{margin-top:32px;background:var(--ink);color:#fff;padding:26px 28px;position:relative}
+  .punch .lab{font-size:10px;letter-spacing:.24em;color:var(--red);font-weight:800;margin-bottom:10px}
+  .punch p{margin:0;font-size:17px;line-height:1.7;font-weight:700;letter-spacing:-.015em;max-width:56ch}
+  .punch::after{content:"";position:absolute;right:24px;bottom:18px;width:44px;height:44px;border-radius:50%;background:var(--red);opacity:.9}
+  .footer{margin-top:22px;font-size:10.5px;color:var(--ink-3);display:flex;gap:14px;letter-spacing:.06em}
+  .kbd{border:1px solid var(--line);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--ink-2)}
+  ::selection{background:var(--red);color:#fff}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="mark">🦫</div><div><b>MEERKAT</b><span>替你盯着</span></div></div>
+    <nav class="nav">
+      <a class="on" href="#">今日</a><a href="#">搜索</a><a href="#">时间线</a><a href="#">源</a><a href="#">设置</a>
+    </nav>
+    <div class="stats">
+      <div><span>条目</span><b>23</b></div>
+      <div><span>已读</span><b>0</b></div>
+      <div><span>失败源</span><b style="color:var(--red)">1</b></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="band">
+      <div class="in">
+        <h1>10·31<small>SATURDAY · MORNING EDITION</small></h1>
+        <div class="count">23 条 ／ 34 源<br />覆盖 48 小时</div>
+      </div>
+    </div>
+    <div class="wrap">
+      <section class="brief">
+        <div class="brief-h">三句话速览</div>
+        <div class="row"><span class="n">01</span><span>Gemini 4 Carbon 在独立评测中领先，但发布首日就限流：初始访问只给"受信任的防守方"。</span></div>
+        <div class="row"><span class="n">02</span><span>Mistral 把万亿参数的 Large 4 权重放上 Hugging Face，主打网络安全场景。</span></div>
+        <div class="row"><span class="n">03</span><span>微软单季营收 923 亿美元；Alphabet 录得 -90.6 亿负现金流。</span></div>
+      </section>
+
+      <section class="sec">
+        <h2>模型与产品 <span class="c">5</span></h2>
+        <article class="item">
+          <h3>Gemini 4 Carbon 发布：能力领先，但只对"受信任的防守方"开放</h3>
+          <p>Google 的下一代前沿模型在独立评测中排名靠前，访问却被限定在受信任的防守方，Ars Technica 直接称其为"你用不上的前沿模型"。前沿能力第一次在发布当天就按信任等级分批发售。</p>
+          <div class="meta"><span class="dot"></span><span>3 源</span><a class="src" href="#">Google DeepMind</a><a class="src" href="#">Latent Space</a><span class="date">10-29</span></div>
+        </article>
+        <article class="item">
+          <h3>Mistral 开源万亿参数模型 Large 4</h3>
+          <p>权重已登上 Hugging Face（以 "Le Chonk" 为名发布），官方称组织能借此获得闭源模型给不了的防御控制权，HN 讨论量达 399 条。</p>
+          <div class="meta"><span class="dot"></span><span>3 源</span><a class="src" href="#">TechCrunch</a><span class="date">10-29</span></div>
+        </article>
+      </section>
+
+      <section class="punch">
+        <div class="lab">今日一句</div>
+        <p>今天的分水岭不在模型能力，而在分发规则——决定谁能用上什么能力的，已经不是模型本身。</p>
+      </section>
+
+      <div class="footer">
+        <span><span class="kbd">J</span><span class="kbd">K</span> 上下</span>
+        <span><span class="kbd">S</span> 收藏</span>
+        <span style="margin-left:auto">READ 0 / 23</span>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -93,7 +93,7 @@ export function SettingsPage(): React.JSX.Element {
     <div className="mx-auto max-w-[680px] px-10 pb-24 pt-8">
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">每日排程</h2>
-        <p className="mb-4 text-[12px] text-caramel">
+        <p className="mb-4 text-[12px] text-ink-3">
           到点自动采集并生成简报，完成后弹通知。错过时间点会在 6 小时内补一次。
         </p>
 
@@ -127,7 +127,7 @@ export function SettingsPage(): React.JSX.Element {
               disabled={!cfg.enabled}
               onChange={(v) => void save({ ...cfg, hour: v })}
             />
-            <span className="text-[13px] text-caramel">:</span>
+            <span className="text-[13px] text-ink-3">:</span>
             <TimeField
               label="分"
               value={cfg.minute}
@@ -137,13 +137,13 @@ export function SettingsPage(): React.JSX.Element {
             />
             <div className="ml-auto text-right">
               <div className="text-[12px] font-medium text-ink">{describeSchedule(cfg)}</div>
-              <div className="text-[11px] text-caramel">
+              <div className="text-[11px] text-ink-3">
                 {cfg.enabled ? `下次 ${describeNext(now, cfg)}` : '不会自动运行'}
               </div>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-2 border-t border-cream pt-3 text-[11px] text-caramel">
+          <div className="mt-4 flex items-center gap-2 border-t border-cream pt-3 text-[11px] text-ink-3">
             <span>
               上次运行：
               {cfg.lastRunAt ? new Date(cfg.lastRunAt).toLocaleString('zh-CN', { hour12: false }) : '从未运行'}
@@ -154,7 +154,7 @@ export function SettingsPage(): React.JSX.Element {
 
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">手动运行</h2>
-        <p className="mb-4 text-[12px] text-caramel">立即抓取全部启用的源并重新生成简报。</p>
+        <p className="mb-4 text-[12px] text-ink-3">立即抓取全部启用的源并重新生成简报。</p>
         <div className="flex items-center gap-3">
           <button
             onClick={() => void runNow()}
@@ -165,7 +165,7 @@ export function SettingsPage(): React.JSX.Element {
           </button>
           <button
             onClick={() => void doExport()}
-            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-caramel hover:text-ink"
+            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
           >
             导出今日简报
           </button>
@@ -184,7 +184,7 @@ export function SettingsPage(): React.JSX.Element {
 
       <section>
         <h2 className="mb-1 text-[14px] font-semibold text-ink">模型与密钥</h2>
-        <p className="mb-4 text-[12px] text-caramel">
+        <p className="mb-4 text-[12px] text-ink-3">
           未接模型时自动退化为"仅聚合"简报——只列标题和链接，没有解读。
         </p>
         <KeyPanel />
@@ -197,7 +197,7 @@ export function SettingsPage(): React.JSX.Element {
 
       <section className="mt-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">反馈</h2>
-        <p className="mb-4 text-[12px] text-caramel">
+        <p className="mb-4 text-[12px] text-ink-3">
           生成一份可以直接贴出去的材料（问题描述 + 环境 + 已脱敏的诊断摘要）。
           没有服务器，所以不做「提交」按钮——它只会往虚空里发。
         </p>
@@ -206,20 +206,20 @@ export function SettingsPage(): React.JSX.Element {
 
       <section className="mt-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">排查问题</h2>
-        <p className="mb-4 text-[12px] text-caramel">
+        <p className="mb-4 text-[12px] text-ink-3">
           导出诊断包（版本、源健康度、最近运行记录、日志尾部）。内容已自动脱敏：
           密钥、邮箱、路径里的用户名都会被打码。
         </p>
         <button
           onClick={() => void doDiagnostic()}
-          className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-caramel hover:text-ink"
+          className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
         >
           导出诊断包
         </button>
       </section>
 
       {origin === 'preview' && (
-        <p className="mt-6 text-[11px] text-caramel/70">预览模式：显示默认值，按钮需在桌面应用内生效。</p>
+        <p className="mt-6 text-[11px] text-ink-3/70">预览模式：显示默认值，按钮需在桌面应用内生效。</p>
       )}
     </div>
   )
@@ -250,9 +250,9 @@ function TimeField({
           const n = Number(e.target.value)
           if (Number.isFinite(n) && n >= 0 && n <= max) onChange(n)
         }}
-        className="w-16 rounded-lg border border-cream bg-white px-2 py-1.5 text-center text-[13px] tabular-nums text-ink outline-none focus:border-caramel disabled:opacity-40"
+        className="w-16 rounded-lg border border-cream bg-white px-2 py-1.5 text-center text-[13px] tabular-nums text-ink outline-none focus:border-accent disabled:opacity-40"
       />
-      <span className="text-[10px] text-caramel/70">{label}</span>
+      <span className="text-[10px] text-ink-3/70">{label}</span>
     </label>
   )
 }
@@ -308,11 +308,11 @@ function AutoLaunchRow(): React.JSX.Element {
             />
           </button>
         ) : (
-          <span className="text-[11.5px] text-caramel/80">不可用</span>
+          <span className="text-[11.5px] text-ink-3/80">不可用</span>
         )}
       </div>
       {st && !st.supported && st.reason && (
-        <p className="mt-1 text-[11px] leading-5 text-caramel/80">{st.reason}</p>
+        <p className="mt-1 text-[11px] leading-5 text-ink-3/80">{st.reason}</p>
       )}
       {st?.supported && !st.enabled && (
         <p className="mt-1 text-[11px] leading-5 text-alert/90">
@@ -379,7 +379,7 @@ function FeedbackPanel(): React.JSX.Element {
             onClick={() => setCategory(c)}
             className={[
               'rounded-full border px-3 py-1 text-[11.5px] transition-colors',
-              category === c ? 'border-caramel bg-cream text-ink' : 'border-cream text-ink/60 hover:border-caramel'
+              category === c ? 'border-accent bg-accent-soft text-accent' : 'border-cream text-ink/60 hover:border-accent'
             ].join(' ')}
           >
             {{ bug: '缺陷', idea: '功能建议', source: '信息源问题', other: '其他' }[c]}
@@ -392,7 +392,7 @@ function FeedbackPanel(): React.JSX.Element {
         onChange={(e) => setMessage(e.target.value)}
         rows={3}
         placeholder="发生了什么？你期望什么？（越具体越好，比如「点立即采集后停在运行中」）"
-        className="mt-3 w-full resize-y rounded-lg border border-cream bg-white px-3 py-2 text-[12px] leading-5 outline-none focus:border-caramel"
+        className="mt-3 w-full resize-y rounded-lg border border-cream bg-white px-3 py-2 text-[12px] leading-5 outline-none focus:border-accent"
       />
 
       <label className="mt-2 flex items-center gap-2 text-[11.5px] text-ink/70">
@@ -415,10 +415,10 @@ function FeedbackPanel(): React.JSX.Element {
         </button>
         {preview && (
           <>
-            <button onClick={() => void copy()} className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-caramel">
+            <button onClick={() => void copy()} className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-accent">
               复制
             </button>
-            <button onClick={() => void save()} className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-caramel">
+            <button onClick={() => void save()} className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-accent">
               保存为文件
             </button>
             {preview.issueUrl && (
@@ -426,7 +426,7 @@ function FeedbackPanel(): React.JSX.Element {
                 href={preview.issueUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-caramel"
+                className="rounded-lg border border-cream px-3 py-1.5 text-[12px] hover:border-accent"
               >
                 在 GitHub 新建 issue
               </a>
@@ -441,7 +441,7 @@ function FeedbackPanel(): React.JSX.Element {
         </pre>
       )}
       {msg && <p className="mt-2 text-[11.5px] text-ink/70">{msg}</p>}
-      {!hasIpc && <p className="mt-2 text-[11px] text-caramel/70">预览模式下不可用。</p>}
+      {!hasIpc && <p className="mt-2 text-[11px] text-ink-3/70">预览模式下不可用。</p>}
     </div>
   )
 }
@@ -449,7 +449,7 @@ function FeedbackPanel(): React.JSX.Element {
 function Row({ k, v }: { k: string; v: string }): React.JSX.Element {
   return (
     <div className="flex items-center justify-between border-b border-cream/60 py-1.5 last:border-b-0">
-      <span className="text-caramel">{k}</span>
+      <span className="text-ink-3">{k}</span>
       <span className="text-ink/80">{v}</span>
     </div>
   )
@@ -542,12 +542,12 @@ function KeyPanel(): React.JSX.Element {
           onChange={(e) => setInput(e.target.value)}
           placeholder="sk-…"
           disabled={!hasIpc}
-          className="flex-1 rounded-lg border border-cream bg-white px-3 py-2 text-[12px] outline-none focus:border-caramel disabled:opacity-50"
+          className="flex-1 rounded-lg border border-cream bg-white px-3 py-2 text-[12px] outline-none focus:border-accent disabled:opacity-50"
         />
         <button
           disabled={busy || !hasIpc || input.trim().length === 0}
           onClick={() => void act(() => api!.set(input), '已保存（加密存储）')}
-          className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-caramel hover:text-ink disabled:opacity-40"
+          className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
         >
           保存
         </button>
@@ -566,7 +566,7 @@ function KeyPanel(): React.JSX.Element {
         <p className="mt-2 text-[11px] text-alert">系统加密不可用，无法安全保存。请改用环境变量。</p>
       )}
       {msg && <p className="mt-2 text-[11.5px] text-ink/70">{msg}</p>}
-      {!hasIpc && <p className="mt-2 text-[11px] text-caramel/70">预览模式下不可用。</p>}
+      {!hasIpc && <p className="mt-2 text-[11px] text-ink-3/70">预览模式下不可用。</p>}
     </div>
   )
 }

@@ -61,19 +61,19 @@ export function SearchPage(): React.JSX.Element {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索抓到的所有条目（支持中文子串）"
-          className="w-full rounded-xl border border-cream bg-white px-4 py-3 text-[14px] text-ink outline-none placeholder:text-caramel/60 focus:border-caramel"
+          className="w-full rounded-xl border border-cream bg-white px-4 py-3 text-[14px] text-ink outline-none placeholder:text-ink-3/60 focus:border-accent"
         />
-        {busy && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-caramel">搜索中…</span>}
+        {busy && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-ink-3">搜索中…</span>}
       </div>
 
       {hits === null && (
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-[11.5px] text-caramel">
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[11.5px] text-ink-3">
           <span>试试：</span>
           {hint.map((h) => (
             <button
               key={h}
               onClick={() => setQ(h)}
-              className="rounded-full border border-cream px-2.5 py-1 transition-colors hover:border-caramel hover:text-ink"
+              className="rounded-full border border-cream px-2.5 py-1 transition-colors hover:border-accent hover:text-ink"
             >
               {h}
             </button>
@@ -83,7 +83,7 @@ export function SearchPage(): React.JSX.Element {
 
       {hits !== null && (
         <div className="mt-5">
-          <div className="mb-2 text-[11.5px] text-caramel">
+          <div className="mb-2 text-[11.5px] text-ink-3">
             {hits.length === 0 ? '没有匹配的条目' : `${hits.length} 条结果`}
           </div>
           <div className="space-y-2">
@@ -91,14 +91,14 @@ export function SearchPage(): React.JSX.Element {
               <button
                 key={h.id}
                 onClick={() => window.open(h.url, '_blank', 'noopener,noreferrer')}
-                className="block w-full rounded-xl border border-cream bg-white/60 px-4 py-3 text-left transition-colors hover:border-caramel hover:bg-white"
+                className="block w-full rounded-xl border border-cream bg-white/60 px-4 py-3 text-left transition-colors hover:border-accent hover:bg-white"
               >
                 <div className="flex items-baseline gap-2">
                   <span className="flex-1 text-[13.5px] font-medium leading-6 text-ink">{h.title}</span>
-                  <span className="shrink-0 text-[10.5px] text-caramel">{fmtDate(h.publishedAt)}</span>
+                  <span className="shrink-0 text-[10.5px] text-ink-3">{fmtDate(h.publishedAt)}</span>
                 </div>
                 {h.summary && <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-ink/60">{h.summary}</p>}
-                <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-caramel/80">
+                <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-ink-3/80">
                   <span className="rounded bg-cream px-1.5 py-0.5">{BUCKET_LABEL[h.bucket as Bucket] ?? h.bucket}</span>
                   <span>{h.sourceName}</span>
                   <span className="ml-auto tabular-nums">{h.score.toFixed(1)}</span>
@@ -110,7 +110,7 @@ export function SearchPage(): React.JSX.Element {
       )}
 
       {!window.meerkat?.items && (
-        <p className="mt-6 text-[11px] text-caramel/70">预览模式下不可用：需要在桌面应用内运行。</p>
+        <p className="mt-6 text-[11px] text-ink-3/70">预览模式下不可用：需要在桌面应用内运行。</p>
       )}
     </div>
   )

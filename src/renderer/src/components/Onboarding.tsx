@@ -28,7 +28,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
           <img src="./icon-meerkat-64.png" alt="" className="h-10 w-10 rounded-xl" />
           <div>
             <div className="text-[17px] font-bold text-ink">Meerkat</div>
-            <div className="text-[12px] text-caramel">替你盯着，只看变了的那几条</div>
+            <div className="text-[12px] text-ink-3">替你盯着，只看变了的那几条</div>
           </div>
         </div>
 
@@ -36,7 +36,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
           {['选领域', '确认源', '接模型'].map((t, i) => (
             <div key={t} className="flex-1">
               <div className={`h-1 rounded-full ${i <= step ? 'bg-ink' : 'bg-cream'}`} />
-              <div className={`mt-2 text-[11px] ${i <= step ? 'text-ink' : 'text-caramel/60'}`}>{t}</div>
+              <div className={`mt-2 text-[11px] ${i <= step ? 'text-ink' : 'text-ink-3/60'}`}>{t}</div>
             </div>
           ))}
         </div>
@@ -44,7 +44,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
         {step === 0 && (
           <div>
             <h2 className="mb-1 text-[14px] font-semibold text-ink">你主要想盯哪些方向？</h2>
-            <p className="mb-4 text-[12px] text-caramel">决定预置源的勾选，之后随时可改。</p>
+            <p className="mb-4 text-[12px] text-ink-3">决定预置源的勾选，之后随时可改。</p>
             <div className="grid grid-cols-2 gap-2">
               {topics.map((t) => {
                 const on = picked.has(t.id)
@@ -59,11 +59,11 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
                     }}
                     className={[
                       'rounded-xl border px-3.5 py-3 text-left transition-colors',
-                      on ? 'border-caramel bg-white shadow-sm' : 'border-cream bg-white/40 hover:border-caramel/50'
+                      on ? 'border-accent bg-white shadow-sm' : 'border-cream bg-white/40 hover:border-accent/40'
                     ].join(' ')}
                   >
                     <div className="text-[12.5px] font-semibold text-ink">{t.label}</div>
-                    <div className="mt-0.5 text-[11px] text-caramel">{t.desc}</div>
+                    <div className="mt-0.5 text-[11px] text-ink-3">{t.desc}</div>
                   </button>
                 )
               })}
@@ -74,7 +74,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
         {step === 1 && (
           <div>
             <h2 className="mb-1 text-[14px] font-semibold text-ink">已为你预置 {sourceCount} 个源</h2>
-            <p className="mb-4 text-[12px] text-caramel">
+            <p className="mb-4 text-[12px] text-ink-3">
               全部可单独启停。连续失败的源会在"源"页标红，并给出可替代的同类型源。
             </p>
             <ul className="space-y-1.5 rounded-xl border border-cream bg-white/60 px-4 py-3 text-[12px] text-ink/80">
@@ -89,7 +89,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
         {step === 2 && (
           <div>
             <h2 className="mb-1 text-[14px] font-semibold text-ink">接一个模型来写简报</h2>
-            <p className="mb-4 text-[12px] text-caramel">
+            <p className="mb-4 text-[12px] text-ink-3">
               不接也能用——会退化成"仅聚合"简报，按板块列条目和链接。
             </p>
             <div className="rounded-xl border border-cream bg-white/60 px-4 py-3">
@@ -97,9 +97,9 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
               <input
                 type="password"
                 placeholder="sk-…（可跳过）"
-                className="mt-1.5 w-full rounded-lg border border-cream bg-white px-3 py-2 text-[12px] outline-none focus:border-caramel"
+                className="mt-1.5 w-full rounded-lg border border-cream bg-white px-3 py-2 text-[12px] outline-none focus:border-accent"
               />
-              <p className="mt-2 text-[10.5px] text-caramel/80">
+              <p className="mt-2 text-[10.5px] text-ink-3/80">
                 密钥存在系统钥匙串（safeStorage），不进数据库、不进日志。
               </p>
             </div>
@@ -108,7 +108,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
 
         <div className="mt-7 flex items-center gap-3">
           {step > 0 && (
-            <button onClick={() => setStep(step - 1)} className="text-[12px] text-caramel hover:text-ink">
+            <button onClick={() => setStep(step - 1)} className="text-[12px] text-ink-3 hover:text-ink">
               上一步
             </button>
           )}

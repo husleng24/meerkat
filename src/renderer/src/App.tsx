@@ -69,25 +69,33 @@ export default function App(): React.JSX.Element {
         dateLabel={dateLabel}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex items-center gap-3 border-b border-cream px-10 py-4">
-          <h1 className="text-[15px] font-bold text-ink">{TITLES[nav] ?? brief?.title ?? 'AI 简报'}</h1>
-          <span className="hidden text-[11.5px] text-caramel md:inline">
-            {nav === 'today'
-              ? brief?.meta
-              : nav === 'sources'
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* 今日页不设页头：报头在内容里，页头会跟它抢同一件事 */}
+        {nav !== 'today' && (
+          <header className="flex items-baseline gap-3 px-10 pb-3 pt-6">
+            <h1 className="text-[19px] font-bold tracking-[-0.03em] text-ink">
+              {TITLES[nav] ?? brief?.title ?? 'AI 简报'}
+            </h1>
+            <span className="hidden text-[11.5px] text-ink-3 md:inline">
+              {nav === 'sources'
                 ? `${summary.total} 个源`
                 : nav === 'settings'
                   ? '排程 · 运行 · 导出'
-                  : ''}
-          </span>
-        </header>
+                  : nav === 'search'
+                    ? '全文检索（Ctrl/Cmd+K）'
+                    : nav === 'timeline'
+                      ? '历史简报'
+                      : ''}
+            </span>
+          </header>
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {loading && <div className="px-10 py-16 text-[13px] text-caramel">加载中…</div>}
+        <div className="dawn-wash" />
+        <div className="relative min-h-0 flex-1 overflow-y-auto">
+          {loading && <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>}
 
           {!loading && nav === 'today' && !brief && (
-            <div className="px-10 py-16 text-[13px] text-caramel">还没有简报</div>
+            <div className="px-10 py-16 text-[13px] text-ink-3">还没有简报</div>
           )}
 
           {!loading && brief && nav === 'today' && <BriefView brief={brief} flags={flags} />}
@@ -119,9 +127,9 @@ export default function App(): React.JSX.Element {
           )}
 
           {nav === 'today' && viewDate && (
-            <div className="mx-auto mt-6 flex max-w-[760px] items-center gap-2 rounded-lg bg-cream/60 px-4 py-2 text-[11.5px] text-ink/70">
+            <div className="mx-auto mt-5 flex max-w-[780px] items-center gap-2 rounded-lg bg-accent-soft/60 px-4 py-2 text-[11.5px] text-ink-2">
               正在回看 {viewDate}
-              <button onClick={() => setViewDate(null)} className="ml-auto underline hover:text-ink">
+              <button onClick={() => setViewDate(null)} className="ml-auto font-medium text-accent hover:underline">
                 回到最新
               </button>
             </div>

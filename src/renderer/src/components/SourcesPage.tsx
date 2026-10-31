@@ -49,22 +49,16 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
   return (
     <div className="mx-auto max-w-[900px] px-10 pb-24 pt-8">
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[15px] font-bold text-ink">信息源</h2>
-          <p className="mt-1 text-[12px] text-caramel">
-            共 {summary.total} 个 · 启用 {summary.enabled} · 可用 {summary.ok}
-            {summary.attention > 0 && <span className="text-alert"> · 需关注 {summary.attention}</span>}
-          </p>
-        </div>
+        <div />
         <div className="flex items-center gap-2">
           {progress && (
-            <span className="text-[11px] tabular-nums text-caramel">
+            <span className="text-[11px] tabular-nums text-ink-3">
               自检中 {progress.done}/{progress.total}
             </span>
           )}
           <button
             onClick={() => setAdding((v) => !v)}
-            className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-caramel hover:text-ink"
+            className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
           >
             {adding ? '收起' : '新增源'}
           </button>
@@ -78,6 +72,14 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
         </div>
       </div>
 
+      <div className="mb-2 flex items-center gap-3 text-[11.5px] text-ink-3">
+        <span>可用 {summary.ok}</span>
+        <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
+        <span className={summary.attention > 0 ? 'text-alert' : ''}>需关注 {summary.attention}</span>
+        <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
+        <span>共 {summary.total}</span>
+      </div>
+
       {adding && <AddSourceForm state={state} onDone={() => setAdding(false)} />}
 
       {editing && (
@@ -89,7 +91,7 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
       )}
 
       <div className="overflow-hidden rounded-xl border border-cream bg-white/60">
-        <div className="grid grid-cols-[1fr_78px_92px_80px_58px_104px] items-center gap-2 border-b border-cream px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-caramel/80">
+        <div className="grid grid-cols-[1fr_78px_92px_80px_58px_104px] items-center gap-2 border-b border-cream px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-3/80">
           <span>名称</span>
           <span>类型</span>
           <span>最近成功</span>
@@ -115,7 +117,7 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
                   <button
                     onClick={() => setEditing(s)}
                     title="点击编辑名称与地址"
-                    className="truncate text-left font-medium text-ink hover:underline hover:decoration-caramel hover:underline-offset-2"
+                    className="truncate text-left font-medium text-ink hover:underline hover:decoration-accent hover:underline-offset-2"
                   >
                     {s.name}
                   </button>
@@ -127,12 +129,12 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
                   </div>
                 )}
                 {replacement && (
-                  <div className="mt-0.5 truncate text-[10.5px] text-caramel">
+                  <div className="mt-0.5 truncate text-[10.5px] text-ink-3">
                     可换用：{replacement.name}
                   </div>
                 )}
               </div>
-              <span className="text-[11px] text-caramel">{KIND_LABEL[s.kind] ?? s.kind}</span>
+              <span className="text-[11px] text-ink-3">{KIND_LABEL[s.kind] ?? s.kind}</span>
               <span className="tabular-nums text-[11px] text-ink/60">{relTime(s.lastOkAt)}</span>
               <span className="tabular-nums text-[11px] text-ink/60">
                 {s.avgItems !== undefined ? `${Math.round(s.avgItems)} 条` : '—'}
@@ -142,14 +144,14 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
                 <button
                   onClick={() => void state.testOne(s.id)}
                   disabled={busy}
-                  className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink/70 transition-colors hover:border-caramel hover:text-ink disabled:opacity-40"
+                  className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink/70 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
                 >
                   {busy ? '…' : '测试'}
                 </button>
                 <button
                   onClick={() => void state.toggle(s.id, !s.enabled)}
                   title={s.enabled ? '停用' : '启用'}
-                  className="grid h-6 w-6 place-items-center rounded border border-cream text-[10.5px] text-ink/50 transition-colors hover:border-caramel hover:text-ink"
+                  className="grid h-6 w-6 place-items-center rounded border border-cream text-[10.5px] text-ink/50 transition-colors hover:border-accent hover:text-ink"
                 >
                   {s.enabled ? '◉' : '○'}
                 </button>
@@ -168,7 +170,7 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
         })}
       </div>
 
-      <p className="mt-4 text-[11px] leading-6 text-caramel/80">
+      <p className="mt-4 text-[11px] leading-6 text-ink-3/80">
         连续失败 3 次的源会被标红；若同类里有健康源，会给出"可换用"建议。
         {state.origin === 'sample' && '（当前是预览样例数据）'}
       </p>
@@ -181,7 +183,7 @@ function HealthDot({ level }: { level: HealthLevel }): React.JSX.Element {
     level === 'ok'
       ? 'bg-ink/70'
       : level === 'degraded'
-        ? 'bg-caramel'
+        ? 'bg-accent'
         : level === 'failing'
           ? 'bg-alert'
           : 'bg-ink/25'
@@ -229,7 +231,7 @@ function EditSourceForm({
     source.kind === 'youtube' ? '频道地址（…/channel/UC…）' : source.kind === 'hn' ? '地址（可留空）' : '地址'
 
   return (
-    <div className="mb-4 rounded-xl border border-caramel/60 bg-white px-5 py-4">
+    <div className="mb-4 rounded-xl border border-accent/50 bg-white px-5 py-4">
       <div className="mb-3 flex items-center gap-2">
         <span className="text-[12.5px] font-semibold text-ink">编辑：{source.name}</span>
         <span className="rounded bg-cream px-1.5 py-px text-[9.5px] text-ink/60">
@@ -241,21 +243,21 @@ function EditSourceForm({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           />
         </Field>
         <Field label={urlLabel}>
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           />
         </Field>
         <Field label="层级">
           <select
             value={tier}
             onChange={(e) => setTier(Number(e.target.value) as 1 | 2 | 3)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           >
             <option value={1}>1 · 一手信源（官方/实验室）</option>
             <option value={2}>2 · 媒体/研究</option>
@@ -266,7 +268,7 @@ function EditSourceForm({
           <select
             value={bucket}
             onChange={(e) => setBucket(e.target.value as Bucket)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           >
             {(Object.keys(BUCKET_LABEL) as Bucket[]).map((b) => (
               <option key={b} value={b}>
@@ -284,7 +286,7 @@ function EditSourceForm({
         >
           {busy ? '保存中…' : '保存'}
         </button>
-        <button onClick={onDone} className="text-[12px] text-caramel hover:text-ink">
+        <button onClick={onDone} className="text-[12px] text-ink-3 hover:text-ink">
           取消
         </button>
         {msg && <span className="ml-2 text-[11.5px] text-alert">{msg}</span>}
@@ -325,14 +327,14 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="例如：我的博客"
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           />
         </Field>
         <Field label="类型">
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           >
             {['rss', 'atom', 'html', 'youtube', 'arxiv', 'hn', 'github-trending', 'hfpapers'].map((k) => (
               <option key={k} value={k}>
@@ -346,14 +348,14 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder={kind === 'hn' ? '可留空' : 'https://example.com/feed.xml'}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           />
         </Field>
         <Field label="层级">
           <select
             value={tier}
             onChange={(e) => setTier(Number(e.target.value))}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           >
             <option value={1}>1 · 一手信源（官方/实验室）</option>
             <option value={2}>2 · 媒体/研究</option>
@@ -364,7 +366,7 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
           <select
             value={bucket}
             onChange={(e) => setBucket(e.target.value as Bucket)}
-            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-caramel"
+            className="w-full rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
           >
             {(Object.keys(BUCKET_LABEL) as Bucket[]).map((b) => (
               <option key={b} value={b}>
@@ -382,7 +384,7 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
         >
           {busy ? '添加中…' : '添加'}
         </button>
-        <button onClick={onDone} className="text-[12px] text-caramel hover:text-ink">
+        <button onClick={onDone} className="text-[12px] text-ink-3 hover:text-ink">
           取消
         </button>
         {msg && <span className="ml-2 text-[11.5px] text-ink/70">{msg}</span>}
@@ -394,7 +396,7 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
 function Field({ label, children }: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10.5px] text-caramel">{label}</span>
+      <span className="mb-1 block text-[10.5px] text-ink-3">{label}</span>
       {children}
     </label>
   )

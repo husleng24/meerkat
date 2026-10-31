@@ -2,7 +2,7 @@
 
 > v2.0 · 2026-10-30
 > 标志：用户提供的狐獴插画（透明底）
-> 配套：[DESIGN.md](../DESIGN.md) · [ARCHITECTURE.md](../ARCHITECTURE.md)
+> 配套：[DESIGN.md](../DESIGN.md) · [ARCHITECTURE.md](../ARCHITECTURE.md) · [视觉世界](../docs/VISUAL-WORLD.md)
 
 ---
 
