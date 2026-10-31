@@ -544,6 +544,17 @@ S2 72 小时响应；S3 记录排期。
 2. 应用**放在本工作区目录内**可能无法启动（文件沙箱会干扰 Chromium 子进程）。
    验收时把它复制到 `%TEMP%` 再运行。
 
+**日常启动用安装位，不要用 `release\win-unpacked`**：直接跑那里的 exe 会**静默秒退**
+（无窗口、无日志、事件日志无崩溃记录），和工作区那条是同一个根因。装到用户目录后一切正常：
+
+```powershell
+robocopy release\win-unpacked "$env:LOCALAPPDATA\Programs\Meerkat" /E
+& "$env:LOCALAPPDATA\Programs\Meerkat\Meerkat.exe"
+```
+
+用户数据在 `%APPDATA%\Meerkat`（数据库、日志、加密密钥），与 exe 位置无关，
+所以重装/换位置不会丢数据。开机自启注册的是实际运行的那个路径。
+
 **渲染层自测**：`pnpm build` 后用 `scripts/serve-static.cjs` 起静态服务，
 再用 Chrome headless 截图 `out/renderer/`，可快速验证 UI。
 

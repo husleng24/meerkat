@@ -295,11 +295,60 @@ issuer: https://platform.deepseek.com   →  官方平台 Key
 
 ## 七、可复现的命令
 ```powershell
-pnpm test              # 135 个单元测试
+pnpm test              # 204 个单元测试（14 个文件）
 pnpm typecheck         # 类型检查
 pnpm verify:node       # 纯 Node 自检（开发布局）
 pnpm verify:node release\win-unpacked   # 纯 Node 自检（打包布局）
 pnpm e2e               # 端到端（真实网络 + 真实模型，约 2 分钟）
 pnpm verify:packaged   # 打包后原生模块 + asar 布局
 pnpm verify:app        # Electron 自检（本机跑不起来，你那边可以）
+
+# 装到用户目录再启动（不要直接跑 release\win-unpacked，会静默秒退）
+robocopy release\win-unpacked "$env:LOCALAPPDATA\Programs\Meerkat" /E
+& "$env:LOCALAPPDATA\Programs\Meerkat\Meerkat.exe"
 ```
+
+---
+
+## 八、首次从安装位启动（2026-10-31 17:34）
+
+补上一直没做的那步：**在真实用户目录下走一遍完整首启**，而不是临时目录。
+
+### 又踩到启动位置这个坑
+
+| 位置 | 结果 |
+|---|---|
+| `release\win-unpacked\Meerkat.exe` | ❌ **静默秒退**：无窗口、stdout/stderr 全空、事件日志无 Application Error |
+| `%LOCALAPPDATA%\Programs\Meerkat\Meerkat.exe` | ✅ 正常 |
+
+和工作区那条是同一个根因（文件沙箱干扰 Chromium 子进程初始化），只是这次没有报错，
+连崩溃记录都没有——所以只能靠"换个位置再试"来判定。
+
+**结论**：`release\win-unpacked` 是打包产物，不是可运行位置。日常启动走安装位。
+
+### 首启结果（全新 userData）
+
+```
+sources: 35   items: 0   briefs: 0   runs: 0
+```
+
+| 项 | 结果 |
+|---|---|
+| 源配置灌入 | ✅ 35 个 |
+| 托盘图标 | ✅ `bounds=1384,1094,33x49` |
+| 通知可用 | ✅ `isSupported=true` |
+| 开机自启 | ✅ 写入并指向实际运行路径 |
+| 数据库 | ✅ `%APPDATA%\Meerkat\meerkat.db` 自动创建 |
+| 界面 | ⚠️ 显示**内置样例**，底部标注「示例数据 · 还没有简报」 |
+
+界面显示样例是因为库里确实没有简报——这个标注是诚实的设计，不是 bug。
+要真数据点「设置 → 立即采集」，约 2 分钟。
+
+![首次启动](assets/first-run.png)
+
+### 一处需要记住的副作用
+
+开机自启注册的是**实际运行的那个 exe 路径**。从 `%TEMP%` 跑一次，注册表就会被改成临时路径，
+临时目录清理后自启失效。所以验收时如果开着自启，跑完要从安装位再启一次。
+
+---
