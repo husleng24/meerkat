@@ -24,7 +24,14 @@ const TITLES: Record<string, string> = {
 export default function App(): React.JSX.Element {
   // 指定日期时读历史简报；null 表示最新一期
   const [viewDate, setViewDate] = useState<string | null>(null)
-  const { topics, activeId, setActiveId, create: createTopic, available: topicsAvailable } = useTopics()
+  const {
+    topics,
+    activeId,
+    setActiveId,
+    create: createTopic,
+    reload: reloadTopics,
+    available: topicsAvailable
+  } = useTopics()
   const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(
     viewDate,
     activeId || undefined
@@ -136,7 +143,14 @@ export default function App(): React.JSX.Element {
             />
           )}
 
-          {nav === 'settings' && <SettingsPage topicId={activeId} />}
+          {nav === 'settings' && (
+            <SettingsPage
+              topicId={activeId}
+              topics={topics}
+              onPickTopic={setActiveId}
+              onTopicsChanged={reloadTopics}
+            />
+          )}
 
           {nav === 'onboarding' && (
             <Onboarding sourceCount={summary.total} createTopic={createTopic} onDone={() => go('today')} />

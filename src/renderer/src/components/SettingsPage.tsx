@@ -4,6 +4,8 @@ import type { AutoLaunchState, KeyStatusPayload } from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
+import { TopicManager } from './TopicManager'
+import type { TopicPayload } from '../lib/ipc-types'
 import type { SchedulePayload } from '../lib/ipc-types'
 
 const DEFAULT: SchedulePayload = { enabled: true, hour: 8, minute: 30, lastRunAt: null }
@@ -14,7 +16,17 @@ type Phase = 'idle' | 'running' | 'done' | 'error'
  * 设置页。三件事：排程、手动跑一次、导出。
  * 没有"主题""语言"这类装饰性设置——这个应用的设置项应该少到一个屏幕放得下。
  */
-export function SettingsPage({ topicId }: { topicId: string }): React.JSX.Element {
+export function SettingsPage({
+  topicId,
+  topics,
+  onPickTopic,
+  onTopicsChanged
+}: {
+  topicId: string
+  topics: TopicPayload[]
+  onPickTopic: (id: string) => void
+  onTopicsChanged: () => void
+}): React.JSX.Element {
   const [cfg, setCfg] = useState<SchedulePayload>(DEFAULT)
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -122,6 +134,19 @@ export function SettingsPage({ topicId }: { topicId: string }): React.JSX.Elemen
 
   return (
     <div className="mx-auto max-w-[680px] px-10 pb-24 pt-8">
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">主题</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          一个主题有自己的一组源、一套排程和一条简报。切到哪个主题，今日与时间线就显示哪一个。
+        </p>
+        <TopicManager
+          topics={topics}
+          activeId={topicId}
+          onPick={onPickTopic}
+          onChanged={onTopicsChanged}
+        />
+      </section>
+
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">每日排程</h2>
         <p className="mb-4 text-[12px] text-ink-3">
