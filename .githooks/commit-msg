@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Commit subjects must be English (see AGENTS.md).
+#
+# In the C locale, multi-byte UTF-8 (Chinese, and anything else non-ASCII)
+# fails the [:print:] class, so this rejects CJK without needing grep -P.
+# Body lines are not checked: a Chinese quote inside the body is fine.
+#
+subject=$(head -n 1 "$1")
+
+if printf '%s' "$subject" | LC_ALL=C grep -q '[^[:print:][:space:]]'; then
+  printf '\n  ✗ commit subject must be English.\n\n' >&2
+  printf '    got: %s\n\n' "$subject" >&2
+  printf '    Rule:   AGENTS.md -> "Commit messages are written in English"\n' >&2
+  printf '    Body may stay Chinese; only the subject line is checked.\n\n' >&2
+  exit 1
+fi
+
+exit 0
