@@ -37,16 +37,9 @@ export function Sidebar({
   dateLabel
 }: Props): React.JSX.Element {
   return (
-    <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-6">
-      <div className="flex items-center gap-2.5 px-2">
-        <img src="./icon-meerkat-64.png" alt="" className="h-8 w-8 rounded-[10px]" />
-        <div className="leading-tight">
-          <div className="text-[13.5px] font-bold tracking-[-0.02em] text-ink">Meerkat</div>
-          <div className="text-[10px] tracking-[0.06em] text-ink-3">替你盯着</div>
-        </div>
-      </div>
-
-      <nav className="mt-7 flex flex-col gap-0.5">
+    <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
+      {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
+      <nav className="mt-2 flex flex-col gap-0.5">
         {NAV.map((n) => {
           const isActive = n.id === active
           return (
