@@ -10,6 +10,7 @@ import { useBriefData } from './lib/useBriefData'
 import { useSortedSources, useSources } from './lib/useSources'
 import { useFlags } from './lib/useFlags'
 import { useEffect } from 'react'
+import { ShortcutHelp } from './components/ShortcutHelp'
 
 const TITLES: Record<string, string> = {
   search: '搜索',
@@ -29,6 +30,7 @@ export default function App(): React.JSX.Element {
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
   const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
+  const [helpOpen, setHelpOpen] = useState(false)
   const [nav, setNav] = useState<string>(() => {
     const head = hashParts[0]
     // 未知路由一律回落到今日，避免深链写错时界面一片空白
@@ -49,6 +51,12 @@ export default function App(): React.JSX.Element {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         go('search')
+      }
+      // 输入框里打问号是正常输入，不能抢
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (e.key === '?' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault()
+        setHelpOpen((v) => !v)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -143,6 +151,8 @@ export default function App(): React.JSX.Element {
           )}
         </div>
       </main>
+
+      <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   )
 }

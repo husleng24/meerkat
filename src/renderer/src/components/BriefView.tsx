@@ -199,23 +199,9 @@ export function BriefView({ brief, flags, comparison, previousDate }: Props): Re
         </section>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-ink-3">
-        <span>
-          <Kbd>j</Kbd>
-          <Kbd>k</Kbd> 上下
-        </span>
-        <span>
-          <Kbd>s</Kbd> 收藏
-        </span>
-        <span>
-          <Kbd>o</Kbd> 打开
-        </span>
-        <span>
-          <Kbd>m</Kbd> 已读
-        </span>
-        <span>
-          <Kbd>h</Kbd> 隐藏
-        </span>
+      <div className="mt-5 flex items-center gap-2 text-[11px] text-ink-3">
+        <Kbd>?</Kbd>
+        <span>查看全部快捷键</span>
         <span className="ml-auto tabular-nums">
           已读 {flags.counts.read} / {allItems.length} · 收藏 {flags.counts.saved}
         </span>
