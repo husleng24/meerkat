@@ -116,13 +116,27 @@ export function closeStore(): void {
 export function registerIpc(): void {
   ipcMain.handle('app:ping', () => ({ ok: true, version: app.getVersion(), ts: Date.now() }))
 
-  /** 简报正文只有 URL，界面要靠它反查条目 id 才能持久化已读/收藏 */
+  /**
+   * 简报正文只有 URL，界面要靠它反查条目 id 才能持久化已读/收藏。
+   *
+   * previous 一并给出：界面要拿它做「和昨天比」。放在同一个响应里而不是
+   * 单开一个 handler，是为了避免两次 IPC 之间库里刚好写了新简报、两期对不上。
+   */
   const buildBriefPayload = (b: ReturnType<Store['briefs']['latest']>): unknown => {
     if (!b) return null
     const s = requireStore()
     const urlToId: Record<string, string> = {}
     for (const it of s.items.since(b.createdAt - 7 * 86_400_000, 1000)) urlToId[it.url] = it.id
-    return { date: b.date, markdown: b.markdown, model: b.model, linkCheck: b.linkCheck, urlToId }
+    // 上一期＝日期更早的最近一份；首期没有就是 null
+    const prev = s.briefs.list(60).find((x) => x.date < b.date)
+    return {
+      date: b.date,
+      markdown: b.markdown,
+      model: b.model,
+      linkCheck: b.linkCheck,
+      urlToId,
+      previous: prev ? { date: prev.date, markdown: prev.markdown } : null
+    }
   }
 
   ipcMain.handle('brief:latest', () => buildBriefPayload(requireStore().briefs.latest()))

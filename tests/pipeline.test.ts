@@ -1,5 +1,6 @@
 ﻿import { describe, it, expect } from 'vitest'
-import { cleanHtml, canonicalUrl, titleKey, itemId } from '../src/core/pipeline/text'
+import { cleanHtml, canonicalUrl, titleKey } from '../src/core/pipeline/text'
+import { itemId } from '../src/core/pipeline/item-id'
 import { sequenceRatio } from '../src/core/pipeline/similarity'
 import { classifyBucket } from '../src/core/pipeline/classify'
 import { scoreItem } from '../src/core/pipeline/rank'

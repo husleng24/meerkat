@@ -3,7 +3,8 @@
  * 与 radar.py::_mk + main() 里"逐条 assign_bucket / score_item"两段等价。
  */
 import type { Item, RawItem, Source } from '../domain/types'
-import { cleanHtml, canonicalUrl, itemId } from './text'
+import { cleanHtml, canonicalUrl } from './text'
+import { itemId } from './item-id'
 import { classifyForSource } from './classify'
 import { scoreItem, type ScoreContext } from './rank'
 import { FORMULA_VERSION, itemTypeOf } from '../policy/ranking'

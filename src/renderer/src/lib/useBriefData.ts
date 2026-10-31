@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import sampleMd from '../assets/brief-sample.md?raw'
 import { parseBrief, type ParsedBrief } from '../lib/parseBrief'
+import { compareBriefs, type BriefComparison } from './compareBriefs'
 import type {} from './ipc-types'
 
 export interface BriefData {
@@ -13,6 +14,10 @@ export interface BriefData {
   bridgeAvailable: boolean
   /** URL → 条目 id；预览模式下为空，已读/收藏只在会话内有效 */
   urlToId: Record<string, string>
+  /** 与上一期的对比；首期或没有上一期时为 null */
+  comparison: BriefComparison | null
+  /** 上一期的日期，界面上写作「和 10-28 比」 */
+  previousDate: string
   /** 重新拉取（定时任务完成后调用） */
   reload: () => void
 }
@@ -27,6 +32,7 @@ export function useBriefData(date?: string | null): BriefData {
   const [urlToId, setUrlToId] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [origin, setOrigin] = useState<'ipc' | 'sample'>('sample')
+  const [previous, setPrevious] = useState<{ date: string; markdown: string } | null>(null)
   const [tick, setTick] = useState(0)
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
@@ -43,6 +49,7 @@ export function useBriefData(date?: string | null): BriefData {
         if (!cancelled && res?.markdown) {
           setRaw(res.markdown)
           setUrlToId(res.urlToId ?? {})
+          setPrevious(res.previous ?? null)
           setOrigin('ipc')
           setLoading(false)
           return
@@ -51,6 +58,7 @@ export function useBriefData(date?: string | null): BriefData {
         if (!cancelled && date) {
           setRaw('')
           setUrlToId({})
+          setPrevious(null)
           setLoading(false)
           return
         }
@@ -60,6 +68,7 @@ export function useBriefData(date?: string | null): BriefData {
       if (!cancelled) {
         setRaw(sampleMd)
         setUrlToId({})
+        setPrevious(null)
         setOrigin('sample')
         setLoading(false)
       }
@@ -78,6 +87,23 @@ export function useBriefData(date?: string | null): BriefData {
   }, [reload])
 
   const brief = useMemo(() => (raw ? parseBrief(raw) : null), [raw])
+
+  // 两期都在才算对比；样例数据没有上一期，所以浏览器预览里这块是隐藏的
+  const comparison = useMemo(() => {
+    if (!brief || !previous) return null
+    return compareBriefs(brief, parseBrief(previous.markdown))
+  }, [brief, previous])
+
   const bridgeAvailable = typeof window !== 'undefined' && window.meerkat !== undefined
-  return { brief, raw, loading, origin, bridgeAvailable, urlToId, reload }
+  return {
+    brief,
+    raw,
+    loading,
+    origin,
+    bridgeAvailable,
+    urlToId,
+    comparison,
+    previousDate: previous?.date ?? '',
+    reload
+  }
 }

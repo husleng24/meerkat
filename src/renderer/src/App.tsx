@@ -22,7 +22,7 @@ const TITLES: Record<string, string> = {
 export default function App(): React.JSX.Element {
   // 指定日期时读历史简报；null 表示最新一期
   const [viewDate, setViewDate] = useState<string | null>(null)
-  const { brief, loading, origin, bridgeAvailable, urlToId } = useBriefData(viewDate)
+  const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(viewDate)
   const flags = useFlags(brief, urlToId)
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
@@ -98,7 +98,14 @@ export default function App(): React.JSX.Element {
             <div className="px-10 py-16 text-[13px] text-ink-3">还没有简报</div>
           )}
 
-          {!loading && brief && nav === 'today' && <BriefView brief={brief} flags={flags} />}
+          {!loading && brief && nav === 'today' && (
+            <BriefView
+              brief={brief}
+              flags={flags}
+              comparison={comparison}
+              previousDate={previousDate}
+            />
+          )}
 
           {nav === 'search' && <SearchPage />}
 

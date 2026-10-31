@@ -1,8 +1,10 @@
 /**
  * 文本与 URL 归一化。与 Python 原型 radar.py 的对应函数保持逐行等价，
  * 差异只允许出现在语言特性上，不允许出现在行为上（有 golden test 兜底）。
+ *
+ * 这个模块必须保持"纯"：不能 import node:*，因为渲染层的「和昨天比」要复用
+ * titleKey / canonicalUrl。需要哈希的 itemId 在 ./item-id.ts。
  */
-import { createHash } from 'node:crypto'
 
 /** 去标签、解实体、压空白。对应 radar.py::clean_html */
 export function cleanHtml(s: string | null | undefined): string {
@@ -68,9 +70,4 @@ export function titleKey(t: string): string {
     .split(' ')
     .filter((w) => w.length > 0 && !STOP_WORDS.has(w))
     .join(' ')
-}
-
-/** 条目 id：sha1(规范化URL + 标题指纹) 取前 16 位。跨天去重的基石。 */
-export function itemId(url: string, title: string): string {
-  return createHash('sha1').update(canonicalUrl(url) + titleKey(title), 'utf8').digest('hex').slice(0, 16)
 }

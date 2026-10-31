@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ParsedBrief } from '../lib/parseBrief'
+import type { BriefComparison } from '../lib/compareBriefs'
 import type { FlagsApi } from '../lib/useFlags'
 import { ItemCard } from './ItemCard'
+import { CompareStrip } from './CompareStrip'
 
 interface Props {
   brief: ParsedBrief
   flags: FlagsApi
+  /** 与上一期的对比；没有上一期时为 null */
+  comparison: BriefComparison | null
+  previousDate: string
 }
 
 /** 从简报的元信息行里抠数字：覆盖最近 48 小时 · 34 个信息源 · 精选 24 条 */
@@ -36,7 +41,7 @@ function dateLine(raw: string | undefined): string {
  *
  * 键盘模型：j/k 上下、s 收藏、o 打开、m 已读、h 隐藏、g/G 首尾。
  */
-export function BriefView({ brief, flags }: Props): React.JSX.Element {
+export function BriefView({ brief, flags, comparison, previousDate }: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
   const [cursor, setCursor] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -125,6 +130,10 @@ export function BriefView({ brief, flags }: Props): React.JSX.Element {
           </span>
         )}
       </header>
+
+      {comparison && (
+        <CompareStrip comparison={comparison} previousDate={previousDate} onJump={(key) => scrollTo(key)} />
+      )}
 
       {brief.highlights.length > 0 && (
         <section className="card px-[22px] py-1">

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { BriefPayload } from '../renderer/src/lib/ipc-types'
 
 /**
  * 暴露给渲染进程的窄接口。
@@ -8,21 +9,12 @@ import { contextBridge, ipcRenderer } from 'electron'
 const api = {
   ping: (): Promise<{ ok: boolean; version: string; ts: number }> => ipcRenderer.invoke('app:ping'),
 
-  briefLatest: (): Promise<{
-    date: string
-    markdown: string
-    model: string
-    linkCheck?: string
-    urlToId?: Record<string, string>
-  } | null> => ipcRenderer.invoke('brief:latest'),
+  briefLatest: (): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:latest'),
 
   briefList: (): Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>> =>
     ipcRenderer.invoke('brief:list'),
 
-  briefByDate: (
-    date: string
-  ): Promise<{ date: string; markdown: string; model: string; linkCheck?: string; urlToId?: Record<string, string> } | null> =>
-    ipcRenderer.invoke('brief:get', date),
+  briefByDate: (date: string): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:get', date),
 
   flags: {
     get: (ids: string[]): Promise<Record<string, { isRead: boolean; isSaved: boolean; isHidden: boolean }>> =>

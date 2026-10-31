@@ -57,6 +57,8 @@ export interface BriefPayload {
   linkCheck?: string
   /** URL → 条目 id，供界面反查后持久化已读/收藏 */
   urlToId?: Record<string, string>
+  /** 上一期（日期更早的最近一份）；首期为 null，界面据此隐藏「和昨天比」 */
+  previous?: { date: string; markdown: string } | null
 }
 
 export interface ItemFlagState {
