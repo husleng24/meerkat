@@ -11,6 +11,7 @@ import { useSortedSources, useSources } from './lib/useSources'
 import { useFlags } from './lib/useFlags'
 import { useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
+import { useTopics } from './lib/useTopics'
 
 const TITLES: Record<string, string> = {
   search: '搜索',
@@ -23,7 +24,11 @@ const TITLES: Record<string, string> = {
 export default function App(): React.JSX.Element {
   // 指定日期时读历史简报；null 表示最新一期
   const [viewDate, setViewDate] = useState<string | null>(null)
-  const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(viewDate)
+  const { topics, activeId, setActiveId, create: createTopic, available: topicsAvailable } = useTopics()
+  const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(
+    viewDate,
+    activeId || undefined
+  )
   const flags = useFlags(brief, urlToId)
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
@@ -67,6 +72,10 @@ export default function App(): React.JSX.Element {
     <div className="flex h-full overflow-hidden">
       <Sidebar
         active={nav}
+        topics={topics}
+        activeTopic={activeId}
+        onPickTopic={setActiveId}
+        topicsAvailable={topicsAvailable}
         onNavigate={go}
         itemCount={itemCount}
         savedCount={flags.counts.saved}
@@ -127,12 +136,15 @@ export default function App(): React.JSX.Element {
             />
           )}
 
-          {nav === 'settings' && <SettingsPage />}
+          {nav === 'settings' && <SettingsPage topicId={activeId} />}
 
-          {nav === 'onboarding' && <Onboarding sourceCount={summary.total} onDone={() => go('today')} />}
+          {nav === 'onboarding' && (
+            <Onboarding sourceCount={summary.total} createTopic={createTopic} onDone={() => go('today')} />
+          )}
 
           {nav === 'timeline' && (
             <TimelinePage
+              topicId={activeId || undefined}
               current={dateLabel}
               onOpen={(d) => {
                 setViewDate(d)

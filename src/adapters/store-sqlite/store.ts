@@ -1,9 +1,9 @@
 import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
-  Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions
+  Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore
 } from '../../core/ports/store'
-import type { Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier } from '../../core/domain/types'
+import type { Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic } from '../../core/domain/types'
 
 const now = (): number => Date.now()
 const bool = (v: unknown): boolean => v === 1 || v === true
@@ -35,6 +35,10 @@ interface FlagRow {
   briefed_at: number | null; noted_at: number | null
 }
 interface SettingRow { key: string; value: string }
+interface TopicRow {
+  id: string; name: string; enabled: number; hour: number; minute: number
+  created_at: number; updated_at: number
+}
 
 const toSource = (r: SourceRow): Source => ({
   id: r.id,
@@ -73,6 +77,16 @@ const toItem = (r: ItemRow): Item => ({
   ...(r.comments !== null ? { comments: r.comments } : {}),
   alsoIn: safeParseArray(r.also_in),
   fetchedAt: r.fetched_at
+})
+
+const toTopic = (r: TopicRow): Topic => ({
+  id: r.id,
+  name: r.name,
+  enabled: bool(r.enabled),
+  hour: r.hour,
+  minute: r.minute,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
 })
 
 const toBrief = (r: BriefRow): Brief => ({
@@ -231,21 +245,34 @@ class SqliteItemStore implements ItemStore {
     return rows.map(toItem)
   }
 
-  briefedIds(sinceTs: number): Set<string> {
-    const rows = this.db
-      .prepare('SELECT item_id FROM item_flags WHERE briefed_at IS NOT NULL AND briefed_at >= ?')
-      .all(sinceTs) as { item_id: string }[]
+  /** 已推送按 (主题, 条目) 记：A 主题推过的，B 主题仍可以推 */
+  briefedIds(sinceTs: number, topicId?: string): Set<string> {
+    const rows = (
+      topicId
+        ? this.db
+            .prepare('SELECT item_id FROM brief_items WHERE topic_id = ? AND briefed_at >= ?')
+            .all(topicId, sinceTs)
+        : this.db.prepare('SELECT item_id FROM brief_items WHERE briefed_at >= ?').all(sinceTs)
+    ) as { item_id: string }[]
     return new Set(rows.map((r) => r.item_id))
   }
 
-  markBriefed(ids: string[], ts: number): void {
+  markBriefed(ids: string[], ts: number, topicId = 'ai'): void {
     if (ids.length === 0) return
     const stmt = this.db.prepare(`
+      INSERT INTO brief_items (topic_id, item_id, briefed_at) VALUES (?, ?, ?)
+      ON CONFLICT(topic_id, item_id) DO UPDATE SET briefed_at=excluded.briefed_at
+    `)
+    // 冗余写一份到 item_flags：界面与诊断包还在读它（"这条属于哪一期"由 brief_items 负责）
+    const flag = this.db.prepare(`
       INSERT INTO item_flags (item_id, briefed_at, noted_at) VALUES (?, ?, ?)
       ON CONFLICT(item_id) DO UPDATE SET briefed_at=excluded.briefed_at
     `)
     this.db.transaction((list: string[]) => {
-      for (const id of list) stmt.run(id, ts, ts)
+      for (const id of list) {
+        stmt.run(topicId, id, ts)
+        flag.run(id, ts, ts)
+      }
     })(ids)
   }
 
@@ -302,9 +329,9 @@ class SqliteBriefStore implements BriefStore {
       .prepare(
         `INSERT INTO briefs (id,date,topic_id,markdown,ir_json,model,tokens_in,tokens_out,link_check,created_at)
          VALUES (@id,@date,@topic_id,@markdown,@ir_json,@model,@tokens_in,@tokens_out,@link_check,@created_at)
-         ON CONFLICT(id) DO UPDATE SET markdown=excluded.markdown, ir_json=excluded.ir_json,
-           model=excluded.model, tokens_in=excluded.tokens_in, tokens_out=excluded.tokens_out,
-           link_check=excluded.link_check`
+         ON CONFLICT(id) DO UPDATE SET topic_id=excluded.topic_id, markdown=excluded.markdown,
+           ir_json=excluded.ir_json, model=excluded.model, tokens_in=excluded.tokens_in,
+           tokens_out=excluded.tokens_out, link_check=excluded.link_check`
       )
       .run({
         id: b.id, date: b.date, topic_id: b.topicId, markdown: b.markdown,
@@ -313,23 +340,82 @@ class SqliteBriefStore implements BriefStore {
         link_check: b.linkCheck ?? null, created_at: b.createdAt
       })
   }
-  latest(): Brief | undefined {
-    const r = this.db.prepare('SELECT * FROM briefs ORDER BY date DESC, created_at DESC LIMIT 1').get() as
-      | BriefRow
-      | undefined
+  latest(topicId?: string): Brief | undefined {
+    const r = (
+      topicId
+        ? this.db
+            .prepare('SELECT * FROM briefs WHERE topic_id = ? ORDER BY date DESC, created_at DESC LIMIT 1')
+            .get(topicId)
+        : this.db.prepare('SELECT * FROM briefs ORDER BY date DESC, created_at DESC LIMIT 1').get()
+    ) as BriefRow | undefined
     return r ? toBrief(r) : undefined
   }
-  byDate(date: string): Brief | undefined {
-    const r = this.db
-      .prepare('SELECT * FROM briefs WHERE date = ? ORDER BY created_at DESC LIMIT 1')
-      .get(date) as BriefRow | undefined
+  byDate(date: string, topicId?: string): Brief | undefined {
+    const r = (
+      topicId
+        ? this.db
+            .prepare('SELECT * FROM briefs WHERE date = ? AND topic_id = ? ORDER BY created_at DESC LIMIT 1')
+            .get(date, topicId)
+        : this.db.prepare('SELECT * FROM briefs WHERE date = ? ORDER BY created_at DESC LIMIT 1').get(date)
+    ) as BriefRow | undefined
     return r ? toBrief(r) : undefined
   }
-  list(limit = 30): Brief[] {
-    const rows = this.db
-      .prepare('SELECT * FROM briefs ORDER BY date DESC, created_at DESC LIMIT ?')
-      .all(limit) as BriefRow[]
+  list(limit = 30, topicId?: string): Brief[] {
+    const rows = (
+      topicId
+        ? this.db
+            .prepare('SELECT * FROM briefs WHERE topic_id = ? ORDER BY date DESC, created_at DESC LIMIT ?')
+            .all(topicId, limit)
+        : this.db.prepare('SELECT * FROM briefs ORDER BY date DESC, created_at DESC LIMIT ?').all(limit)
+    ) as BriefRow[]
     return rows.map(toBrief)
+  }
+}
+
+class SqliteTopicStore implements TopicStore {
+  constructor(private db: DB) {}
+  list(): Topic[] {
+    const rows = this.db.prepare('SELECT * FROM topics ORDER BY created_at ASC').all() as TopicRow[]
+    return rows.map(toTopic)
+  }
+  get(id: string): Topic | undefined {
+    const r = this.db.prepare('SELECT * FROM topics WHERE id = ?').get(id) as TopicRow | undefined
+    return r ? toTopic(r) : undefined
+  }
+  upsert(t: Topic): void {
+    this.db
+      .prepare(
+        `INSERT INTO topics (id,name,enabled,hour,minute,created_at,updated_at)
+         VALUES (@id,@name,@enabled,@hour,@minute,@created_at,@updated_at)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, enabled=excluded.enabled,
+           hour=excluded.hour, minute=excluded.minute, updated_at=excluded.updated_at`
+      )
+      .run({
+        id: t.id, name: t.name, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
+        created_at: t.createdAt, updated_at: t.updatedAt
+      })
+  }
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM topics WHERE id = ?').run(id)
+  }
+  sourceIds(topicId: string): string[] {
+    const rows = this.db.prepare('SELECT source_id FROM topic_sources WHERE topic_id = ?').all(topicId) as {
+      source_id: string
+    }[]
+    return rows.map((r) => r.source_id)
+  }
+  setSources(topicId: string, sourceIds: string[]): void {
+    const ins = this.db.prepare('INSERT OR IGNORE INTO topic_sources (topic_id, source_id) VALUES (?, ?)')
+    this.db.transaction((ids: string[]) => {
+      this.db.prepare('DELETE FROM topic_sources WHERE topic_id = ?').run(topicId)
+      for (const id of ids) ins.run(topicId, id)
+    })(sourceIds)
+  }
+  addSource(topicId: string, sourceId: string): void {
+    this.db.prepare('INSERT OR IGNORE INTO topic_sources (topic_id, source_id) VALUES (?, ?)').run(topicId, sourceId)
+  }
+  removeSource(topicId: string, sourceId: string): void {
+    this.db.prepare('DELETE FROM topic_sources WHERE topic_id = ? AND source_id = ?').run(topicId, sourceId)
   }
 }
 
@@ -425,6 +511,7 @@ class SqliteSettingsStore implements SettingsStore {
 
 class SqliteStore implements Store {
   readonly sources: SourceStore
+  readonly topics: TopicStore
   readonly items: ItemStore
   readonly briefs: BriefStore
   readonly runs: RunStore
@@ -433,6 +520,7 @@ class SqliteStore implements Store {
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
+    this.topics = new SqliteTopicStore(db)
     this.items = new SqliteItemStore(db)
     this.briefs = new SqliteBriefStore(db)
     this.runs = new SqliteRunStore(db)
@@ -448,11 +536,32 @@ class SqliteStore implements Store {
   }
 }
 
+/**
+ * 保底主题：迁移会给老库建 'ai'，但全新的库要等这次调用。
+ *
+ * 放在仓储工厂而不是 app 层，是因为 brief_items.topic_id 有外键——
+ * 任何写「已推送」的路径都必须先有一个主题存在，否则写入直接失败。
+ */
+function ensureDefaultTopic(store: Store): Store {
+  if (store.topics.list().length > 0) return store
+  const now = Date.now()
+  store.topics.upsert({
+    id: 'ai',
+    name: 'AI 综合',
+    enabled: true,
+    hour: 8,
+    minute: 30,
+    createdAt: now,
+    updatedAt: now
+  })
+  return store
+}
+
 export function createStore(file: string): Store {
-  return new SqliteStore(openDatabase(file))
+  return ensureDefaultTopic(new SqliteStore(openDatabase(file)))
 }
 
 /** 测试用：内存库 */
 export function createMemoryStore(): Store {
-  return new SqliteStore(openDatabase(':memory:'))
+  return ensureDefaultTopic(new SqliteStore(openDatabase(':memory:')))
 }

@@ -7,7 +7,7 @@
  * 运行：
  *   pnpm prep-schedule          # 2 分钟后
  *   pnpm prep-schedule 5        # 5 分钟后
- *   pnpm prep-schedule 2 --db ./data/meerkat.db
+ *   pnpm prep-schedule 2 --topic ai --db ./data/meerkat.db
  *
  * 应用必须处于运行状态（它每分钟读一次排程）；脚本只写 settings，不负责触发。
  */
@@ -15,9 +15,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { createStore } from '../src/adapters/store-sqlite/store'
-import { writeSchedule } from '../src/main/scheduler'
-
-const LAST_RUN_KEY = 'schedule.lastRunAt'
+import { lastRunKey, writeSchedule } from '../src/main/scheduler'
 
 /** 与 Electron 的 app.getPath('userData') 对齐：应用名来自 package.json 的 name */
 function defaultDbPath(): string {
@@ -39,6 +37,7 @@ function argValue(argv: string[], flag: string): string | undefined {
 }
 
 const argv = process.argv.slice(2)
+const topicId = argValue(argv, '--topic') ?? 'ai'
 const minutes = Number(argv.find((a) => !a.startsWith('-') && a !== argValue(argv, '--db')) ?? '2')
 if (!Number.isFinite(minutes) || minutes < 1 || minutes > 720) {
   console.error('分钟数要在 1..720 之间，例如：pnpm prep-schedule 2')
@@ -55,9 +54,13 @@ const at = new Date(Date.now() + minutes * 60_000)
 const cfg = { enabled: true, hour: at.getHours(), minute: at.getMinutes() }
 
 const store = createStore(dbPath)
-writeSchedule(store, cfg)
+if (!store.topics.get(topicId)) {
+  console.error(`主题不存在：${topicId}（先启动一次 Meerkat，或换 --topic）`)
+  process.exit(1)
+}
+writeSchedule(store, topicId, cfg)
 // 手动清掉上次运行时间：否则"今天这个点已经跑过"会让定时器判定为 already-ran
-store.settings.set(LAST_RUN_KEY, 0)
+store.settings.set(lastRunKey(topicId), 0)
 store.close()
 
 const hh = String(cfg.hour).padStart(2, '0')

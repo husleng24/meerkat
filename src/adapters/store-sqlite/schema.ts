@@ -121,6 +121,54 @@ export const MIGRATIONS: Migration[] = [
         VALUES (new.rowid, new.title, new.summary);
       END;
     `
+  },
+  {
+    version: 2,
+    name: 'topics',
+    up: `
+      -- 主题：一个主题 = 一组源 + 一套排程 + 一条独立简报
+      CREATE TABLE topics (
+        id         TEXT PRIMARY KEY,
+        name       TEXT    NOT NULL,
+        enabled    INTEGER NOT NULL DEFAULT 1,
+        hour       INTEGER NOT NULL DEFAULT 8,
+        minute     INTEGER NOT NULL DEFAULT 30,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 源是全局的（健康度按源算），归属按主题算：一个源可以同时在多个主题里
+      CREATE TABLE topic_sources (
+        topic_id  TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        PRIMARY KEY (topic_id, source_id),
+        FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE
+      );
+
+      -- 「这条推送过」必须按主题记：A 主题推过的内容，B 主题还得能推
+      CREATE TABLE brief_items (
+        topic_id   TEXT    NOT NULL,
+        item_id    TEXT    NOT NULL,
+        briefed_at INTEGER NOT NULL,
+        PRIMARY KEY (topic_id, item_id),
+        FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_brief_items_time ON brief_items(briefed_at);
+
+      -- 回填：既有数据全部归到「AI 综合」，用户升级后看到的仍是同一条简报
+      INSERT INTO topics (id, name, enabled, hour, minute, created_at, updated_at)
+      VALUES ('ai', 'AI 综合', 1, 8, 30,
+              CAST(strftime('%s','now') AS INTEGER) * 1000,
+              CAST(strftime('%s','now') AS INTEGER) * 1000);
+
+      INSERT INTO topic_sources (topic_id, source_id) SELECT 'ai', id FROM sources;
+      UPDATE briefs SET topic_id = 'ai' WHERE topic_id = 'default';
+
+      INSERT INTO brief_items (topic_id, item_id, briefed_at)
+      SELECT 'ai', item_id, briefed_at FROM item_flags WHERE briefed_at IS NOT NULL;
+    `
   }
 ]
 

@@ -3,6 +3,7 @@ import { describeNext, describeSchedule, type ScheduleConfig } from '../../../ap
 import type { AutoLaunchState, KeyStatusPayload } from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
+import { TopicSources } from './TopicSources'
 import type { SchedulePayload } from '../lib/ipc-types'
 
 const DEFAULT: SchedulePayload = { enabled: true, hour: 8, minute: 30, lastRunAt: null }
@@ -13,7 +14,7 @@ type Phase = 'idle' | 'running' | 'done' | 'error'
  * 设置页。三件事：排程、手动跑一次、导出。
  * 没有"主题""语言"这类装饰性设置——这个应用的设置项应该少到一个屏幕放得下。
  */
-export function SettingsPage(): React.JSX.Element {
+export function SettingsPage({ topicId }: { topicId: string }): React.JSX.Element {
   const [cfg, setCfg] = useState<SchedulePayload>(DEFAULT)
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -21,10 +22,10 @@ export function SettingsPage(): React.JSX.Element {
 
   useEffect(() => {
     const api = window.meerkat?.schedule
-    if (!api) return
+    if (!api || !topicId) return
     let cancelled = false
     void api
-      .get()
+      .get(topicId)
       .then((res) => {
         if (!cancelled) {
           setCfg(res)
@@ -35,17 +36,17 @@ export function SettingsPage(): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [topicId])
 
   const save = useCallback(
     async (next: ScheduleConfig & { enabled: boolean }) => {
       setCfg((prev) => ({ ...prev, ...next }))
       const api = window.meerkat?.schedule
-      if (!api) return
-      const res = await api.set(next)
+      if (!api || !topicId) return
+      const res = await api.set({ topicId, ...next })
       if (!res.ok) setMessage(res.error ?? '保存失败')
     },
-    []
+    [topicId]
   )
 
   const runNow = useCallback(async () => {
@@ -57,7 +58,7 @@ export function SettingsPage(): React.JSX.Element {
     setPhase('running')
     setMessage('正在采集并生成简报，可能需要 1–2 分钟…')
     try {
-      const r = await api()
+      const r = await api(topicId || undefined)
       setPhase('done')
       setMessage(`完成：${r.nOk}/${r.nSources} 源成功，入库 ${r.nKept} 条${r.degraded ? '（简报已降级）' : ''}`)
       setCfg((prev) => ({ ...prev, lastRunAt: Date.now() }))
@@ -180,6 +181,14 @@ export function SettingsPage(): React.JSX.Element {
             </span>
           </div>
         </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的源</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          只有勾选的源会参与这个主题的采集。不同主题可以各选各的，源的健康度仍然全局共享。
+        </p>
+        <TopicSources topicId={topicId} />
       </section>
 
       <section className="mb-8">

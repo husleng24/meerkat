@@ -168,4 +168,61 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('sources:list 在空库上返回数组而不是 undefined', () => {
     expect(Array.isArray(call('sources:list'))).toBe(true)
   })
+
+  it('topics:list 至少包含默认主题', () => {
+    const list = call('topics:list') as Array<{ id: string; sourceCount: number }>
+    expect(list.some((t) => t.id === 'ai')).toBe(true)
+    expect(typeof list[0]!.sourceCount).toBe('number')
+  })
+
+  it('topics:create 拒绝非法入参', () => {
+    expect(call('topics:create', {})).toEqual({ ok: false, error: '参数非法' })
+    expect(call('topics:create', { id: '', name: 'x' })).toEqual({ ok: false, error: '参数非法' })
+    expect(call('topics:create', { id: 'chip', name: 'x'.repeat(31) })).toEqual({
+      ok: false,
+      error: '参数非法'
+    })
+  })
+
+  it('topics:create 成功后出现在列表里，重复创建被拒', () => {
+    expect(call('topics:create', { id: 'chip', name: '芯片与算力' })).toEqual({ ok: true, id: 'chip' })
+    expect(call('topics:create', { id: 'chip', name: '芯片' })).toEqual({
+      ok: false,
+      error: '主题已存在'
+    })
+    const list = call('topics:list') as Array<{ id: string }>
+    expect(list.map((t) => t.id)).toContain('chip')
+  })
+
+  it('topics:update / remove 校验目标存在', () => {
+    expect(call('topics:update', { id: 'nope', name: 'x' })).toEqual({
+      ok: false,
+      error: '主题不存在'
+    })
+    expect(call('topics:remove', 'nope')).toEqual({ ok: false, error: '主题不存在' })
+  })
+
+  it('topics:remove 拒绝删掉最后一个主题', () => {
+    // 现在有 ai 和 chip；先删 chip，再删 ai 必须被拦住
+    expect(call('topics:remove', 'chip')).toEqual({ ok: true })
+    expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个主题' })
+  })
+
+  it('topics:setSources 拒绝不存在的主题', () => {
+    expect(call('topics:setSources', { topicId: 'nope', sourceIds: [] })).toEqual({
+      ok: false,
+      error: '主题不存在'
+    })
+  })
+
+  it('schedule:set 必须带 topicId', () => {
+    expect(call('schedule:set', { enabled: true, hour: 8, minute: 30 })).toEqual({
+      ok: false,
+      error: '参数非法'
+    })
+    expect(call('schedule:set', { topicId: 'nope', enabled: true, hour: 8, minute: 30 })).toEqual({
+      ok: false,
+      error: '主题不存在'
+    })
+  })
 })

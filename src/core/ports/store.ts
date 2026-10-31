@@ -4,7 +4,7 @@
  * 设计取舍：方法全部同步。better-sqlite3 是同步 API，本地单文件库延迟在微秒级，
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
-import type { Item, ItemFlags, Brief, RunRecord, Source } from '../domain/types'
+import type { Item, ItemFlags, Brief, RunRecord, Source, Topic } from '../domain/types'
 
 export interface SourceStore {
   list(): Source[]
@@ -32,19 +32,32 @@ export interface ItemStore {
   get(id: string): Item | undefined
   /** 按发布时间倒序，取窗口内的条目 */
   since(ts: number, limit?: number): Item[]
-  /** 已写过简报的条目 id，用于增量过滤 */
-  briefedIds(sinceTs: number): Set<string>
-  markBriefed(ids: string[], ts: number): void
+  /** 已写过简报的条目 id；按主题过滤，不同主题互不吞并 */
+  briefedIds(sinceTs: number, topicId?: string): Set<string>
+  markBriefed(ids: string[], ts: number, topicId?: string): void
   /** 全文检索；空查询返回空数组 */
   search(query: string, opts?: SearchOptions): Item[]
   count(): number
 }
 
+export interface TopicStore {
+  list(): Topic[]
+  get(id: string): Topic | undefined
+  upsert(topic: Topic): void
+  remove(id: string): void
+  /** 主题收录的源 id；没有归属的源不会参与这个主题的采集 */
+  sourceIds(topicId: string): string[]
+  setSources(topicId: string, sourceIds: string[]): void
+  addSource(topicId: string, sourceId: string): void
+  removeSource(topicId: string, sourceId: string): void
+}
+
 export interface BriefStore {
   save(brief: Brief): void
-  latest(): Brief | undefined
-  byDate(date: string): Brief | undefined
-  list(limit?: number): Brief[]
+  /** 不传 topicId 时不限主题（诊断与旧脚本用） */
+  latest(topicId?: string): Brief | undefined
+  byDate(date: string, topicId?: string): Brief | undefined
+  list(limit?: number, topicId?: string): Brief[]
 }
 
 export interface RunStore {
@@ -68,6 +81,7 @@ export interface SettingsStore {
 
 export interface Store {
   sources: SourceStore
+  topics: TopicStore
   items: ItemStore
   briefs: BriefStore
   runs: RunStore

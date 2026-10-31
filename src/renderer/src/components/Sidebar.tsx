@@ -1,5 +1,11 @@
+import type { TopicPayload } from '../lib/ipc-types'
+
 interface Props {
   active: string
+  topics: TopicPayload[]
+  activeTopic: string
+  onPickTopic: (id: string) => void
+  topicsAvailable: boolean
   onNavigate: (id: string) => void
   itemCount: number
   savedCount: number
@@ -27,6 +33,10 @@ const NAV = [
  */
 export function Sidebar({
   active,
+  topics,
+  activeTopic,
+  onPickTopic,
+  topicsAvailable,
   onNavigate,
   itemCount,
   savedCount,
@@ -39,6 +49,33 @@ export function Sidebar({
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
+      {topicsAvailable && topics.length > 0 && (
+        <div className="mb-1 px-1">
+          <label
+            htmlFor="topic-picker"
+            className="mb-1 block text-[10px] font-semibold tracking-[0.12em] text-ink-3"
+          >
+            主题
+          </label>
+          {topics.length > 1 ? (
+            <select
+              id="topic-picker"
+              value={activeTopic}
+              onChange={(e) => onPickTopic(e.target.value)}
+              className="w-full rounded-lg border border-rule bg-white px-2 py-1.5 text-[12.5px] font-medium text-ink outline-none focus:border-accent"
+            >
+              {topics.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="px-2 py-1 text-[12.5px] font-medium text-ink">{topics[0]!.name}</div>
+          )}
+        </div>
+      )}
+
       <nav className="mt-2 flex flex-col gap-0.5">
         {NAV.map((n) => {
           const isActive = n.id === active

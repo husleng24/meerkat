@@ -21,7 +21,7 @@ export interface DiagnosticExport {
 export function exportDiagnostic(store: Store): DiagnosticExport {
   try {
     const now = Date.now()
-    const cfg = readSchedule(store)
+    const cfg = readSchedule(store, store.topics.list()[0]?.id ?? '')
     const bundle = buildDiagnostic({
       appVersion: app.getVersion(),
       electronVersion: process.versions.electron ?? 'unknown',

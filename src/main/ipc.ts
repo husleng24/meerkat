@@ -15,9 +15,10 @@ import { summarizeProbe, type ProbeResult } from '../app/source-health'
 import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
+import { seedDefaultMembership } from '../app/topics'
 import { getApiKey } from './keystore'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
-import { exportBrief, readSchedule, writeSchedule } from './scheduler'
+import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
 import { runDaily } from './daily'
 import { resourcePath } from './paths'
@@ -51,11 +52,6 @@ export function seedSources(s: Store): number {
 
 const toggleSchema = z.object({ id: z.string().min(1), enabled: z.boolean() })
 const testOneSchema = z.string().min(1)
-const scheduleSchema = z.object({
-  enabled: z.boolean(),
-  hour: z.number().int().min(0).max(23),
-  minute: z.number().int().min(0).max(59)
-})
 const newSourceSchema = z.object({
   name: z.string().min(1).max(80),
   url: z.string().max(500).optional(),
@@ -78,6 +74,24 @@ const feedbackSchema = z.object({
 const feedbackTextSchema = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(20_000)
+})
+const topicIdSchema = z.string().min(1).max(40)
+const topicCreateSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(30),
+  /** 新主题默认收录的源；不传就是全部 */
+  sourceIds: z.array(z.string().min(1)).max(200).optional()
+})
+const topicUpdateSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(30).optional(),
+  enabled: z.boolean().optional()
+})
+const scheduleSetSchema = z.object({
+  topicId: z.string().min(1).max(40),
+  enabled: z.boolean(),
+  hour: z.number().int().min(0).max(23),
+  minute: z.number().int().min(0).max(59)
 })
 const exportDocSchema = z.object({
   html: z.string().min(1).max(2_000_000),
@@ -118,6 +132,8 @@ export function dailyDeps(): { apiKey: string; promptText: string } {
 export function initStore(dbPath: string): Store {
   store = createStore(dbPath)
   seedSources(store)
+  // 首次运行：把 35 个源挂到默认主题上（只做一次，用户删掉的不会复活）
+  seedDefaultMembership(store)
   return store
 }
 
@@ -140,10 +156,11 @@ export function registerIpc(): void {
     const s = requireStore()
     const urlToId: Record<string, string> = {}
     for (const it of s.items.since(b.createdAt - 7 * 86_400_000, 1000)) urlToId[it.url] = it.id
-    // 上一期＝日期更早的最近一份；首期没有就是 null
-    const prev = s.briefs.list(60).find((x) => x.date < b.date)
+    // 上一期＝同一主题里日期更早的最近一份；首期没有就是 null
+    const prev = s.briefs.list(60, b.topicId).find((x) => x.date < b.date)
     return {
       date: b.date,
+      topicId: b.topicId,
       markdown: b.markdown,
       model: b.model,
       linkCheck: b.linkCheck,
@@ -152,17 +169,28 @@ export function registerIpc(): void {
     }
   }
 
-  ipcMain.handle('brief:latest', () => buildBriefPayload(requireStore().briefs.latest()))
+  const briefTopicSchema = z.union([z.undefined(), topicIdSchema])
 
-  ipcMain.handle('brief:get', (_e, raw: unknown) => {
-    const d = z.string().max(20).safeParse(raw)
-    if (!d.success) return null
-    return buildBriefPayload(requireStore().briefs.byDate(d.data))
+  ipcMain.handle('brief:latest', (_e, raw: unknown) => {
+    const parsed = briefTopicSchema.safeParse(raw)
+    if (!parsed.success) return null
+    return buildBriefPayload(requireStore().briefs.latest(parsed.data))
   })
 
-  ipcMain.handle('brief:list', () =>
-    requireStore()
-      .briefs.list(60)
+  ipcMain.handle('brief:get', (_e, raw: unknown) => {
+    // 兼容两种入参：老调用只传日期，新调用带主题
+    const legacy = z.string().max(20).safeParse(raw)
+    if (legacy.success) return buildBriefPayload(requireStore().briefs.byDate(legacy.data))
+    const parsed = z.object({ date: z.string().max(20), topicId: topicIdSchema.optional() }).safeParse(raw)
+    if (!parsed.success) return null
+    return buildBriefPayload(requireStore().briefs.byDate(parsed.data.date, parsed.data.topicId))
+  })
+
+  ipcMain.handle('brief:list', (_e, raw: unknown) => {
+    const parsed = briefTopicSchema.safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore()
+      .briefs.list(60, parsed.data)
       .map((b) => ({
         date: b.date,
         model: b.model,
@@ -170,7 +198,7 @@ export function registerIpc(): void {
         chars: b.markdown.length,
         createdAt: b.createdAt
       }))
-  )
+  })
 
   ipcMain.handle('flags:get', (_e, raw: unknown) => {
     const ids = z.array(z.string().min(1)).max(500).safeParse(raw)
@@ -293,23 +321,107 @@ export function registerIpc(): void {
     return { ok: true }
   })
 
-  ipcMain.handle('schedule:get', () => {
+  ipcMain.handle('schedule:get', (_e, raw: unknown) => {
+    const parsed = briefTopicSchema.safeParse(raw)
+    if (!parsed.success) return { enabled: false, hour: 8, minute: 30, lastRunAt: null }
     const s = requireStore()
-    return { ...readSchedule(s), lastRunAt: s.settings.get<number>('schedule.lastRunAt') ?? null }
+    if (!parsed.data) return { enabled: false, hour: 8, minute: 30, lastRunAt: null }
+    return {
+      ...readSchedule(s, parsed.data),
+      lastRunAt: s.settings.get<number>(lastRunKey(parsed.data)) ?? null
+    }
   })
 
   ipcMain.handle('schedule:set', (_e, raw: unknown) => {
-    const parsed = scheduleSchema.safeParse(raw)
+    const parsed = scheduleSetSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
-    if (!isValidSchedule(parsed.data)) return { ok: false, error: '时间超出范围' }
-    writeSchedule(requireStore(), parsed.data)
+    const { topicId, ...cfg } = parsed.data
+    if (!isValidSchedule(cfg)) return { ok: false, error: '时间超出范围' }
+    if (!requireStore().topics.get(topicId)) return { ok: false, error: '主题不存在' }
+    writeSchedule(requireStore(), topicId, cfg)
     return { ok: true }
   })
 
-  /** 手动"立即采集"：走与定时任务完全相同的实现 */
-  ipcMain.handle('run:now', async () => {
+  // ── 主题 ──────────────────────────────────────────────
+  ipcMain.handle('topics:list', () => {
     const s = requireStore()
-    const out = await runDaily(s, dailyDeps())
+    return s.topics.list().map((t) => ({
+      ...t,
+      sourceCount: s.topics.sourceIds(t.id).length,
+      hasBrief: s.briefs.latest(t.id) !== undefined
+    }))
+  })
+
+  ipcMain.handle('topics:create', (_e, raw: unknown) => {
+    const parsed = topicCreateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    if (s.topics.get(parsed.data.id)) return { ok: false, error: '主题已存在' }
+    const now = Date.now()
+    s.topics.upsert({
+      id: parsed.data.id,
+      name: parsed.data.name,
+      enabled: true,
+      hour: 8,
+      minute: 30,
+      createdAt: now,
+      updatedAt: now
+    })
+    const ids = parsed.data.sourceIds ?? s.sources.list().map((x) => x.id)
+    s.topics.setSources(parsed.data.id, ids)
+    return { ok: true, id: parsed.data.id }
+  })
+
+  ipcMain.handle('topics:update', (_e, raw: unknown) => {
+    const parsed = topicUpdateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    const topic = s.topics.get(parsed.data.id)
+    if (!topic) return { ok: false, error: '主题不存在' }
+    s.topics.upsert({
+      ...topic,
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
+      ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+      updatedAt: Date.now()
+    })
+    return { ok: true }
+  })
+
+  ipcMain.handle('topics:remove', (_e, raw: unknown) => {
+    const parsed = topicIdSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    if (s.topics.list().length <= 1) return { ok: false, error: '至少要保留一个主题' }
+    if (!s.topics.get(parsed.data)) return { ok: false, error: '主题不存在' }
+    s.topics.remove(parsed.data)
+    return { ok: true }
+  })
+
+  ipcMain.handle('topics:setSources', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ topicId: topicIdSchema, sourceIds: z.array(z.string().min(1)).max(500) })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '主题不存在' }
+    s.topics.setSources(parsed.data.topicId, parsed.data.sourceIds)
+    return { ok: true }
+  })
+
+  ipcMain.handle('topics:sourceIds', (_e, raw: unknown) => {
+    const parsed = topicIdSchema.safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore().topics.sourceIds(parsed.data)
+  })
+
+  /** 手动"立即采集"：走与定时任务完全相同的实现 */
+  ipcMain.handle('run:now', async (_e, raw: unknown) => {
+    const parsed = briefTopicSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    const topicId = parsed.data ?? s.topics.list()[0]?.id
+    if (!topicId) return { ok: false, error: '还没有主题' }
+    const out = await runDaily(s, dailyDeps(), { topicId })
     s.settings.set('schedule.lastRunAt', Date.now())
     return {
       ok: true,

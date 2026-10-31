@@ -2,6 +2,8 @@ import { useState } from 'react'
 
 interface Props {
   sourceCount: number
+  /** 建主题：选了几个领域就建几个，之后各自排程、各自出简报 */
+  createTopic: (input: { id: string; name: string }) => Promise<string | null>
   onDone: () => void
 }
 
@@ -10,7 +12,7 @@ interface Props {
  * 刻意不做账号、不做轮播——第 3 步允许跳过，因为"要不要花钱"应该
  * 推迟到用户已经看到价值之后（与 Python 版的产品判断一致）。
  */
-export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
+export function Onboarding({ sourceCount, createTopic, onDone }: Props): React.JSX.Element {
   const [step, setStep] = useState(0)
   const [picked, setPicked] = useState<Set<string>>(new Set(['ai']))
 
@@ -20,6 +22,15 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
     { id: 'robot', label: '具身智能', desc: '人形、灵巧手、世界模型' },
     { id: 'dev', label: '开发者工具', desc: 'IDE、CLI、SDK' }
   ]
+
+  // 每个选中的领域 = 一个主题（一组源 + 一套排程 + 一条独立简报）
+  const finish = async (): Promise<void> => {
+    for (const id of picked) {
+      const t = topics.find((x) => x.id === id)
+      if (t) await createTopic({ id, name: t.label })
+    }
+    onDone()
+  }
 
   return (
     <div className="grid h-full place-items-center px-10">
@@ -113,7 +124,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
             </button>
           )}
           <button
-            onClick={() => (step === 2 ? onDone() : setStep(step + 1))}
+            onClick={() => (step === 2 ? void finish() : setStep(step + 1))}
             className="ml-auto rounded-xl bg-ink px-5 py-2.5 text-[12.5px] font-medium text-paper transition-opacity hover:opacity-90"
           >
             {step === 2 ? '开始使用' : '下一步'}

@@ -42,7 +42,7 @@ function diagnosticsFor(store: Store): string {
     schemaVersion: store.schemaVersion(),
     homeDir: homedir(),
     userDataDir: app.getPath('userData'),
-    schedule: readSchedule(store),
+    schedule: readSchedule(store, store.topics.list()[0]?.id ?? ''),
     lastRunAt: store.settings.get<number>('schedule.lastRunAt') ?? undefined,
     model: 'deepseek-flash',
     runs: store.runs.recent(3).map((r) => ({

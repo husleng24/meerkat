@@ -52,6 +52,7 @@ export interface SearchHit {
 
 export interface BriefPayload {
   date: string
+  topicId?: string
   markdown: string
   model: string
   linkCheck?: string
@@ -94,11 +95,31 @@ export interface AutoLaunchState {
   reason?: string
 }
 
+export interface TopicPayload {
+  id: string
+  name: string
+  enabled: boolean
+  hour: number
+  minute: number
+  sourceCount: number
+  hasBrief: boolean
+}
+
 export interface MeerkatBridge {
+  topics?: {
+    list: () => Promise<TopicPayload[]>
+    create: (input: { id: string; name: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>
+    update: (input: { id: string; name?: string; enabled?: boolean }) => Promise<{ ok: boolean; error?: string }>
+    remove: (id: string) => Promise<{ ok: boolean; error?: string }>
+    sourceIds: (id: string) => Promise<string[]>
+    setSources: (input: { topicId: string; sourceIds: string[] }) => Promise<{ ok: boolean; error?: string }>
+  }
   ping: () => Promise<{ ok: boolean; version: string; ts: number }>
-  briefLatest?: () => Promise<BriefPayload | null>
-  briefByDate?: (date: string) => Promise<BriefPayload | null>
-  briefList?: () => Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>>
+  briefLatest?: (topicId?: string) => Promise<BriefPayload | null>
+  briefByDate?: (date: string, topicId?: string) => Promise<BriefPayload | null>
+  briefList?: (
+    topicId?: string
+  ) => Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>>
   sources?: SourcesBridge
   flags?: FlagsBridge
   items?: {
@@ -127,14 +148,21 @@ export interface MeerkatBridge {
     copy: (text: string) => Promise<{ ok: boolean; error?: string }>
   }
   schedule?: {
-    get: () => Promise<SchedulePayload>
-    set: (cfg: { enabled: boolean; hour: number; minute: number }) => Promise<{ ok: boolean; error?: string }>
+    get: (topicId: string) => Promise<SchedulePayload>
+    set: (cfg: {
+      topicId: string
+      enabled: boolean
+      hour: number
+      minute: number
+    }) => Promise<{ ok: boolean; error?: string }>
   }
   prefs?: {
     get: () => Promise<{ autoLaunch: AutoLaunchState }>
     setAutoLaunch: (enabled: boolean) => Promise<{ ok: boolean; error?: string; autoLaunch?: AutoLaunchState }>
   }
-  runNow?: () => Promise<{ ok: boolean; nKept: number; nOk: number; nSources: number; degraded: boolean }>
+  runNow?: (
+    topicId?: string
+  ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
   exportBrief?: () => Promise<{ ok: boolean; path?: string; error?: string }>
   exportDiagnostic?: () => Promise<{ ok: boolean; path?: string; summary?: string; error?: string }>
   exportHtml?: (input: { html: string; date: string }) => Promise<{ ok: boolean; path?: string; error?: string }>

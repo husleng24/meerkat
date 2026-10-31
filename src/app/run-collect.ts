@@ -18,6 +18,8 @@ export interface CollectDeps {
 
 export interface CollectOptions {
   now: number
+  /** 只采这些源（按主题收录）；不传就是全部启用的源 */
+  sourceIds?: string[]
   windowHours: number
   maxItems: number
   arxivKeep: number
@@ -42,7 +44,8 @@ const DEFAULTS = { windowHours: 48, maxItems: 80, arxivKeep: 6, concurrency: 6 }
 export async function runCollect(deps: CollectDeps, opts: CollectOptions): Promise<CollectResult> {
   const { store, fetchSource } = deps
   const started = opts.now
-  const sources = store.sources.list().filter((s) => s.enabled)
+  const allowed = opts.sourceIds ? new Set(opts.sourceIds) : null
+  const sources = store.sources.list().filter((s) => s.enabled && (allowed === null || allowed.has(s.id)))
   const runId = `run-${opts.now}`
 
   store.runs.start({ id: runId, startedAt: started, nSources: sources.length, nRaw: 0, nKept: 0 })

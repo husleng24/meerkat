@@ -41,15 +41,26 @@ export interface DailyOutcome {
 /** 已推送记录保留 90 天，与 Python 原型的口径一致 */
 const BRIEFED_TTL_MS = 90 * 86_400_000
 
-export async function runDaily(store: Store, deps: DailyDeps, now = Date.now()): Promise<DailyOutcome> {
-  const collect = await runCollect({ store, fetchSource }, { now, ...COLLECT_DEFAULTS })
+export interface RunOptions {
+  /** 主题：决定采哪些源、和谁比"昨天"、条目推给谁 */
+  topicId: string
+  now?: number
+}
+
+export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions): Promise<DailyOutcome> {
+  const now = opts.now ?? Date.now()
+  const topic = store.topics.get(opts.topicId)
+  if (!topic) throw new Error(`主题不存在：${opts.topicId}`)
+  const sourceIds = store.topics.sourceIds(topic.id)
+  const collect = await runCollect({ store, fetchSource }, { now, sourceIds, ...COLLECT_DEFAULTS })
   log(
     'info',
     `采集完成：${collect.nOk}/${collect.nSources} 源 · ${collect.nRaw} 原始 → ${collect.nKept} 条 · ${(collect.elapsedMs / 1000).toFixed(1)}s`
   )
 
   // ── 跨天去重 ──────────────────────────────────────────
-  const briefed = store.items.briefedIds(now - BRIEFED_TTL_MS)
+  // 去重按主题算：A 主题推过的内容，B 主题仍然该看到
+  const briefed = store.items.briefedIds(now - BRIEFED_TTL_MS, topic.id)
   const filtered = filterAlreadyBriefed(collect.items, briefed)
 
   const dateLabel = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
@@ -77,15 +88,16 @@ export async function runDaily(store: Store, deps: DailyDeps, now = Date.now()):
   )
 
   // ── 覆盖保护 ──────────────────────────────────────────
-  const existing = store.briefs.byDate(dateLabel)
+  const existing = store.briefs.byDate(dateLabel, topic.id)
   const save = decideSave(existing, { degraded: out.degraded })
 
   let markedBriefed = 0
   if (save.write) {
     store.briefs.save({
-      id: dateLabel,
+      // 同一天每个主题各一条，id 必须带主题，否则后跑的会把先跑的覆盖掉
+      id: `${dateLabel}-${topic.id}`,
       date: dateLabel,
-      topicId: 'default',
+      topicId: topic.id,
       markdown: out.markdown,
       model: out.model,
       tokensIn: out.usage.input,
@@ -97,7 +109,7 @@ export async function runDaily(store: Store, deps: DailyDeps, now = Date.now()):
     // 只把成稿里真正引用的条目记为已推送——模型看过但没选的留到明天
     const cited = citedItemIds(out.markdown, filtered.items)
     if (cited.length > 0) {
-      store.items.markBriefed(cited, now)
+      store.items.markBriefed(cited, now, topic.id)
       markedBriefed = cited.length
     }
   } else {

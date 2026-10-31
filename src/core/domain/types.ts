@@ -121,6 +121,23 @@ export interface Brief {
   createdAt: number
 }
 
+/**
+ * 主题：一个主题＝一组源 + 一套排程 + 一条独立简报。
+ *
+ * 放在 domain 而不是 settings 里，是因为它要参与外键（briefs.topic_id、
+ * topic_sources.topic_id）——「主题」是数据模型的一部分，不是一个偏好项。
+ */
+export interface Topic {
+  id: string
+  name: string
+  enabled: boolean
+  /** 本地时间的触发点 */
+  hour: number
+  minute: number
+  createdAt: number
+  updatedAt: number
+}
+
 /** 单次运行的统计，用于健康度与诊断包 */
 export interface RunRecord {
   id: string

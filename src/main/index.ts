@@ -139,7 +139,7 @@ if (process.argv.includes('--verify')) {
 
       scheduler = new Scheduler({
         store,
-        runOnce: () => runDaily(store, dailyDeps()),
+        runOnce: (topicId) => runDaily(store, dailyDeps(), { topicId }),
         getWindow: () => mainWindow,
         showWindow
       })

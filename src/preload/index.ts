@@ -9,12 +9,15 @@ import type { BriefPayload } from '../renderer/src/lib/ipc-types'
 const api = {
   ping: (): Promise<{ ok: boolean; version: string; ts: number }> => ipcRenderer.invoke('app:ping'),
 
-  briefLatest: (): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:latest'),
+  briefLatest: (topicId?: string): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:latest', topicId),
 
-  briefList: (): Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>> =>
-    ipcRenderer.invoke('brief:list'),
+  briefList: (
+    topicId?: string
+  ): Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>> =>
+    ipcRenderer.invoke('brief:list', topicId),
 
-  briefByDate: (date: string): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:get', date),
+  briefByDate: (date: string, topicId?: string): Promise<BriefPayload | null> =>
+    ipcRenderer.invoke('brief:get', topicId ? { date, topicId } : date),
 
   flags: {
     get: (ids: string[]): Promise<Record<string, { isRead: boolean; isSaved: boolean; isHidden: boolean }>> =>
@@ -75,10 +78,36 @@ const api = {
   },
 
   schedule: {
-    get: (): Promise<{ enabled: boolean; hour: number; minute: number; lastRunAt: number | null }> =>
-      ipcRenderer.invoke('schedule:get'),
-    set: (cfg: { enabled: boolean; hour: number; minute: number }): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke('schedule:set', cfg)
+    get: (topicId: string): Promise<{ enabled: boolean; hour: number; minute: number; lastRunAt: number | null }> =>
+      ipcRenderer.invoke('schedule:get', topicId),
+    set: (cfg: {
+      topicId: string
+      enabled: boolean
+      hour: number
+      minute: number
+    }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('schedule:set', cfg)
+  },
+
+  topics: {
+    list: (): Promise<
+      Array<{
+        id: string
+        name: string
+        enabled: boolean
+        hour: number
+        minute: number
+        sourceCount: number
+        hasBrief: boolean
+      }>
+    > => ipcRenderer.invoke('topics:list'),
+    create: (input: { id: string; name: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; error?: string }> =>
+      ipcRenderer.invoke('topics:create', input),
+    update: (input: { id: string; name?: string; enabled?: boolean }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('topics:update', input),
+    remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('topics:remove', id),
+    sourceIds: (id: string): Promise<string[]> => ipcRenderer.invoke('topics:sourceIds', id),
+    setSources: (input: { topicId: string; sourceIds: string[] }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('topics:setSources', input)
   },
 
   prefs: {
@@ -93,8 +122,10 @@ const api = {
     }> => ipcRenderer.invoke('prefs:setAutoLaunch', enabled)
   },
 
-  runNow: (): Promise<{ ok: boolean; nKept: number; nOk: number; nSources: number; degraded: boolean }> =>
-    ipcRenderer.invoke('run:now'),
+  runNow: (
+    topicId?: string
+  ): Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }> =>
+    ipcRenderer.invoke('run:now', topicId),
 
   exportHtml: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('export:html', input),

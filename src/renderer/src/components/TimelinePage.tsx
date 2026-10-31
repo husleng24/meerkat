@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 interface Props {
   current: string
   onOpen: (date: string) => void
+  /** 只列这个主题的历史；不传就是全部 */
+  topicId?: string
 }
 
 interface Row {
@@ -17,7 +19,7 @@ interface Row {
  * 时间线：历史简报列表。
  * 只做一件事——让你翻得回前几天的简报。全文检索留到以后（数据层已支持 FTS5）。
  */
-export function TimelinePage({ current, onOpen }: Props): React.JSX.Element {
+export function TimelinePage({ current, onOpen, topicId }: Props): React.JSX.Element {
   const [rows, setRows] = useState<Row[] | null>(null)
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function TimelinePage({ current, onOpen }: Props): React.JSX.Element {
       setRows([])
       return
     }
-    void api()
+    void api(topicId)
       .then((list) => {
         if (!cancelled) setRows(list)
       })
@@ -35,7 +37,7 @@ export function TimelinePage({ current, onOpen }: Props): React.JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [topicId])
 
   const weekday = useMemo(() => {
     const map = ['日', '一', '二', '三', '四', '五', '六']

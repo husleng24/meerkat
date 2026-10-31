@@ -27,7 +27,7 @@ export interface BriefData {
  * 优先走 preload 暴露的 IPC；在没有 Electron 的浏览器预览里退回内置样例，
  * 这样同一份 UI 代码在开发和打包后都能跑，不需要维护两套。
  */
-export function useBriefData(date?: string | null): BriefData {
+export function useBriefData(date?: string | null, topicId?: string): BriefData {
   const [raw, setRaw] = useState('')
   const [urlToId, setUrlToId] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -37,6 +37,8 @@ export function useBriefData(date?: string | null): BriefData {
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
 
+  const hasBridge = typeof window !== 'undefined' && window.meerkat !== undefined
+
   useEffect(() => {
     let cancelled = false
     const load = async (): Promise<void> => {
@@ -44,8 +46,8 @@ export function useBriefData(date?: string | null): BriefData {
         const api = window.meerkat
         // 指定日期时读历史；否则读最新一期
         const res = date
-          ? await api?.briefByDate?.(date)
-          : await api?.briefLatest?.()
+          ? await api?.briefByDate?.(date, topicId)
+          : await api?.briefLatest?.(topicId)
         if (!cancelled && res?.markdown) {
           setRaw(res.markdown)
           setUrlToId(res.urlToId ?? {})
@@ -54,11 +56,14 @@ export function useBriefData(date?: string | null): BriefData {
           setLoading(false)
           return
         }
-        // 指定了日期但库里没有 → 显示空，不要拿样例冒充历史
-        if (!cancelled && date) {
+        // 有 preload 却没有数据 → 显示空，不要拿样例冒充真实简报。
+        // 样例只服务于浏览器预览（没有 IPC 的那种），否则新主题/新装用户
+        // 会看到一份不属于自己的"今日简报"。
+        if (!cancelled && hasBridge) {
           setRaw('')
           setUrlToId({})
           setPrevious(null)
+          setOrigin('ipc')
           setLoading(false)
           return
         }
@@ -77,7 +82,7 @@ export function useBriefData(date?: string | null): BriefData {
     return () => {
       cancelled = true
     }
-  }, [tick, date])
+  }, [tick, date, topicId])
 
   // 定时任务跑完后主进程会推事件，这里订阅一次
   useEffect(() => {
@@ -94,7 +99,7 @@ export function useBriefData(date?: string | null): BriefData {
     return compareBriefs(brief, parseBrief(previous.markdown))
   }, [brief, previous])
 
-  const bridgeAvailable = typeof window !== 'undefined' && window.meerkat !== undefined
+  const bridgeAvailable = hasBridge
   return {
     brief,
     raw,

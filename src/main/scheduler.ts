@@ -11,27 +11,36 @@ import { join } from 'node:path'
 import { decideDue, describeNext, describeSchedule, type ScheduleConfig } from '../app/schedule'
 import { brandPath } from './paths'
 import type { Store } from '../core/ports/store'
+import type { Topic } from '../core/domain/types'
 import type { DailyOutcome } from './daily'
 
 const CHECK_INTERVAL_MS = 60_000
 const LAST_RUN_KEY = 'schedule.lastRunAt'
-const SCHEDULE_KEY = 'schedule.config'
 
 export interface SchedulerDeps {
   store: Store
-  /** 跑一次采集 + 生成简报；返回值用于日志与通知文案 */
-  runOnce: () => Promise<DailyOutcome>
+  /** 跑一个主题的采集 + 简报；返回值用于日志与通知文案 */
+  runOnce: (topicId: string) => Promise<DailyOutcome>
   getWindow: () => BrowserWindow | null
   showWindow: () => void
 }
 
-export function readSchedule(store: Store): ScheduleConfig {
-  const saved = store.settings.get<ScheduleConfig>(SCHEDULE_KEY)
-  return saved ?? { enabled: true, hour: 8, minute: 30 }
+/** 每个主题的排程就存在自己那一行上，不再是全局设置 */
+export function readSchedule(store: Store, topicId: string): ScheduleConfig {
+  const topic = store.topics.get(topicId)
+  if (!topic) return { enabled: false, hour: 8, minute: 30 }
+  return { enabled: topic.enabled, hour: topic.hour, minute: topic.minute }
 }
 
-export function writeSchedule(store: Store, cfg: ScheduleConfig): void {
-  store.settings.set(SCHEDULE_KEY, cfg)
+export function writeSchedule(store: Store, topicId: string, cfg: ScheduleConfig): void {
+  const topic = store.topics.get(topicId)
+  if (!topic) return
+  store.topics.upsert({ ...topic, ...cfg, updatedAt: Date.now() })
+}
+
+/** 上次运行时间也按主题记：两个主题各自 08:30 互不影响 */
+export function lastRunKey(topicId: string): string {
+  return `${LAST_RUN_KEY}.${topicId}`
 }
 
 /** 托盘图标：≤32px 必须用头部剪影，全身图在这个尺寸下认不出（见 BRAND.md） */
@@ -69,39 +78,56 @@ export class Scheduler {
     this.tray = null
   }
 
+  /** 当前到点、该跑的主题。多个主题可能同时到点，按顺序跑 */
+  private dueTopics(now: number): Array<{ topic: Topic; reason: string }> {
+    const out: Array<{ topic: Topic; reason: string }> = []
+    for (const topic of this.deps.store.topics.list()) {
+      if (!topic.enabled) continue
+      const cfg = readSchedule(this.deps.store, topic.id)
+      const lastRunAt = this.deps.store.settings.get<number>(lastRunKey(topic.id))
+      const decision = decideDue(lastRunAt, now, cfg)
+      if (decision.due) out.push({ topic, reason: decision.reason })
+    }
+    return out
+  }
+
   private async tick(): Promise<void> {
     if (this.running) return
-    const cfg = readSchedule(this.deps.store)
-    const lastRunAt = this.deps.store.settings.get<number>(LAST_RUN_KEY)
-    const decision = decideDue(lastRunAt, Date.now(), cfg)
-    this.refreshTray(decision.due ? '准备运行…' : this.lastSummary)
-
-    if (!decision.due) return
+    const due = this.dueTopics(Date.now())
+    this.refreshTray(due.length > 0 ? '准备运行…' : this.lastSummary)
+    if (due.length === 0) return
 
     this.running = true
-    log('info', `定时触发（${decision.reason}）`)
     try {
-      const out = await this.deps.runOnce()
+      for (const { topic, reason } of due) {
+        log('info', `定时触发（${topic.name} · ${reason}）`)
+        await this.runTopic(topic)
+      }
+    } finally {
+      this.running = false
+      this.refreshTray(this.lastSummary)
+    }
+  }
+
+  private async runTopic(topic: Topic): Promise<void> {
+    try {
+      const out = await this.deps.runOnce(topic.id)
+      this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
       this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
-      this.lastSummary = `${out.degraded ? '已降级' : '已完成'} · ${out.collect.nKept} 条`
+      this.lastSummary = `${topic.name} · ${out.degraded ? '已降级' : '已完成'} · ${out.collect.nKept} 条`
       log(
         'info',
-        `定时任务完成：${out.collect.nOk}/${out.collect.nSources} 源 · 入库 ${out.collect.nKept} 条 · ` +
+        `定时任务完成（${topic.name}）：${out.collect.nOk}/${out.collect.nSources} 源 · 入库 ${out.collect.nKept} 条 · ` +
           `去重丢弃 ${out.droppedAsBriefed} · 标记已推送 ${out.markedBriefed} · 落库 ${out.save.reason} · ` +
           `链接 ${out.linkCheck.good}/${out.linkCheck.total}`
       )
       this.notify(out.title, out.degraded)
-      this.refreshTray(this.lastSummary)
-      // 通知界面刷新
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      this.lastSummary = `失败：${msg}`
-      log('error', `定时任务失败: ${msg}`)
-      this.refreshTray(this.lastSummary)
+      this.lastSummary = `${topic.name} 失败：${msg}`
+      log('error', `定时任务失败（${topic.name}）: ${msg}`)
       this.notify('采集失败', false, `${msg}。可在「源」页查看详情。`)
-    } finally {
-      this.running = false
     }
   }
 
@@ -146,14 +172,17 @@ export class Scheduler {
 
   private refreshTray(status: string): void {
     if (!this.tray) return
-    const cfg = readSchedule(this.deps.store)
-    const next = describeNext(Date.now(), cfg)
+    const now = Date.now()
+    const topics = this.deps.store.topics.list().filter((t) => t.enabled)
+    const scheduleLines = topics.map((t) => {
+      const cfg = readSchedule(this.deps.store, t.id)
+      return { label: `${t.name}：${describeSchedule(cfg)} · 下次 ${describeNext(now, cfg)}`, enabled: false }
+    })
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
         { label: status, enabled: false },
         { type: 'separator' },
-        { label: `排程：${describeSchedule(cfg)}`, enabled: false },
-        { label: `下次：${next}`, enabled: false },
+        ...(scheduleLines.length > 0 ? scheduleLines : [{ label: '排程：未启用任何主题', enabled: false }]),
         { type: 'separator' },
         { label: '打开简报', click: () => this.deps.showWindow() },
         { label: '立即采集', click: () => void this.runNow() },
@@ -191,15 +220,21 @@ export class Scheduler {
     }
   }
 
-  /** 托盘"立即采集"：无论是否到点都跑一次 */
-  async runNow(): Promise<void> {
+  /** 托盘"立即采集"：不带主题就跑全部启用的主题 */
+  async runNow(topicId?: string): Promise<void> {
     if (this.running) return
     this.running = true
     try {
-      const out = await this.deps.runOnce()
-      this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
-      this.lastSummary = `手动 · ${out.collect.nKept} 条`
-      this.notify(out.title, out.degraded)
+      const topics = topicId
+        ? [this.deps.store.topics.get(topicId)].filter((t): t is Topic => t !== undefined)
+        : this.deps.store.topics.list().filter((t) => t.enabled)
+      for (const topic of topics) {
+        const out = await this.deps.runOnce(topic.id)
+        this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
+        this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
+        this.lastSummary = `${topic.name} · 手动 · ${out.collect.nKept} 条`
+        this.notify(out.title, out.degraded)
+      }
       this.deps.getWindow()?.webContents.send('brief:updated')
     } finally {
       this.running = false
