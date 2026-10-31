@@ -66,7 +66,7 @@ export function TimelinePage({ current, onOpen }: Props): React.JSX.Element {
     <div className="mx-auto max-w-[760px] px-10 pb-24 pt-8">
       <p className="mb-4 text-[12px] text-ink-3">共 {rows.length} 期，点任意一期回看。</p>
 
-      <div className="overflow-hidden rounded-xl border border-cream bg-white/60">
+      <div className="overflow-hidden card">
         {rows.map((r) => {
           const isCurrent = r.date === current
           const degraded = r.model === 'none'

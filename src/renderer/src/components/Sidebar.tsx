@@ -37,9 +37,9 @@ export function Sidebar({
   dateLabel
 }: Props): React.JSX.Element {
   return (
-    <aside className="flex w-[212px] shrink-0 flex-col border-r border-rule bg-[#faf8f5] px-4 pb-5 pt-6">
+    <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-6">
       <div className="flex items-center gap-2.5 px-2">
-        <img src="./icon-meerkat-64.png" alt="" className="h-8 w-8 rounded-[9px]" />
+        <img src="./icon-meerkat-64.png" alt="" className="h-8 w-8 rounded-[10px]" />
         <div className="leading-tight">
           <div className="text-[13.5px] font-bold tracking-[-0.02em] text-ink">Meerkat</div>
           <div className="text-[10px] tracking-[0.06em] text-ink-3">替你盯着</div>
@@ -57,12 +57,12 @@ export function Sidebar({
                 'flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
                 isActive
                   ? 'bg-accent-soft font-semibold text-accent'
-                  : 'font-medium text-ink-2 hover:bg-cream/70 hover:text-ink'
+                  : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
               ].join(' ')}
             >
               <span className="flex-1">{n.label}</span>
               {n.id === 'sources' && failedSources > 0 && (
-                <span className="grid h-[17px] min-w-[17px] place-items-center rounded-full bg-alert px-1 text-[10px] font-bold text-white">
+                <span className="grid h-[17px] min-w-[17px] place-items-center rounded-full bg-[#fee2e2] px-1 text-[10px] font-bold text-[#dc2626]">
                   {failedSources}
                 </span>
               )}

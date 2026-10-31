@@ -61,7 +61,7 @@ export function SearchPage(): React.JSX.Element {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="搜索抓到的所有条目（支持中文子串）"
-          className="w-full rounded-xl border border-cream bg-white px-4 py-3 text-[14px] text-ink outline-none placeholder:text-ink-3/60 focus:border-accent"
+          className="w-full card px-4 py-3 text-[14px] text-ink outline-none placeholder:text-ink-3/60 focus:border-accent"
         />
         {busy && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-ink-3">搜索中…</span>}
       </div>
@@ -91,7 +91,7 @@ export function SearchPage(): React.JSX.Element {
               <button
                 key={h.id}
                 onClick={() => window.open(h.url, '_blank', 'noopener,noreferrer')}
-                className="block w-full rounded-xl border border-cream bg-white/60 px-4 py-3 text-left transition-colors hover:border-accent hover:bg-white"
+                className="block w-full card px-4 py-3 text-left transition-colors hover:border-accent hover:bg-white"
               >
                 <div className="flex items-baseline gap-2">
                   <span className="flex-1 text-[13.5px] font-medium leading-6 text-ink">{h.title}</span>

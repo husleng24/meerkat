@@ -31,9 +31,8 @@ interface Props {
 /**
  * 一条简报。
  *
- * 从"卡片"改成"报纸行"：没有边框、没有阴影、没有序号。
- * 分隔线负责节奏，悬停是一层暖光洗过而不是抬起来——
- * 早上读的是内容，界面不该跟着动。
+ * 悬浮卡片：白底 + 1px 边框定轮廓，悬停时加一层很淡的靛蓝投影并上浮 1px。
+ * 选中态用靛蓝描边 + 浅底，不用左侧色条——色条是廉价的强调。
  */
 export function ItemCard({
   item,
@@ -49,9 +48,9 @@ export function ItemCard({
 }: Props): React.JSX.Element {
   if (hidden) {
     return (
-      <div className="flex items-center gap-2 border-b border-rule py-3 text-[12px] text-ink-3">
+      <div className="flex items-center gap-2 rounded-xl border border-dashed border-rule bg-white/60 px-4 py-2.5 text-[12px] text-ink-3">
         <span className="truncate">已隐藏 · {item.title}</span>
-        <button onClick={onToggleHide} className="ml-auto shrink-0 text-accent hover:underline">
+        <button onClick={onToggleHide} className="ml-auto shrink-0 font-medium text-accent hover:underline">
           撤销
         </button>
       </div>
@@ -63,36 +62,41 @@ export function ItemCard({
       id={`item-${item.key}`}
       onClick={onSelect}
       className={[
-        'group relative -mx-5 cursor-default px-5 transition-colors duration-150',
-        lead ? 'py-5' : 'py-[15px]',
-        selected ? 'bg-accent-soft/45' : 'hover:bg-[linear-gradient(90deg,rgba(79,70,229,0.045),transparent_72%)]'
+        'card card-hover group relative cursor-default px-[18px]',
+        selected ? 'border-accent/60 bg-accent-soft/30' : '',
+        lead ? 'py-[18px]' : 'py-[15px]'
       ].join(' ')}
     >
-      {/* 选中标记用一个小圆点，不用左侧色条——色条是廉价的强调，且会跟分隔线打架 */}
-      {selected && <span className="absolute left-1.5 top-[22px] h-1.5 w-1.5 rounded-full bg-accent" />}
-
       <h3
         className={[
-          'max-w-[64ch] font-bold leading-[1.5] transition-colors',
-          lead ? 'text-[18.5px] tracking-[-0.022em]' : 'text-[16px] tracking-[-0.012em]',
+          'max-w-[62ch] font-bold leading-[1.55] tracking-[-0.015em] transition-colors',
+          lead ? 'text-[15.5px]' : 'text-[15px]',
           read ? 'text-ink-2' : 'text-ink'
         ].join(' ')}
       >
         {item.title}
       </h3>
 
-      <p className={['mt-1.5 max-w-[68ch] leading-[1.78] text-[#2f2a26]', lead ? 'text-[15px]' : 'text-[14px]'].join(' ')}>{item.body}</p>
+      <p
+        className={[
+          'mt-1.5 max-w-[66ch] leading-[1.75] text-[#39424f]',
+          lead ? 'text-[14px]' : 'text-[13.8px]'
+        ].join(' ')}
+      >
+        {item.body}
+      </p>
 
-      <footer className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-ink-3">
-        {item.links.length > 0 && <span className="tabular-nums">{item.links.length} 源</span>}
-        <span className="h-[3px] w-[3px] rounded-full bg-ink-3/60" />
+      <footer className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-3">
+        {item.links.length > 0 && (
+          <span className="rounded-full bg-cream px-2 py-0.5 tabular-nums text-ink-2">{item.links.length} 源</span>
+        )}
         <span className="flex flex-wrap items-center gap-x-2.5">
           {groupLinks(item.links).map((l) => (
             <a
               key={l.label}
               href={l.url}
               onClick={(e) => e.stopPropagation()}
-              className="text-ink-2 underline decoration-rule decoration-1 underline-offset-[3px] transition-colors hover:text-accent hover:decoration-accent/40"
+              className="text-accent/90 hover:text-accent hover:underline"
             >
               {l.count > 1 ? `${l.label} ×${l.count}` : l.label}
             </a>
@@ -111,7 +115,7 @@ export function ItemCard({
             </IconButton>
           </span>
           {read && <span className="text-accent/70">已读</span>}
-          {item.dateLabel && <span className="tabular-nums tracking-[0.06em]">{item.dateLabel}</span>}
+          {item.dateLabel && <span className="tabular-nums tracking-[0.04em]">{item.dateLabel}</span>}
         </span>
       </footer>
     </article>

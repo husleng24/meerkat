@@ -73,7 +73,7 @@ export default function App(): React.JSX.Element {
         {/* 今日页不设页头：报头在内容里，页头会跟它抢同一件事 */}
         {nav !== 'today' && (
           <header className="flex items-baseline gap-3 px-10 pb-3 pt-6">
-            <h1 className="text-[19px] font-bold tracking-[-0.03em] text-ink">
+            <h1 className="text-[20px] font-bold tracking-[-0.03em] text-ink">
               {TITLES[nav] ?? brief?.title ?? 'AI 简报'}
             </h1>
             <span className="hidden text-[11.5px] text-ink-3 md:inline">
@@ -90,7 +90,7 @@ export default function App(): React.JSX.Element {
           </header>
         )}
 
-        <div className="dawn-wash" />
+        <div className="lumen-glow" />
         <div className="relative min-h-0 flex-1 overflow-y-auto">
           {loading && <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>}
 

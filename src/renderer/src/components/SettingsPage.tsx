@@ -97,7 +97,7 @@ export function SettingsPage(): React.JSX.Element {
           到点自动采集并生成简报，完成后弹通知。错过时间点会在 6 小时内补一次。
         </p>
 
-        <div className="rounded-xl border border-cream bg-white/60 px-5 py-4">
+        <div className="card px-5 py-4">
           <AutoLaunchRow />
 
           <div className="mt-4 flex items-center justify-between border-t border-cream pt-4">
@@ -188,7 +188,7 @@ export function SettingsPage(): React.JSX.Element {
           未接模型时自动退化为"仅聚合"简报——只列标题和链接，没有解读。
         </p>
         <KeyPanel />
-        <div className="mt-3 rounded-xl border border-cream bg-white/60 px-5 py-4 text-[12px]">
+        <div className="mt-3 card px-5 py-4 text-[12px]">
           <Row k="模型" v="deepseek-flash" />
           <Row k="温度" v="0.55" />
           <Row k="最大输出" v="32,000 tokens" />
@@ -371,7 +371,7 @@ function FeedbackPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="rounded-xl border border-cream bg-white/60 px-5 py-4">
+    <div className="card px-5 py-4">
       <div className="flex flex-wrap gap-1.5">
         {(['bug', 'idea', 'source', 'other'] as const).map((c) => (
           <button
@@ -504,7 +504,7 @@ function KeyPanel(): React.JSX.Element {
   const hasIpc = api !== undefined
 
   return (
-    <div className="rounded-xl border border-cream bg-white/60 px-5 py-4">
+    <div className="card px-5 py-4">
       <div className="flex items-center justify-between">
         <span className="text-[13px] text-ink">DeepSeek API Key</span>
         {status?.hasKey ? (

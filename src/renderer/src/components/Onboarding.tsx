@@ -77,7 +77,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
             <p className="mb-4 text-[12px] text-ink-3">
               全部可单独启停。连续失败的源会在"源"页标红，并给出可替代的同类型源。
             </p>
-            <ul className="space-y-1.5 rounded-xl border border-cream bg-white/60 px-4 py-3 text-[12px] text-ink/80">
+            <ul className="space-y-1.5 card px-4 py-3 text-[12px] text-ink/80">
               <li>· 一手官方：OpenAI、Anthropic、Google DeepMind、Hugging Face…</li>
               <li>· 研究：arXiv、HF 热榜、Google Research</li>
               <li>· 社区与媒体：HN、Reddit、TechCrunch、量子位</li>
@@ -92,7 +92,7 @@ export function Onboarding({ sourceCount, onDone }: Props): React.JSX.Element {
             <p className="mb-4 text-[12px] text-ink-3">
               不接也能用——会退化成"仅聚合"简报，按板块列条目和链接。
             </p>
-            <div className="rounded-xl border border-cream bg-white/60 px-4 py-3">
+            <div className="card px-4 py-3">
               <label className="text-[11px] font-semibold text-ink/70">DeepSeek API Key</label>
               <input
                 type="password"

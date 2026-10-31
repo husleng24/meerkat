@@ -48,8 +48,14 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
 
   return (
     <div className="mx-auto max-w-[900px] px-10 pb-24 pt-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div />
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 text-[11.5px] text-ink-3">
+          <span>可用 {summary.ok}</span>
+          <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
+          <span className={summary.attention > 0 ? 'font-medium text-alert' : ''}>需关注 {summary.attention}</span>
+          <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
+          <span>共 {summary.total}</span>
+        </div>
         <div className="flex items-center gap-2">
           {progress && (
             <span className="text-[11px] tabular-nums text-ink-3">
@@ -72,13 +78,6 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
         </div>
       </div>
 
-      <div className="mb-2 flex items-center gap-3 text-[11.5px] text-ink-3">
-        <span>可用 {summary.ok}</span>
-        <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
-        <span className={summary.attention > 0 ? 'text-alert' : ''}>需关注 {summary.attention}</span>
-        <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
-        <span>共 {summary.total}</span>
-      </div>
 
       {adding && <AddSourceForm state={state} onDone={() => setAdding(false)} />}
 
@@ -90,7 +89,7 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
         />
       )}
 
-      <div className="overflow-hidden rounded-xl border border-cream bg-white/60">
+      <div className="overflow-hidden card">
         <div className="grid grid-cols-[1fr_78px_92px_80px_58px_104px] items-center gap-2 border-b border-cream px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-3/80">
           <span>名称</span>
           <span>类型</span>
@@ -320,7 +319,7 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-cream bg-white/60 px-5 py-4">
+    <div className="mb-4 card px-5 py-4">
       <div className="grid grid-cols-2 gap-3">
         <Field label="名称">
           <input

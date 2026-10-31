@@ -1,39 +1,33 @@
 @import 'tailwindcss';
 
 /*
- * 视觉世界：晨光报纸（骨架）+ 靛蓝强调（色彩）
+ * 视觉世界：Lumen（清透）
  *
- * 两条硬约束：
- *  1. 底色必须近白——之前的 #F6F1E7 本身就是中灰暖，叠上白色卡片整页发灰，
- *     这是"不够明亮"的真正来源。
- *  2. 卡片退位，细线当道——报纸的节奏靠分隔线与留白，不靠一格一格的盒子。
- *     容器只负责分组，不承担装饰。
+ * 冷白底 + 靛蓝→青的极淡光晕 + 悬浮卡片。
+ * 与上一版（晨光报纸）的区别：那一版靠排版节奏，这一版靠光与层次。
  *
- * 强调色用靛蓝而不是琥珀：琥珀在暖底上饱和度不足，且与插画里的狐獴撞色；
- * 靛蓝在近白底上对比 4.9:1，作为链接与焦点色都够用。
+ * 底色仍是近白——"明亮"的前提是画布不能是中灰暖。
+ * 卡片是唯一的悬浮物，所以高度只声明一次：边框定轮廓，阴影定层次，
+ * 两者不同时用于同一个元素（否则就是"幽灵卡片"）。
  */
 @theme {
-  /* 画布：近白暖调，比纯白柔一点，长时间读不刺眼 */
-  --color-paper: #fcfbf8;
+  --color-paper: #f7f8fb;
+  --color-panel: #ffffff;
 
-  /* 文字：三级层次，主文字 17:1，次级 7:1，元信息 4.6:1 */
-  --color-ink: #14110f;
-  --color-ink-2: #5b544e;
-  --color-ink-3: #746c64;
+  --color-ink: #0b1220;
+  --color-ink-2: #5a6472;
+  /* #93a0b4 只有 2.8:1、#6d7889 只有 4.21:1，承载 11px 元信息都不合格；这个值实测 4.87:1 */
+  --color-ink-3: #646e7b;
 
-  /* 细线与浅色面（保留 cream 这个名字，组件里大量在用） */
-  --color-rule: #e9e3da;
-  --color-cream: #f2ede6;
+  --color-rule: #e6eaf2;
+  --color-cream: #f3f5fa;
 
-  /* 强调：靛蓝。caramel 这个旧名保留，指向强调色以复用既有组件 */
-  --color-caramel: #8f877e;
   --color-accent: #4f46e5;
   --color-accent-soft: #eef0ff;
-
-  --color-alert: #c0392b;
+  --color-lumen: #06b6d4;
+  --color-alert: #dc2626;
 
   --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Songti SC', 'Noto Serif SC', Georgia, 'Times New Roman', serif;
 }
 
 html,
@@ -49,13 +43,11 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: 'pkna';
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
-/* 浏览器自带的选择色、滚动条、焦点环属于任何设计系统之外——
-   这里是"这页被人设计过"最便宜的证据。 */
+/* 浏览器自带件：选中色、滚动条、焦点环 */
 ::selection {
-  background: #dcdffe;
+  background: #c7d2fe;
   color: var(--color-ink);
 }
 
@@ -67,26 +59,25 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ddd6cc;
+  background: #d7dce6;
   border-radius: 99px;
   border: 3px solid var(--color-paper);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #c9c0b3;
+  background: #c2c9d6;
 }
 
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* 唯一的一个编排好的入场：简报条目自下淡入，错峰 40ms，指数缓出。
-   尊重 prefers-reduced-motion。 */
+/* 唯一的入场编排：条目自下淡入，错峰 40ms */
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -107,21 +98,30 @@ body {
   }
 }
 
-/* 顶部晨光：靛蓝的极淡径向，暗示"天刚亮"，不做玻璃拟态 */
-.dawn-wash {
+/* 顶部光晕：靛蓝 + 青，两团极淡的径向。这是这个世界的"光"，不做玻璃拟态 */
+.lumen-glow {
   position: absolute;
-  inset: 0 -80px auto -80px;
-  height: 300px;
+  inset: -160px -80px auto -80px;
+  height: 460px;
   background:
-    radial-gradient(58% 66% at 24% 0%, rgba(79, 70, 229, 0.2), transparent 64%),
-    radial-gradient(48% 58% at 78% 0%, rgba(56, 189, 248, 0.16), transparent 66%);
+    radial-gradient(58% 62% at 26% 22%, rgba(99, 102, 241, 0.24), transparent 66%),
+    radial-gradient(50% 56% at 78% 6%, rgba(6, 182, 212, 0.2), transparent 68%);
   pointer-events: none;
 }
 
-/* 报纸式双线：报头下方的一粗一细 */
-.masthead-rule {
-  height: 4px;
-  border-top: 2px solid var(--color-ink);
-  border-bottom: 1px solid var(--color-ink);
-  opacity: 0.9;
+/* 卡片：唯一的高度声明。边框定轮廓，阴影定层次，两者不叠加成"幽灵卡片" */
+.card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-rule);
+  border-radius: 16px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.card-hover:hover {
+  border-color: #c9d0ff;
+  box-shadow: 0 12px 30px -22px rgba(79, 70, 229, 0.6);
+  transform: translateY(-1px);
 }
