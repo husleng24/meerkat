@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen, shell } from 'electron'
+import { app, BrowserWindow, Menu, nativeImage, screen, shell } from 'electron'
 import { join } from 'node:path'
 import { closeStore, dailyDeps, initStore, registerIpc } from './ipc'
 import { Scheduler } from './scheduler'
@@ -6,8 +6,13 @@ import { runDaily } from './daily'
 import { installCrashHandlers, log } from './log'
 import { runElectronSelfCheck } from './selfcheck'
 import { apply as applyAutoLaunch } from './autolaunch'
+import { brandPath } from './paths'
 
 const isDev = !app.isPackaged
+
+// 名字影响通知、关于面板与调试时的辨识度；macOS 菜单栏那一位由 .app 的
+// Info.plist 决定，运行时代码改不了（见下方 Dock 图标的处理）
+app.setName('Meerkat')
 
 // Windows 上必须显式设置 AppUserModelID，否则 toast 通知不可用
 // （打包版由快捷方式带上，开发态/便携版必须自己设）
@@ -117,6 +122,17 @@ if (process.argv.includes('--verify')) {
     log('info', `启动 Meerkat ${app.getVersion()} / Electron ${process.versions.electron}`)
 
     void app.whenReady().then(() => {
+      // 开发态跑的是 node_modules/electron 里的 Electron.app：Dock 图标默认是 Electron 的。
+      // 打包后由 Info.plist + build/icon.icns 决定，这里只补开发态。
+      if (process.platform === 'darwin' && isDev) {
+        try {
+          const icon = nativeImage.createFromPath(brandPath('icon-meerkat-512.png'))
+          if (!icon.isEmpty()) app.dock?.setIcon(icon)
+        } catch {
+          /* 图标缺失不该阻止启动 */
+        }
+      }
+
       // 数据库放在 userData 下，卸载重装不会误删用户数据
       const store = initStore(join(app.getPath('userData'), 'meerkat.db'))
       registerIpc()
