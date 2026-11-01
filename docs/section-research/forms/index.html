@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>五种展现形态</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.6 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;padding:30px 34px 40px}
+h1{font-size:20px;font-weight:800;letter-spacing:-.02em}
+p.sub{font-size:12px;color:#5A6472;margin:6px 0 20px;max-width:760px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1160px}
+a{display:block;background:#fff;border:1px solid #E6EAF2;border-radius:14px;overflow:hidden;text-decoration:none;color:#0B1220;transition:border-color .15s, transform .15s}
+a:hover{border-color:#4F46E5;transform:translateY(-1px)}
+.thumb{display:block;width:100%;background:#F7F8FB;border-bottom:1px solid #EEF1F7}
+.cap{display:flex;align-items:baseline;gap:10px;padding:10px 14px 12px}
+.cap .n{font-size:10.5px;color:#8A94A6;width:22px}
+.cap .t{font-size:14px;font-weight:700}
+.cap .d{font-size:11.5px;color:#5A6472;margin-left:auto;text-align:right}
+.full{grid-column:1 / -1}
+.note{font-size:11px;color:#6D7889;margin-top:18px}
+</style></head><body>
+<h1>同一份 23 条，五种形态</h1>
+<p class="sub">内容、字号、配色完全一致，只换版式。点任意一张封面打开对应原型；想一页连着看五个，打开 <a href="all-inline.html" style="color:#4F46E5;font-weight:700">all-inline.html</a>（单文件、不依赖图片，直接整页滚动）。</p>
+<div class="grid">
+  <a href="01-cards.html"><img class="thumb" src="01-cards.png" alt="卡片流"><div class="cap"><span class="n">01</span><span class="t">卡片流</span><span class="d">一屏 3 条 · 整期 6 屏</span></div></a>
+  <a href="02-list.html"><img class="thumb" src="02-list.png" alt="紧凑列表"><div class="cap"><span class="n">02</span><span class="t">紧凑列表</span><span class="d">一屏 19 条 · 整期 1.3 屏</span></div></a>
+  <a href="03-mosaic.html"><img class="thumb" src="03-mosaic.png" alt="头版网格"><div class="cap"><span class="n">03</span><span class="t">头版网格</span><span class="d">面积表达权重 · 23 条填不满</span></div></a>
+  <a href="04-columns.html"><img class="thumb" src="04-columns.png" alt="分栏并置"><div class="cap"><span class="n">04</span><span class="t">分栏并置</span><span class="d">七节并排 · 列宽 155px</span></div></a>
+  <a class="full" href="05-timeline.html"><img class="thumb" src="05-timeline.png" alt="时间河流"><div class="cap"><span class="n">05</span><span class="t">时间河流</span><span class="d">时间做主轴的纵向流 · 只有 3 个日期，两坨堆积</span></div></a>
+</div>
+<p class="note">这些是静态图 ↔ 点击打开的是可滚动的 HTML 版本。数据：2026-11-01 真实简报，7 个板块 / 23 条。</p>
+</body></html>

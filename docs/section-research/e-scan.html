@@ -1,0 +1,42 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.5 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;-webkit-font-smoothing:antialiased;padding:22px}
+.board{width:936px;background:#F7F8FB;border:1px solid #E1E5EF;border-radius:18px;padding:26px 30px 0;overflow:hidden;position:relative}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.03em}
+.date{font-size:11px;color:#6D7889;margin-top:4px}
+.pill{border-radius:999px;background:#EEF0FF;color:#4F46E5;font-size:10.5px;font-weight:700;padding:4px 9px;white-space:nowrap}
+.card{background:#fff;border:1px solid #E6EAF2;border-radius:15px}
+.hl{padding:6px 18px}
+.hl .row{display:flex;gap:13px;border-top:1px solid #EEF1F7;padding:9px 0}
+.hl .row:first-child{border-top:0}
+.hl b{color:#4F46E5;font-size:14px;width:14px;flex:none;line-height:1.6}
+.hl span{font-size:12.5px;line-height:1.6;color:#1B2434}
+.cap{font-size:11px;color:#5A6472;margin:0 0 8px 2px}
+.cap b{color:#0B1220;font-size:12px}
+.tagrec{background:#0B1220;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 7px;margin-left:6px}
+.sec{margin-top:16px}
+.sec-h{display:flex;align-items:baseline;gap:9px;margin-bottom:6px}
+.sec-h .name{font-size:12.5px;font-weight:700}
+.sec-h .n{font-size:10.5px;color:#8A94A6}
+.delta{margin-left:auto;font-size:10px;color:#6D7889}
+.delta b{color:#4F46E5}
+.item{background:#fff;border:1px solid #E6EAF2;border-radius:14px;padding:11px 15px;margin-bottom:7px}
+.item h3{font-size:13.5px;font-weight:700;line-height:1.45}
+.item p{font-size:11.8px;line-height:1.62;color:#39424F;margin-top:3px}
+.item .f{display:flex;gap:8px;margin-top:5px;font-size:9.8px;color:#8A94A6}
+.item .f .tag{background:#F3F5FA;border-radius:999px;padding:1px 6px;color:#5A6472}
+
+.row1{display:flex;gap:10px;align-items:baseline;padding:8px 14px;border-bottom:1px solid #EEF1F7;background:#fff;border:1px solid #E6EAF2;border-radius:11px;margin-bottom:4px}
+.row1 .t{font-size:12.2px;font-weight:700;flex:0 0 47%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row1 .b{font-size:11.2px;color:#5A6472;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mode{display:flex;gap:4px;margin-left:auto}
+.mode span{font-size:10px;padding:2px 8px;border-radius:999px;border:1px solid #E6EAF2;color:#6D7889}
+.mode span.on{background:#0B1220;color:#fff;border-color:#0B1220}
+</style></head><body><div class="cap"><b>E · 扫读态（压条目本身，不加任何导航）</b><span class="tagrec">备选</span>　每条一行标题 + 一行摘要；23 条从 <b>3,519px 压到约 1,000px</b>，整期 6 屏变 2 屏出头。</div>
+<div class="board"><div class="head"><div><h1>今日简报</h1><div class="date">2026年11月1日 周日 · 覆盖最近 48 小时</div></div>
+      <span class="pill">12 源 · 23 条</span></div><div class='card hl'><div class='row'><b>1</b><span>OpenAI 最新一轮实际募资不到 300 亿美元目标的一半，同周 Anthropic 被预期 IPO 后将拿到高收益垃圾级评级——AI 的融资成本开始分化。</span></div><div class='row'><b>2</b><span>Google 承认 AI Mode 拖累搜索收入，当日股价 -15%、市值缩水 5000 亿美元；AI 蚕食核心广告业务第一次被公司自己摆上台面。</span></div></div>
+  <div style="display:flex;align-items:center;margin:12px 0 2px"><span style="font-size:10.5px;color:#8A94A6">阅读密度</span>
+    <span class="mode"><span>细读</span><span class="on">扫读</span></span></div>
+  <div class='sec'><div class='sec-h'><span class='name'>模型与产品</span><span class='n'>3 条</span><span class='delta'><b>+1</b> 新增 · ↻2 还在讲</span></div><div class='row1'><span class='t'>Apple Intelligence 随 iOS 27.3 进入中国（10-31）</span><span class='b'>消息发布在苹果中国新闻室，功能将先在即将推出的 iOS 27.3 测试版上线。系统级 AI 入口在中文市场开闸后，第三方应用里最容易被系统直接接管的那些场景会先被挤压。…</span></div><div class='row1'><span class='t'>Claude 取消 5 小时用量限制，200 美元 Ultra 档先解封（10-31）</span><span class='b'>用量约束从&quot;时间窗&quot;变成按档位区分。对把 Claude 跑在多小时长任务上的团队，这意味着会话不再被强制中断，长程 agent 循环的可行性直接提高。…</span></div><div class='row1'><span class='t'>GPT-5.6 Sol 在《Factorio》和平模式下通关（11-01）</span><span class='b'>HN 上 180 条讨论。工厂建造类游戏考的是多步骤资源规划与长期调度，这类任务被通关，比一次性代码题更能说明长程规划能力的进展。…</span></div></div><div class='sec'><div class='sec-h'><span class='name'>Agent 与工程</span><span class='n'>3 条</span><span class='delta'><b>+2</b> 新增 · ↻1 还在讲</span></div><div class='row1'><span class='t'>DoorDash：第三方 AI agent 至今只带来数百笔订单（10-30）</span><span class='b'>DoorDash 同时表示愿意与第三方 agent 厂商合作。对做 agent 商业化的团队，这是一盆冷水：场景高频、决策成本低如点餐，量级仍是三位数，说明瓶颈不在模型侧。…</span></div><div class='row1'><span class='t'>Cisco 给一名工程师无限 AI token，用来重写遗留代码（10-30）</span><span class='b'>HN 380 条讨论，焦点落在对初级岗位的冲击。真正的变化在预算口径：模型调用从项目成本变成基础设施成本，才可能出现&quot;无限配给单个工程师&quot;这种配置。…</span></div><div class='row1'><span class='t'>GitHub 趋势榜被 Claude Code 周边工具占满（11-01）</span><span class='b'>impeccable 今日 +1338 star（给 coding agent 的设计词汇与审查指令）、Lightpanda +929 star（面向 AI 与自动化的 headless 浏览…</span></div></div><div class='sec'><div class='sec-h'><span class='name'>商业与资本</span><span class='n'>5 条</span><span class='delta'><b>+3</b> 新增 · ↻2 还在讲</span></div><div class='row1'><span class='t'>OpenAI 新一轮募资不足 300 亿美元目标的一半（10-31）</span><span class='b'>WSJ 报道后被 TechCrunch 跟进为&quot;下调融资目标&quot;，HN 191 条讨论。融资端和二级市场在同一周同时收紧，意味着下一阶段拼的是自有现金流而不是估值故事。…</span></div><div class='row1'><span class='t'>Anthropic 预计 IPO 后获高收益垃圾级评级（10-30）</span><span class='b'>据 FT 报道，Blackstone 方面给出这一预测（属于预测，非评级机构最终决定），HN 288 条讨论。若成立，其为支撑巨额开支而融资的成本将显著高于投资级公司，融资节奏会被评级绑住。…</span></div><div class='row1'><span class='t'>AI 资本开支担忧引发科技股集体抛售（10-30）</span><span class='b'>BBC 报美股科技股大幅下跌，路透称华尔街显著收低、亚马逊与 Intel 财报加剧 AI 支出担忧，TechCrunch 归纳为债务上升、现金流为负与投资者怀疑三件事叠加。烧钱叙事第一次被二级…</span></div><div class='row1'><span class='t'>Google 承认 AI Mode 拖累搜索收入，市值单日缩水 5000 亿美元（10-31）</span><span class='b'>股价 -15%，为 2004 年上市以来最差表现。AI 答案对搜索广告的替代，此前只是外部分析，现在是公司自己承认，这会把&quot;要不要上 AI 答案&quot;从产品题变成财务题。…</span></div><div class='row1'><span class='t'>Intel 股价暴跌，美国政府持股缩水 120 亿美元（10-30）</span><span class='b'>原因是 AI 产业大量吞噬内存等零部件，推高 PC 价格、压制 PC 销量。AI 数据中心对内存的争夺，已经实际传导到终端硬件成本，这是&quot;AI 通胀&quot;最具体的一条传导链。…</span></div></div><div class='sec'><div class='sec-h'><span class='name'>研究与论文</span><span class='n'>1 条</span><span class='delta'><b>+0</b> 新增 · ↻1 还在讲</span></div><div class='row1'><span class='t'>有人把可运行的 NES 模拟器压进了 Qwen3.5-4B 的权重里（10-30）</span><span class='b'>约 1GB 权重，能跑 Super Mario Bros 等 ROM（速度很慢），HN 146 条讨论。用权重承载确定性程序，是检验模型容量与训练方式的一个极端样本，比跑分更能暴露&quot;记忆&quot;与&quot;…</span></div></div><div class='sec'><div class='sec-h'><span class='name'>算力与本地</span><span class='n'>3 条</span><span class='delta'><b>+1</b> 新增 · ↻2 还在讲</span></div><div class='row1'><span class='t'>Google 首颗搭载 TPU 的卫星开机，Gemma 4 在轨完成推理并回传地球（10-30）</span><span class='b'>这是第一次有 TPU 在地球之外跑模型并把结果传回。它的意义不在于太空本身，而在于验证&quot;算力跟着数据采集端走&quot;这条路在工程上成立。…</span></div><div class='row1'><span class='t'>英伟达考虑为 Nscale 的西弗吉尼亚数据中心做贷款共签（10-31）</span><span class='b'>逻辑直白：投资人担心 AI 支出时，由卖芯片的厂商出面共签贷款。芯片厂商开始用自身资产负债表为客户的扩张背书，这是需求见顶预期下的一种新销售结构。…</span></div><div class='row1'><span class='t'>富士胶片把磁带产能提高到 5 倍，AI 拉动归档需求（10-31）</span><span class='b'>低成本与离线安全让磁带仍在牌桌上。AI 带来的存储需求不是均匀分布的：热数据堆 SSD，冷数据回流磁带，这个分层会决定未来几年存储采购的结构。…</span></div></div>
+</div></body></html>

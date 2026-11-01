@@ -1,0 +1,35 @@
+<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'><style>
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.5 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;-webkit-font-smoothing:antialiased;padding:22px}
+.board{width:936px;background:#F7F8FB;border:1px solid #E1E5EF;border-radius:18px;padding:26px 30px;overflow:hidden}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:12px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.03em}
+.date{font-size:11px;color:#6D7889;margin-top:4px}
+.pill{border-radius:999px;background:#EEF0FF;color:#4F46E5;font-size:10.5px;font-weight:700;padding:4px 9px;white-space:nowrap}
+.cap{font-size:11px;color:#5A6472;margin:0 0 8px 2px}
+.cap b{color:#0B1220;font-size:12px}
+.tagrec{background:#0B1220;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 7px;margin-left:6px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 12px}
+.chip{font-size:10.5px;padding:3px 9px;border-radius:999px;border:1px solid #E6EAF2;color:#5A6472;background:#fff}
+.chip.on{background:#0B1220;color:#fff;border-color:#0B1220}
+.chip .n{opacity:.65;margin-left:4px}
+.row{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid #E6EAF2;border-radius:13px;padding:10px 14px;margin-bottom:6px}
+.row.unread{border-left:2px solid #4F46E5}
+.row .sec{flex:none;width:76px;font-size:9.8px;color:#6D7889;padding-top:2px}
+.row .main{flex:1;min-width:0}
+.row h3{font-size:13px;font-weight:700;line-height:1.45}
+.row p{font-size:11.5px;color:#5A6472;margin-top:2px;line-height:1.55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{flex:none;text-align:right;font-size:9.5px;color:#9AA4B4;padding-top:2px}
+.row .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#4F46E5;margin-right:5px;vertical-align:middle}
+</style></head><body><div class="cap"><b>K · 一条流 + 板块标签（GitHub 通知 / Gmail 收件箱式）</b><span class="tagrec">另一个答案</span>　不再按板块分栏：所有条目按"变化"排成一条流，板块缩成行首标签，顶部只留筛选。</div>
+<div class="board">
+  <div class="head"><div><h1>今日简报</h1><div class="date">2026年11月1日 周日 · 23 条 · 6 未读</div></div><span class="pill">12 源</span></div>
+  <div class="filters">
+    <span class="chip on">未读<span class="n">6</span></span><span class="chip">全部<span class="n">23</span></span>
+    <span class="chip">政策与安全<span class="n">6</span></span><span class="chip">商业与资本<span class="n">5</span></span>
+    <span class="chip">模型与产品<span class="n">3</span></span><span class="chip">Agent 与工程<span class="n">3</span></span>
+    <span class="chip">算力与本地<span class="n">3</span></span><span class="chip">观点与弱信号<span class="n">2</span></span>
+    <span class="chip">研究与论文<span class="n">1</span></span>
+  </div>
+  <div class='row unread'><div class='sec'>Agent 与工程</div><div class='main'><h3><span class="dot"></span>DoorDash：第三方 AI agent 至今只带来数百笔订单（10-30）</h3><p>DoorDash 同时表示愿意与第三方 agent 厂商合作。对做 agent 商业化的团队，这是一盆冷水：场景高频、决策成本低如点餐，量级仍是三位数，说明瓶颈不在模型侧。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>Agent 与工程</div><div class='main'><h3><span class="dot"></span>Cisco 给一名工程师无限 AI token，用来重写遗留代码（10-30）</h3><p>HN 380 条讨论，焦点落在对初级岗位的冲击。真正的变化在预算口径：模型调用从项目成本变成基础设施成本，才可能出现&quot;无限配给单个工程师&quot;这种配置。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>商业与资本</div><div class='main'><h3><span class="dot"></span>OpenAI 新一轮募资不足 300 亿美元目标的一半（10-31）</h3><p>WSJ 报道后被 TechCrunch 跟进为&quot;下调融资目标&quot;，HN 191 条讨论。融资端和二级市场在同一周同时收紧，意味着下一阶段拼的是自有现金流而不是估值故事。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>商业与资本</div><div class='main'><h3><span class="dot"></span>Anthropic 预计 IPO 后获高收益垃圾级评级（10-30）</h3><p>据 FT 报道，Blackstone 方面给出这一预测（属于预测，非评级机构最终决定），HN 288 条讨论。若成立，其为支撑巨额开支而融资的成本将显著高于投资级公司，融资节奏会被评级绑住。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>政策与安全</div><div class='main'><h3><span class="dot"></span>OpenAI 采纳共享 robots.txt 信号，Google、微软、Anthropic 同步跟进（10-30/31）</h3><p>网站方可以用一个统一信号表达训练偏好，且各参与厂商互相承认。对内容方，这从&quot;逐家谈&quot;变成&quot;一处声明、多方生效&quot;，是可执行的控制点，而不是原则声明。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>政策与安全</div><div class='main'><h3><span class="dot"></span>巴西法院制裁在诉状中使用提示注入的律师（11-01）</h3><p>HN 上 34 条讨论。把&quot;对着 AI 系统下指令&quot;当作可被司法惩戒的行为处理，目前还少见；做法律科技与合规产品的团队应把它写进风险清单，而不只是安全团队的议题。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>模型与产品</div><div class='main'><h3><span class="dot"></span>Apple Intelligence 随 iOS 27.3 进入中国（10-31）</h3><p>消息发布在苹果中国新闻室，功能将先在即将推出的 iOS 27.3 测试版上线。系统级 AI 入口在中文市场开闸后，第三方应用里最容易被系统直接接管的那些场景会先被挤压。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>模型与产品</div><div class='main'><h3><span class="dot"></span>Claude 取消 5 小时用量限制，200 美元 Ultra 档先解封（10-31）</h3><p>用量约束从&quot;时间窗&quot;变成按档位区分。对把 Claude 跑在多小时长任务上的团队，这意味着会话不再被强制中断，长程 agent 循环的可行性直接提高。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>研究与论文</div><div class='main'><h3><span class="dot"></span>有人把可运行的 NES 模拟器压进了 Qwen3.5-4B 的权重里（10-30）</h3><p>约 1GB 权重，能跑 Super Mario Bros 等 ROM（速度很慢），HN 146 条讨论。用权重承载确定性程序，是检验模型容量与训练方式的一个极端样本，比跑分更能暴露&quot;记忆&quot;与&quot;…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>算力与本地</div><div class='main'><h3><span class="dot"></span>Google 首颗搭载 TPU 的卫星开机，Gemma 4 在轨完成推理并回传地球（10-30）</h3><p>这是第一次有 TPU 在地球之外跑模型并把结果传回。它的意义不在于太空本身，而在于验证&quot;算力跟着数据采集端走&quot;这条路在工程上成立。…</p></div><div class='meta'>18:52</div></div><div class='row unread'><div class='sec'>算力与本地</div><div class='main'><h3><span class="dot"></span>英伟达考虑为 Nscale 的西弗吉尼亚数据中心做贷款共签（10-31）</h3><p>逻辑直白：投资人担心 AI 支出时，由卖芯片的厂商出面共签贷款。芯片厂商开始用自身资产负债表为客户的扩张背书，这是需求见顶预期下的一种新销售结构。…</p></div><div class='meta'>18:52</div></div>
+</div></body></html>

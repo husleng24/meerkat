@@ -1,0 +1,30 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>分栏并置 · Columns</title><style>
+*{box-sizing:border-box;margin:0}
+:root{--paper:#F7F8FB;--panel:#fff;--ink:#0B1220;--ink2:#5A6472;--ink3:#6D7889;--rule:#E6EAF2;--accent:#4F46E5;--soft:#EEF0FF}
+body{background:#E9ECF3;font:13px/1.55 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;padding:26px}
+.wrap{width:1180px;margin:0 auto}
+.bar{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.bar .k{font-size:11px;letter-spacing:.16em;color:#8A94A6}
+.bar .n{font-size:15px;font-weight:800;letter-spacing:-.02em}
+.bar .d{font-size:11.5px;color:#5A6472}
+.board{background:var(--paper);border:1px solid #E1E5EF;border-radius:16px;padding:26px 30px;height:820px;overflow:hidden;position:relative}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+h1{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.meta{font-size:11px;color:var(--ink3);margin-top:4px}
+.pill{border-radius:999px;background:var(--soft);color:var(--accent);font-size:10.5px;font-weight:700;padding:4px 9px}
+
+.cols{display:flex;gap:8px;margin-top:4px;height:700px;overflow:hidden}
+.col{flex:1 1 0;min-width:132px;background:#fff;border:1px solid var(--rule);border-radius:13px;padding:9px 9px 6px;overflow:hidden}
+.col .ch{display:flex;align-items:baseline;gap:5px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #F0F2F8}
+.col .ch b{font-size:10.5px;line-height:1.3}
+.col .ch i{font-style:normal;font-size:9px;color:#9AA4B4;margin-left:auto}
+.col .ci{font-size:10.6px;line-height:1.42;padding:5px 0;border-bottom:1px solid #F5F7FB;color:#1B2434}
+.col .ci:last-child{border-bottom:0}
+.col .ci span{display:block;color:#9AA4B4;font-size:8.8px;margin-top:2px}
+.hint{position:absolute;right:18px;bottom:14px;font-size:10px;color:#8A94A6}
+
+</style></head><body><div class="wrap">
+<div class="bar"><span class="k">04 / COLUMNS</span><span class="n">分栏并置</span><span class="d">每个板块一列，横向比较；列宽决定一切。</span></div>
+<div class="board"><div class="hd"><div><h1>今日简报</h1><div class="meta">2026年11月1日 周日 · 覆盖最近 48 小时</div></div>
+      <span class="pill">12 源 · 23 条</span></div><div class='cols'><div class='col'><div class='ch'><b>模型与产品</b><i>3</i></div><div class='ci'>Apple Intelligence 随 iOS 27.3 进入中国（10-31）<span>10-31</span></div><div class='ci'>Claude 取消 5 小时用量限制，200 美元 Ultra 档先解封（10-31）<span>10-31</span></div><div class='ci'>GPT-5.6 Sol 在《Factorio》和平模式下通关（11-01）<span>10-31</span></div></div><div class='col'><div class='ch'><b>Agent 与工程</b><i>3</i></div><div class='ci'>DoorDash：第三方 AI agent 至今只带来数百笔订单（10-30）<span>10-31</span></div><div class='ci'>Cisco 给一名工程师无限 AI token，用来重写遗留代码（10-30）<span>10-31</span></div><div class='ci'>GitHub 趋势榜被 Claude Code 周边工具占满（11-01）<span>10-31</span></div></div><div class='col'><div class='ch'><b>商业与资本</b><i>5</i></div><div class='ci'>OpenAI 新一轮募资不足 300 亿美元目标的一半（10-31）<span>10-31</span></div><div class='ci'>Anthropic 预计 IPO 后获高收益垃圾级评级（10-30）<span>10-31</span></div><div class='ci'>AI 资本开支担忧引发科技股集体抛售（10-30）<span>10-31</span></div><div class='ci'>Google 承认 AI Mode 拖累搜索收入，市值单日缩水 5000 亿美元（10-31）<span>10-31</span></div><div class='ci'>Intel 股价暴跌，美国政府持股缩水 120 亿美元（10-30）<span>10-31</span></div></div><div class='col'><div class='ch'><b>研究与论文</b><i>1</i></div><div class='ci'>有人把可运行的 NES 模拟器压进了 Qwen3.5-4B 的权重里（10-30）<span>10-31</span></div></div><div class='col'><div class='ch'><b>算力与本地</b><i>3</i></div><div class='ci'>Google 首颗搭载 TPU 的卫星开机，Gemma 4 在轨完成推理并回传地球（10-30）<span>10-31</span></div><div class='ci'>英伟达考虑为 Nscale 的西弗吉尼亚数据中心做贷款共签（10-31）<span>10-31</span></div><div class='ci'>富士胶片把磁带产能提高到 5 倍，AI 拉动归档需求（10-31）<span>10-31</span></div></div><div class='col'><div class='ch'><b>政策与安全</b><i>6</i></div><div class='ci'>OpenAI 采纳共享 robots.txt 信号，Google、微软、Anthropic 同步跟进（10-30/31）<span>10-31</span></div><div class='ci'>巴西法院制裁在诉状中使用提示注入的律师（11-01）<span>10-31</span></div><div class='ci'>Claude Code 的 VS Code 扩展在 Cursor 市场被植入后门近 12 小时（10-30/31）<span>10-31</span></div><div class='ci'>Parameter Labs 披露接管 ChatGPT 账号的完整路径（10-31）<span>10-31</span></div><div class='ci'>Anthropic 开始阻止 Claude 被用于游戏逆向与克隆（10-31）<span>10-31</span></div><div class='ci'>有用户称 Anthropic 封禁任何触及&quot;训练更大模型&quot;的使用行为（11-01）（传闻，未官方确认）<span>10-31</span></div></div><div class='col'><div class='ch'><b>观点与弱信号</b><i>2</i></div><div class='ci'>Altman：内存放在数据中心比放在你桌上更好（10-31）<span>10-31</span></div><div class='ci'>Proton CEO 取消用 AI 对员工做&quot;重新面试&quot;的安排（10-31）<span>10-31</span></div></div></div><div class='hint'>7 个板块并排 → 每列约 155px，标题普遍折行或被截断</div></div>
+</div></body></html>

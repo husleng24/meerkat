@@ -1,0 +1,45 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.5 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;-webkit-font-smoothing:antialiased;padding:22px}
+.board{width:936px;background:#F7F8FB;border:1px solid #E1E5EF;border-radius:18px;padding:26px 30px 0;overflow:hidden;position:relative}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.03em}
+.date{font-size:11px;color:#6D7889;margin-top:4px}
+.pill{border-radius:999px;background:#EEF0FF;color:#4F46E5;font-size:10.5px;font-weight:700;padding:4px 9px;white-space:nowrap}
+.card{background:#fff;border:1px solid #E6EAF2;border-radius:15px}
+.hl{padding:6px 18px}
+.hl .row{display:flex;gap:13px;border-top:1px solid #EEF1F7;padding:9px 0}
+.hl .row:first-child{border-top:0}
+.hl b{color:#4F46E5;font-size:14px;width:14px;flex:none;line-height:1.6}
+.hl span{font-size:12.5px;line-height:1.6;color:#1B2434}
+.cap{font-size:11px;color:#5A6472;margin:0 0 8px 2px}
+.cap b{color:#0B1220;font-size:12px}
+.tagrec{background:#0B1220;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 7px;margin-left:6px}
+.sec{margin-top:16px}
+.sec-h{display:flex;align-items:baseline;gap:9px;margin-bottom:6px}
+.sec-h .name{font-size:12.5px;font-weight:700}
+.sec-h .n{font-size:10.5px;color:#8A94A6}
+.delta{margin-left:auto;font-size:10px;color:#6D7889}
+.delta b{color:#4F46E5}
+.item{background:#fff;border:1px solid #E6EAF2;border-radius:14px;padding:11px 15px;margin-bottom:7px}
+.item h3{font-size:13.5px;font-weight:700;line-height:1.45}
+.item p{font-size:11.8px;line-height:1.62;color:#39424F;margin-top:3px}
+.item .f{display:flex;gap:8px;margin-top:5px;font-size:9.8px;color:#8A94A6}
+.item .f .tag{background:#F3F5FA;border-radius:999px;padding:1px 6px;color:#5A6472}
+
+.pg{display:grid;place-items:center;width:22px;height:22px;border:1px solid #E6EAF2;border-radius:7px;font-size:11px;color:#5A6472}
+.pg.on{background:#0B1220;color:#fff;border-color:#0B1220}
+.page{position:relative;height:330px;overflow:hidden}
+.fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(#F7F8FB00,#F7F8FB);display:flex;align-items:flex-end;justify-content:center;font-size:10px;color:#8A94A6;padding-bottom:4px}
+</style></head><body><div class="cap"><b>G · 一节一屏（翻页，不滚动）</b>　一节一张"页"，←/→ 翻；顶部显示 3/7。问题：<b>7 节里有 4 节高过一屏</b>（政策与安全 1,020px），页内还得滚。</div>
+<div class="board"><div class="head"><div><h1>今日简报</h1><div class="date">2026年11月1日 周日 · 覆盖最近 48 小时</div></div>
+      <span class="pill">12 源 · 23 条</span></div><div class='card hl'><div class='row'><b>1</b><span>OpenAI 最新一轮实际募资不到 300 亿美元目标的一半，同周 Anthropic 被预期 IPO 后将拿到高收益垃圾级评级——AI 的融资成本开始分化。</span></div><div class='row'><b>2</b><span>Google 承认 AI Mode 拖累搜索收入，当日股价 -15%、市值缩水 5000 亿美元；AI 蚕食核心广告业务第一次被公司自己摆上台面。</span></div></div>
+  <div style="display:flex;align-items:center;gap:10px;margin:12px 0 10px">
+    <span style="font-size:10.5px;color:#8A94A6">第 3 / 7 节</span>
+    <span style="font-size:11px;font-weight:700">商业与资本</span><span style="font-size:10px;color:#8A94A6">5 条 · +3 新增</span>
+    <span style="margin-left:auto;display:flex;gap:6px"><span class="pg">←</span><span class="pg on">→</span></span>
+  </div>
+  <div class="page"><div class='item'><h3>OpenAI 新一轮募资不足 300 亿美元目标的一半（10-31）</h3><p>WSJ 报道后被 TechCrunch 跟进为&quot;下调融资目标&quot;，HN 191 条讨论。融资端和二级市场在同一周同时收紧，意味着下一阶段拼的是自有现金流而不是估值故事。…</p><div class='f'><span class='tag'>2 源</span><span>The Verge</span></div></div><div class='item'><h3>Anthropic 预计 IPO 后获高收益垃圾级评级（10-30）</h3><p>据 FT 报道，Blackstone 方面给出这一预测（属于预测，非评级机构最终决定），HN 288 条讨论。若成立，其为支撑巨额开支而融资的成本将显著高于投资级公司，融资节奏会被评级绑住。…</p><div class='f'><span class='tag'>2 源</span><span>The Verge</span></div></div><div class='item'><h3>AI 资本开支担忧引发科技股集体抛售（10-30）</h3><p>BBC 报美股科技股大幅下跌，路透称华尔街显著收低、亚马逊与 Intel 财报加剧 AI 支出担忧，TechCrunch 归纳为债务上升、现金流为负与投资者怀疑三件事叠加。烧钱叙事第一次被二级…</p><div class='f'><span class='tag'>2 源</span><span>The Verge</span></div></div>
+    <div class="fade">第 4 条还在下面 ↓（这一节 867px，比一屏还高）</div>
+  </div>
+</div></body></html>

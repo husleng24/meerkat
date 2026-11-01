@@ -1,0 +1,92 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+/* D: 板块速览 */
+.idx{background:#fff;border:1px solid #E6EAF2;border-radius:15px;margin-top:12px;overflow:hidden}
+.idx .ih{display:flex;align-items:baseline;gap:8px;padding:9px 16px 7px;border-bottom:1px solid #EEF1F7}
+.idx .ih b{font-size:11.5px;font-weight:700}
+.idx .ih span{font-size:10px;color:#6D7889;margin-left:auto}
+.irow{display:flex;align-items:center;gap:10px;padding:5px 16px;border-bottom:1px solid #F2F4F9;font-size:11px}
+.irow:last-child{border-bottom:0}
+.irow .iname{width:82px;flex:none;font-weight:700;color:#0B1220}
+.irow .icount{width:14px;flex:none;color:#8A94A6;font-size:10px;text-align:right}
+.irow .ihead{flex:1;min-width:0;color:#39424F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irow .idelta{width:56px;flex:none;text-align:right;font-size:10px;white-space:nowrap}
+.irow .idelta b{color:#4F46E5}
+.irow .idelta i{font-style:normal;color:#8A94A6;margin-left:3px}
+.irow .idelta.zero{color:#B4BCCB;font-weight:400}
+
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.5 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;-webkit-font-smoothing:antialiased;padding:22px}
+.board{width:936px;background:#F7F8FB;border:1px solid #E1E5EF;border-radius:18px;padding:26px 30px 0;overflow:hidden}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.03em}
+.date{font-size:11px;color:#6D7889;margin-top:4px}
+.pill{border-radius:999px;background:#EEF0FF;color:#4F46E5;font-size:10.5px;font-weight:700;padding:4px 9px;white-space:nowrap}
+.card{background:#fff;border:1px solid #E6EAF2;border-radius:15px}
+.hl{padding:6px 18px}
+.hl .row{display:flex;gap:13px;border-top:1px solid #EEF1F7;padding:9px 0}
+.hl .row:first-child{border-top:0}
+.hl b{color:#4F46E5;font-size:14px;width:14px;flex:none;line-height:1.6}
+.hl span{font-size:12.5px;line-height:1.6;color:#1B2434}
+.sec{margin-top:18px}
+.sec-h{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+.sec-h .name{font-size:12.5px;font-weight:700;letter-spacing:.01em}
+.sec-h .n{font-size:10.5px;color:#8A94A6}
+.delta{margin-left:auto;display:flex;gap:5px;align-items:center;font-size:10px}
+.d-new{color:#4F46E5;font-weight:700}
+.d-car{color:#6D7889}
+.d-dro{color:#A6AFBE}
+.item{background:#fff;border:1px solid #E6EAF2;border-radius:14px;padding:11px 15px;margin-bottom:7px}
+.item h3{font-size:13.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em}
+.item p{font-size:11.8px;line-height:1.62;color:#39424F;margin-top:3px}
+.item .f{display:flex;gap:8px;margin-top:5px;font-size:9.8px;color:#8A94A6}
+.item .f .tag{background:#F3F5FA;border-radius:999px;padding:1px 6px;color:#5A6472}
+.cap{font-size:11px;color:#5A6472;margin:0 0 8px 2px}
+.cap b{color:#0B1220;font-size:12px}
+.tagrec{background:#0B1220;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 7px;margin-left:6px}
+.scroller{height:646px;overflow:hidden;position:relative;margin-top:2px}
+.inner{padding-top:0}
+/* A: sticky section bar */
+.stickybar{position:absolute;top:0;left:0;right:0;height:34px;background:#F7F8FB;border-bottom:1px solid #E1E5EF;box-shadow:0 6px 14px -12px rgba(11,18,32,.5);
+  display:flex;align-items:center;gap:9px;font-size:12px;z-index:3;padding:0 2px}
+.stickybar .name{font-weight:700}
+.stickybar .n{font-size:10px;color:#8A94A6}
+/* B: structure strip */
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0 4px}
+.cell{background:#fff;border:1px solid #E6EAF2;border-radius:11px;padding:7px 8px;min-width:0}
+.cell.on{border-color:#4F46E5;background:#fff;box-shadow:0 0 0 2px rgba(79,70,229,.10)}
+.cell .cn{font-size:10px;color:#5A6472;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .cv{display:flex;align-items:baseline;gap:3px;margin-top:2px}
+.cell .cv b{font-size:14px;font-weight:800;letter-spacing:-.02em}
+.cell .cv i{font-style:normal;font-size:9.5px;color:#4F46E5;font-weight:700}
+.cell .bar{height:2px;border-radius:2px;background:#EDF0F8;margin-top:5px;display:flex;overflow:hidden}
+.cell .bar s{text-decoration:none;height:100%}
+/* C: rail */
+.split{display:flex;gap:18px}
+.col{flex:1;min-width:0}
+.rail{width:150px;flex:none;padding-top:2px}
+.rail .rh{font-size:9.5px;letter-spacing:.14em;color:#8A94A6;margin-bottom:7px}
+.rrow{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:8px;font-size:10.5px;color:#5A6472}
+.rrow.on{background:#EEF0FF;color:#4F46E5;font-weight:700}
+.rrow .rc{margin-left:auto;font-size:9.5px;color:#8A94A6}
+.rrow.on .rc{color:#4F46E5}
+.rrow .dn{color:#4F46E5;font-weight:700;font-size:9px}
+</style></head><body>
+<div class="cap"><b>B · 本期结构条（overview strip）</b>　七个板块压成一行：条数 + 变化条（靛蓝=新增，灰=有进展）；点一下跳过去，读到哪一格就亮哪一格。</div>
+<div class="board"><div class="head"><div><h1>今日简报</h1>
+      <div class="date">2026年11月1日 周日 · 覆盖最近 48 小时</div></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="pill">12 源 · 23 条</span></div></div><div class='card hl'><div class='row'><b>1</b><span>OpenAI 最新一轮实际募资不到 300 亿美元目标的一半，同周 Anthropic 被预期 IPO 后将拿到高收益垃圾级评级——AI 的融资成本开始分化。</span></div><div class='row'><b>2</b><span>Google 承认 AI Mode 拖累搜索收入，当日股价 -15%、市值缩水 5000 亿美元；AI 蚕食核心广告业务第一次被公司自己摆上台面。</span></div></div>
+  <div class="strip"><div class='cell on'><div class='cn'>模型与产品</div><div class='cv'><b>3</b><i>+1</i></div><div class='bar'><s style='width:14px;background:#4F46E5'></s><s style='width:20px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>Agent 与工程</div><div class='cv'><b>3</b><i>+2</i></div><div class='bar'><s style='width:28px;background:#4F46E5'></s><s style='width:10px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>商业与资本</div><div class='cv'><b>5</b><i>+3</i></div><div class='bar'><s style='width:42px;background:#4F46E5'></s><s style='width:20px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>研究与论文</div><div class='cv'><b>1</b></div><div class='bar'><s style='width:0px;background:#4F46E5'></s><s style='width:10px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>算力与本地</div><div class='cv'><b>3</b><i>+1</i></div><div class='bar'><s style='width:14px;background:#4F46E5'></s><s style='width:20px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>政策与安全</div><div class='cv'><b>6</b><i>+4</i></div><div class='bar'><s style='width:56px;background:#4F46E5'></s><s style='width:20px;background:#C9D0FF'></s></div></div><div class='cell'><div class='cn'>观点与弱信号</div><div class='cv'><b>2</b><i>+1</i></div><div class='bar'><s style='width:14px;background:#4F46E5'></s><s style='width:10px;background:#C9D0FF'></s></div></div></div>
+  <div class="scroller" style="height:494px"><div class="inner"><div class="sec"><div class="sec-h"><span class="name">模型与产品</span>
+          <span class="n">3 条</span>
+          <span class="delta"><span class="d-new">+1 新增</span><span class="d-car">↻2 进展</span></span></div>
+          <div class="item"><h3>Apple Intelligence 随 iOS 27.3 进入中国（10-31）</h3><p>消息发布在苹果中国新闻室，功能将先在即将推出的 iOS 27.3 测试版上线。系统级 AI 入口在中文市场开闸后，第三方应用里最容易被系统直接接管的那些场景会先被挤压。…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div><div class="item"><h3>Claude 取消 5 小时用量限制，200 美元 Ultra 档先解封（10-31）</h3><p>用量约束从&quot;时间窗&quot;变成按档位区分。对把 Claude 跑在多小时长任务上的团队，这意味着会话不再被强制中断，长程 agent 循环的可行性直接提高。…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div><div class="item"><h3>GPT-5.6 Sol 在《Factorio》和平模式下通关（11-01）</h3><p>HN 上 180 条讨论。工厂建造类游戏考的是多步骤资源规划与长期调度，这类任务被通关，比一次性代码题更能说明长程规划能力的进展。…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div></div><div class="sec"><div class="sec-h"><span class="name">Agent 与工程</span>
+          <span class="n">3 条</span>
+          <span class="delta"><span class="d-new">+2 新增</span><span class="d-car">↻1 进展</span><span class='d-dro'>−1 没再提</span></span></div>
+          <div class="item"><h3>DoorDash：第三方 AI agent 至今只带来数百笔订单（10-30）</h3><p>DoorDash 同时表示愿意与第三方 agent 厂商合作。对做 agent 商业化的团队，这是一盆冷水：场景高频、决策成本低如点餐，量级仍是三位数，说明瓶颈不在模型侧。…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div><div class="item"><h3>Cisco 给一名工程师无限 AI token，用来重写遗留代码（10-30）</h3><p>HN 380 条讨论，焦点落在对初级岗位的冲击。真正的变化在预算口径：模型调用从项目成本变成基础设施成本，才可能出现&quot;无限配给单个工程师&quot;这种配置。…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div><div class="item"><h3>GitHub 趋势榜被 Claude Code 周边工具占满（11-01）</h3><p>impeccable 今日 +1338 star（给 coding agent 的设计词汇与审查指令）、Lightpanda +929 star（面向 AI 与自动化的 headless 浏览…</p>
+      <div class="f"><span class="tag">2 源</span><span>The Verge</span><span>·</span><span>量子位</span><span style="margin-left:auto">10-31</span></div></div></div></div></div>
+</div></body></html>

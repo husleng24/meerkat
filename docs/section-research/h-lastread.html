@@ -1,0 +1,39 @@
+<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'><style>
+*{box-sizing:border-box;margin:0}
+body{background:#E9ECF3;font:13px/1.5 'PingFang SC','Helvetica Neue',system-ui,sans-serif;color:#0B1220;-webkit-font-smoothing:antialiased;padding:22px}
+.board{width:936px;background:#F7F8FB;border:1px solid #E1E5EF;border-radius:18px;padding:26px 30px 26px;overflow:hidden}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+h1{font-size:21px;font-weight:800;letter-spacing:-.03em}
+.date{font-size:11px;color:#6D7889;margin-top:4px}
+.pill{border-radius:999px;background:#EEF0FF;color:#4F46E5;font-size:10.5px;font-weight:700;padding:4px 9px;white-space:nowrap}
+.cap{font-size:11px;color:#5A6472;margin:0 0 8px 2px}
+.cap b{color:#0B1220;font-size:12px}
+.tagrec{background:#0B1220;color:#fff;border-radius:999px;font-size:9.5px;padding:2px 7px;margin-left:6px}
+.sec-h{display:flex;align-items:baseline;gap:9px;margin:6px 0 7px}
+.sec-h .name{font-size:12.5px;font-weight:700}
+.sec-h .n{font-size:10.5px;color:#8A94A6}
+.unread{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:10px;color:#4F46E5;font-weight:700}
+.unread .dot{width:5px;height:5px;border-radius:50%;background:#4F46E5}
+.item{background:#fff;border:1px solid #E6EAF2;border-radius:14px;padding:11px 15px;margin-bottom:7px}
+.item h3{font-size:13.5px;font-weight:700;line-height:1.45}
+.item p{font-size:11.8px;line-height:1.62;color:#39424F;margin-top:3px}
+.item.read{background:#FBFCFF}
+.item.read h3{color:#6D7889;font-weight:600}
+.item.read p{color:#6D7889}
+.divider{display:flex;align-items:center;gap:10px;margin:11px 0 9px;font-size:10px;color:#4F46E5;font-weight:700}
+.divider::before,.divider::after{content:'';height:1px;background:#C9D0FF;flex:1}
+.divider .t{white-space:nowrap}
+.item .newtag{float:right;font-size:9px;color:#4F46E5;font-weight:700;background:#EEF0FF;border-radius:999px;padding:1px 6px;margin-left:8px}
+</style></head><body><div class="cap"><b>H · 以"我上次读到哪"为锚（不是以"昨天"为锚）</b><span class="tagrec">新方向</span>　板块头显示未读数；正文里一条分界线，下面才是今天新增/没读过的。整个机制只依赖已有的"已读"标记。</div>
+<div class="board">
+  <div class="head"><div><h1>今日简报</h1><div class="date">2026年11月1日 周日 · 上次阅读 18:40</div></div>
+    <span class="pill">12 源 · 23 条 · 6 未读</span></div>
+  <div class="sec-h"><span class="name">政策与安全</span><span class="n">6 条</span>
+    <span class="unread"><span class="dot"></span>4 未读</span></div>
+  <div class='item read'><h3>OpenAI 采纳共享 robots.txt 信号，Google、微软、Anthropic 同步跟进（10-30/31）</h3><p>网站方可以用一个统一信号表达训练偏好，且各参与厂商互相承认。对内容方，这从&quot;逐家谈&quot;变成&quot;一处声明、多方生效&quot;，是可执行的控制点，而不是原则声明。…</p></div>
+  <div class='item read'><h3>巴西法院制裁在诉状中使用提示注入的律师（11-01）</h3><p>HN 上 34 条讨论。把&quot;对着 AI 系统下指令&quot;当作可被司法惩戒的行为处理，目前还少见；做法律科技与合规产品的团队应把它写进风险清单，而不只是安全团队的议题。…</p></div>
+  <div class="divider"><span class="t">上次读到这 · 18:40</span></div>
+  <div class='item'><h3><span class='newtag'>新</span>Claude Code 的 VS Code 扩展在 Cursor 市场被植入后门近 12 小时（10-30/31）</h3><p>攻击者如何拿到 Anthropic 认证的 Cursor 账号仍然不明。这次没人攻破模型，被攻破的是发布渠道：模型厂商的开发者分发账号，正在成为最高价值的单点。…</p></div>
+  <div class='item'><h3><span class='newtag'>新</span>Parameter Labs 披露接管 ChatGPT 账号的完整路径（10-31）</h3><p>攻击面在 ChatGPT 对 artifacts 模式（现称 HTML 预览）的实现上。只要产品要渲染模型生成的 HTML，隔离边界就是首要安全设计对象，而不是事后补丁。…</p></div>
+  <div class='item'><h3><span class='newtag'>新</span>Anthropic 开始阻止 Claude 被用于游戏逆向与克隆（10-31）</h3><p>据 Tom&#x27;s Hardware，部分用户称并非恶意的通用逆向任务也一并被拦。模型层开始承担 IP 执法，误伤成本由普通开发者承担，这会改变逆向工程类工作的工具选择。…</p></div>
+</div></body></html>
