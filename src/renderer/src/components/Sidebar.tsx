@@ -67,8 +67,8 @@ export function Sidebar({
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
       {topicsAvailable && topics.length > 0 && (
-        <div className="mb-1 px-1">
-          <div className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</div>
+        <div className="mb-1">
+          <div className="mb-1 px-2.5 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</div>
           <div className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto">
             {topics.map((t) => {
               const isActive = t.id === activeTopic
@@ -78,10 +78,10 @@ export function Sidebar({
                   onClick={() => onPickTopic(t.id)}
                   title={t.unreadCount > 0 ? `${t.unreadCount} 条未读` : undefined}
                   className={[
-                    'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[6px] text-left text-[12.5px] transition-colors',
+                    'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
                     isActive
                       ? 'bg-accent-soft font-semibold text-accent'
-                      : 'text-ink-2 hover:bg-cream hover:text-ink'
+                      : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
                   ].join(' ')}
                 >
                   <span className="min-w-0 truncate">{t.name}</span>
@@ -95,7 +95,7 @@ export function Sidebar({
                   <span className="flex-1" />
                   <span
                     className={[
-                      'shrink-0 tabular-nums text-[10.5px]',
+                      'shrink-0 tabular-nums text-[11px]',
                       isActive ? 'text-accent/80' : 'text-ink-3'
                     ].join(' ')}
                   >
@@ -157,7 +157,7 @@ export function Sidebar({
                   {attentionSources}
                 </span>
               )}
-              {n.id === 'timeline' && <span className="text-[10px] tabular-nums text-ink-3">{dateLabel}</span>}
+              {n.id === 'timeline' && <span className="text-[11px] font-normal tabular-nums text-ink-3">{dateLabel}</span>}
             </button>
           )
         })}
@@ -165,14 +165,14 @@ export function Sidebar({
 
       <div className="mx-2 my-5 h-px bg-rule" />
 
-      <div className="space-y-1.5 px-2.5 text-[11.5px] text-ink-3">
+      <div className="space-y-2 px-2.5 text-[11px] text-ink-3">
         <Row label="今日条目" value={String(itemCount)} />
         <Row label="已读" value={String(readCount)} />
         <Row label="已收藏" value={String(savedCount)} />
         <Row label="需关注" value={String(attentionSources)} warn={attentionSources > 0} />
       </div>
 
-      <div className="mt-auto px-2.5 text-[10px] leading-relaxed text-ink-3">
+      <div className="mt-auto px-2.5 text-[11px] leading-relaxed text-ink-3">
         {!bridgeAvailable
           ? '浏览器预览（无 preload）'
           : origin === 'sample'
