@@ -104,7 +104,7 @@ export function Sidebar({
             title={topicsOpen ? '收起领域' : '展开领域'}
             className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left transition-colors hover:bg-cream"
           >
-            <span className="shrink-0 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</span>
+            <span className="shrink-0 text-[13px] font-semibold text-ink-3">领域</span>
             {/* 收起时把当前领域放到标题行：否则用户不知道现在在看哪个领域 */}
             {!topicsOpen && activeTopicInfo && (
               <span className="min-w-0 truncate text-[13px] font-medium text-ink">{activeTopicInfo.name}</span>
