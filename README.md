@@ -12,8 +12,10 @@
 
 | 平台 | 文件 |
 |---|---|
-| macOS（Apple Silicon / Intel） | `Meerkat-0.1.0-arm64.dmg` / `-x64.dmg` |
-| Windows（安装 / 便携） | `Meerkat-0.1.0-x64.exe` / `-portable.exe` |
+| macOS（Apple Silicon） | [Meerkat-0.1.0-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-arm64.dmg) |
+| macOS（Intel） | [Meerkat-0.1.0-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.dmg) |
+| Windows（安装版） | [Meerkat-0.1.0-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.exe) |
+| Windows（便携版） | [Meerkat-0.1.0-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-portable.exe) |
 
 两个平台都没有代码签名：macOS 首次打开需右键「打开」（或
 `xattr -dr com.apple.quarantine /Applications/Meerkat.app`）；Windows SmartScreen 选
@@ -208,6 +210,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | [docs/TODO.md](docs/TODO.md) | 待办、已知限制与工程债 |
 | [docs/FEEDBACK.md](docs/FEEDBACK.md) | 反馈分级与修复流程 |
 | [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | 真机验收原始记录 |
+| [docs/RELEASE.md](docs/RELEASE.md) | 发版流程与产物说明 |
 | [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 开发日志与实现细节（归档） |
 
 ## 开发约定
