@@ -4,7 +4,20 @@
 
 ![两层侧栏：领域与主题](docs/assets/ui-two-level-sidebar.png)
 
-> 389 个测试 · typecheck / build 通过 · macOS 实测（Windows 打包配置就绪）
+> v0.1.0 · 389 个测试 · typecheck / build 通过 · macOS 实测，Windows 由 CI 出包
+
+## 下载
+
+到 [Releases](https://github.com/husleng24/meerkat/releases) 下载安装包：
+
+| 平台 | 文件 |
+|---|---|
+| macOS（Apple Silicon / Intel） | `Meerkat-0.1.0-arm64.dmg` / `-x64.dmg` |
+| Windows（安装 / 便携） | `Meerkat-0.1.0-x64.exe` / `-portable.exe` |
+
+两个平台都没有代码签名：macOS 首次打开需右键「打开」（或
+`xattr -dr com.apple.quarantine /Applications/Meerkat.app`）；Windows SmartScreen 选
+「更多信息 → 仍要运行」。
 
 ## 它是什么
 

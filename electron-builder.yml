@@ -25,20 +25,18 @@ extraResources:
     to: brand
 
 win:
-  # 注意：nsis 目标在本机不可用（见 README「打包」一节）。
-  # electron-builder 生成卸载器时会**执行**刚产出的未签名 exe，
-  # 这一步被系统的实时防护拦下，返回 exit 2。
-  # portable 与 zip 不需要执行任何东西，因此可用。
+  # 本机（Windows 开发机）的实时防护会拦下 NSIS 卸载器的生成步骤，
+  # 所以本地出包用 portable/zip；GitHub Actions 的 Windows runner 上出 NSIS 安装包。
   target:
-    - target: portable
+    - target: nsis
       arch: [x64]
-    - target: zip
+    - target: portable
       arch: [x64]
   icon: build/icon.ico
   artifactName: ${productName}-${version}-${arch}.${ext}
 
 portable:
-  artifactName: ${productName}-${version}-便携版.${ext}
+  artifactName: ${productName}-${version}-portable.${ext}
   requestExecutionLevel: user
 
 nsis:
@@ -56,13 +54,16 @@ mac:
       arch: [arm64, x64]
   icon: build/icon.icns
   category: public.app-category.productivity
+  artifactName: ${productName}-${version}-${arch}.${ext}
 
 linux:
   target: [AppImage]
   icon: build/icon.png
   category: Office
 
-# 自动更新在 P2-2 接；这里先声明发布渠道形状
+# 发布走 GitHub Releases：tag 推上去后由 .github/workflows/release.yml 出包并上传
 publish:
-  provider: generic
-  url: https://example.invalid/meerkat/updates
+  provider: github
+  owner: husleng24
+  repo: meerkat
+  releaseType: draft
