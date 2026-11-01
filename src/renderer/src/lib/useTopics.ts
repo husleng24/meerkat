@@ -7,7 +7,7 @@ export interface TopicsState {
   activeId: string
   setActiveId: (id: string) => void
   /** 建一个新主题（引导页用），成功后返回 id */
-  create: (input: { id: string; name: string }) => Promise<string | null>
+  create: (input: { id: string; name: string; domainId?: string }) => Promise<string | null>
   reload: () => void
   /** 浏览器预览里没有 IPC，界面据此隐藏主题切换器 */
   available: boolean
@@ -38,6 +38,7 @@ export function useTopics(): TopicsState {
       const fallback: TopicPayload = {
         id: 'ai',
         name: 'AI 综合',
+        domainId: 'ai',
         enabled: true,
         hour: 8,
         minute: 30,

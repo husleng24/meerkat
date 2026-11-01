@@ -114,8 +114,18 @@ const chatSendSchema = z.object({
 const topicCreateSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(30),
+  /** 所属领域；不传落到默认领域 */
+  domainId: z.string().min(1).max(40).optional(),
   /** 新主题默认收录的源；不传就是全部 */
   sourceIds: z.array(z.string().min(1)).max(200).optional()
+})
+const domainCreateSchema = z.object({
+  id: z.string().min(1).max(40).optional(),
+  name: z.string().min(1).max(30)
+})
+const domainRenameSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(30)
 })
 const topicUpdateSchema = z.object({
   id: z.string().min(1).max(40),
@@ -383,12 +393,56 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const { topicId, ...cfg } = parsed.data
     if (!isValidSchedule(cfg)) return { ok: false, error: '时间超出范围' }
-    if (!requireStore().topics.get(topicId)) return { ok: false, error: '领域不存在' }
+    if (!requireStore().topics.get(topicId)) return { ok: false, error: '主题不存在' }
     writeSchedule(requireStore(), topicId, cfg)
     return { ok: true }
   })
 
   // ── 主题 ──────────────────────────────────────────────
+  ipcMain.handle('domains:list', () => {
+    const s = requireStore()
+    return s.domains.list().map((d) => ({
+      ...d,
+      topicCount: s.topics.list().filter((t) => t.domainId === d.id).length
+    }))
+  })
+
+  ipcMain.handle('domains:create', (_e, raw: unknown) => {
+    const parsed = domainCreateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    const id = parsed.data.id ?? `d-${Date.now().toString(36)}`
+    if (s.domains.get(id)) return { ok: false, error: '领域已存在' }
+    if (s.domains.list().some((d) => d.name === parsed.data.name.trim())) {
+      return { ok: false, error: '领域名重复' }
+    }
+    s.domains.upsert({ id, name: parsed.data.name.trim(), createdAt: Date.now() })
+    return { ok: true, id }
+  })
+
+  ipcMain.handle('domains:rename', (_e, raw: unknown) => {
+    const parsed = domainRenameSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    const d = s.domains.get(parsed.data.id)
+    if (!d) return { ok: false, error: '领域不存在' }
+    s.domains.upsert({ ...d, name: parsed.data.name.trim() })
+    return { ok: true }
+  })
+
+  ipcMain.handle('domains:remove', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(40).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    if (!s.domains.get(parsed.data)) return { ok: false, error: '领域不存在' }
+    if (s.topics.list().some((t) => t.domainId === parsed.data)) {
+      return { ok: false, error: '领域下还有主题，先移走或删掉它们' }
+    }
+    if (s.domains.list().length <= 1) return { ok: false, error: '至少要保留一个领域' }
+    s.domains.remove(parsed.data)
+    return { ok: true }
+  })
+
   ipcMain.handle('topics:list', () => {
     const s = requireStore()
     return s.topics.list().map((t) => {
@@ -408,10 +462,13 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
     if (s.topics.get(parsed.data.id)) return { ok: false, error: '主题已存在' }
+    const domainId = parsed.data.domainId ?? 'ai'
+    if (!s.domains.get(domainId)) return { ok: false, error: '领域不存在' }
     const now = Date.now()
     s.topics.upsert({
       id: parsed.data.id,
       name: parsed.data.name,
+      domainId,
       enabled: true,
       hour: 8,
       minute: 30,
@@ -428,7 +485,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
     const topic = s.topics.get(parsed.data.id)
-    if (!topic) return { ok: false, error: '领域不存在' }
+    if (!topic) return { ok: false, error: '主题不存在' }
     s.topics.upsert({
       ...topic,
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
@@ -442,8 +499,8 @@ export function registerIpc(): void {
     const parsed = topicIdSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
-    if (s.topics.list().length <= 1) return { ok: false, error: '至少要保留一个领域' }
-    if (!s.topics.get(parsed.data)) return { ok: false, error: '领域不存在' }
+    if (s.topics.list().length <= 1) return { ok: false, error: '至少要保留一个主题' }
+    if (!s.topics.get(parsed.data)) return { ok: false, error: '主题不存在' }
     s.topics.remove(parsed.data)
     return { ok: true }
   })
@@ -454,7 +511,7 @@ export function registerIpc(): void {
       .safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
-    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '领域不存在' }
+    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '主题不存在' }
     s.topics.setSources(parsed.data.topicId, parsed.data.sourceIds)
     return { ok: true }
   })

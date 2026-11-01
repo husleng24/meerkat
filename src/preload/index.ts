@@ -158,6 +158,7 @@ const api = {
       Array<{
         id: string
         name: string
+        domainId: string
         enabled: boolean
         hour: number
         minute: number
@@ -167,7 +168,7 @@ const api = {
         unreadCount: number
       }>
     > => ipcRenderer.invoke('topics:list'),
-    create: (input: { id: string; name: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; error?: string }> =>
+    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; error?: string }> =>
       ipcRenderer.invoke('topics:create', input),
     update: (input: { id: string; name?: string; enabled?: boolean }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:update', input),
@@ -175,6 +176,16 @@ const api = {
     sourceIds: (id: string): Promise<string[]> => ipcRenderer.invoke('topics:sourceIds', id),
     setSources: (input: { topicId: string; sourceIds: string[] }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:setSources', input)
+  },
+
+  domains: {
+    list: (): Promise<Array<{ id: string; name: string; createdAt: number; topicCount: number }>> =>
+      ipcRenderer.invoke('domains:list'),
+    create: (input: { id?: string; name: string }): Promise<{ ok: boolean; id?: string; error?: string }> =>
+      ipcRenderer.invoke('domains:create', input),
+    rename: (input: { id: string; name: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('domains:rename', input),
+    remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('domains:remove', id)
   },
 
   prefs: {

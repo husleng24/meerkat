@@ -91,6 +91,34 @@ afterAll(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
+describe('IPC：领域与主题的两层结构', () => {
+  it('默认领域存在，且主题都挂在它下面', () => {
+    const list = call('domains:list') as Array<{ id: string; name: string; topicCount: number }>
+    expect(list.map((d) => d.id)).toEqual(['ai'])
+    expect(list[0]!.name).toBe('AI')
+    expect(list[0]!.topicCount).toBeGreaterThanOrEqual(1)
+    const topics = call('topics:list') as Array<{ domainId: string }>
+    expect(topics.every((t) => t.domainId === 'ai')).toBe(true)
+  })
+
+  it('领域名不能重复', () => {
+    expect(call('domains:create', { name: 'AI' })).toEqual({ ok: false, error: '领域名重复' })
+  })
+
+  it('建主题时领域必须存在', () => {
+    expect(call('topics:create', { id: 'x1', name: 'X', domainId: 'nope' })).toEqual({
+      ok: false,
+      error: '领域不存在'
+    })
+  })
+
+  it('领域下还有主题时不能删领域', () => {
+    const r = call('domains:remove', 'ai')
+    expect(r.ok).toBe(false)
+    expect(r.error).toContain('还有主题')
+  })
+})
+
 describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('注册了预期的 handler 集合', () => {
     for (const name of ['brief:latest', 'flags:set', 'sources:add', 'schedule:set', 'items:search']) {
@@ -197,21 +225,21 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('topics:update / remove 校验目标存在', () => {
     expect(call('topics:update', { id: 'nope', name: 'x' })).toEqual({
       ok: false,
-      error: '领域不存在'
+      error: '主题不存在'
     })
-    expect(call('topics:remove', 'nope')).toEqual({ ok: false, error: '领域不存在' })
+    expect(call('topics:remove', 'nope')).toEqual({ ok: false, error: '主题不存在' })
   })
 
   it('topics:remove 拒绝删掉最后一个主题', () => {
     // 现在有 ai 和 chip；先删 chip，再删 ai 必须被拦住
     expect(call('topics:remove', 'chip')).toEqual({ ok: true })
-    expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个领域' })
+    expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个主题' })
   })
 
   it('topics:setSources 拒绝不存在的主题', () => {
     expect(call('topics:setSources', { topicId: 'nope', sourceIds: [] })).toEqual({
       ok: false,
-      error: '领域不存在'
+      error: '主题不存在'
     })
   })
 
@@ -249,7 +277,7 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
     })
     expect(call('schedule:set', { topicId: 'nope', enabled: true, hour: 8, minute: 30 })).toEqual({
       ok: false,
-      error: '领域不存在'
+      error: '主题不存在'
     })
   })
 })

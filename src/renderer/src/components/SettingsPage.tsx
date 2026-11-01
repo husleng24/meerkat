@@ -5,7 +5,8 @@ import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
 import { TopicManager } from './TopicManager'
-import type { TopicPayload } from '../lib/ipc-types'
+import { DomainManager } from './DomainManager'
+import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
 import type { SchedulePayload } from '../lib/ipc-types'
 
 const SECONDARY_BTN =
@@ -22,13 +23,23 @@ type Phase = 'idle' | 'running' | 'done' | 'error'
 export function SettingsPage({
   topicId,
   topics,
+  domains,
   onPickTopic,
-  onTopicsChanged
+  onTopicsChanged,
+  onCreateDomain,
+  onRenameDomain,
+  onRemoveDomain,
+  onDomainsChanged
 }: {
   topicId: string
   topics: TopicPayload[]
+  domains: DomainPayload[]
   onPickTopic: (id: string) => void
   onTopicsChanged: () => void
+  onCreateDomain: (input: { id?: string; name: string }) => Promise<string | null>
+  onRenameDomain: (id: string, name: string) => Promise<boolean>
+  onRemoveDomain: (id: string) => Promise<boolean>
+  onDomainsChanged: () => void
 }): React.JSX.Element {
   const [cfg, setCfg] = useState<SchedulePayload>(DEFAULT)
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
@@ -176,10 +187,25 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">领域</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          一个领域有自己的一组源、一套排程和一条简报。切到哪个领域，今日与时间线就显示哪一个。
+          领域是主题的分组，也是以后出「领域汇总」的单位。先有领域，再把主题放进去。
+        </p>
+        <DomainManager
+          domains={domains}
+          onCreate={onCreateDomain}
+          onRename={onRenameDomain}
+          onRemove={onRemoveDomain}
+          onChanged={onDomainsChanged}
+        />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">主题</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          一个主题有自己的一组源、一套排程和一条简报。切到哪个主题，今日与时间线就显示哪一个。
         </p>
         <TopicManager
           topics={topics}
+          domains={domains}
           activeId={topicId}
           onPick={onPickTopic}
           onChanged={onTopicsChanged}
@@ -248,7 +274,7 @@ export function SettingsPage({
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-1 text-[14px] font-semibold text-ink">本领域的源</h2>
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的源</h2>
         <p className="mb-4 text-[12px] text-ink-3">
           只有勾选的源会参与这个领域的采集。不同领域可以各选各的，源的健康度仍然全局共享。
         </p>

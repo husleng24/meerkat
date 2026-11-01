@@ -15,6 +15,7 @@ export interface SourcesState {
   testAll: () => Promise<void>
   add: (input: { name: string; url?: string; kind: string; tier: number; bucketHint: string }) => Promise<{
     ok: boolean
+    id?: string
     error?: string
   }>
   remove: (id: string) => Promise<{ ok: boolean; error?: string }>
@@ -150,7 +151,7 @@ export function useSources(): SourcesState {
       if (!api) return { ok: false, error: '预览模式下不可用' }
       const r = await api.add(input)
       if (r.ok) await reload()
-      return { ok: r.ok, ...(r.error !== undefined ? { error: r.error } : {}) }
+      return { ok: r.ok, ...(r.id !== undefined ? { id: r.id } : {}), ...(r.error !== undefined ? { error: r.error } : {}) }
     },
     [reload]
   )

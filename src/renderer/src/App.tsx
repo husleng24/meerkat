@@ -13,6 +13,7 @@ import { useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
 import { useTopics } from './lib/useTopics'
+import { useDomains } from './lib/useDomains'
 
 const TITLES: Record<string, string> = {
   search: '搜索',
@@ -33,6 +34,26 @@ export default function App(): React.JSX.Element {
     reload: reloadTopics,
     available: topicsAvailable
   } = useTopics()
+  const {
+    domains,
+    activeId: activeDomain,
+    setActiveId: setActiveDomain,
+    create: createDomain,
+    rename: renameDomain,
+    remove: removeDomain,
+    reload: reloadDomains
+  } = useDomains()
+  // 侧栏只显示当前领域下的主题；领域切换后自动落到该领域的第一个主题
+  const domainTopics = topics.filter((t) => t.domainId === activeDomain)
+  useEffect(() => {
+    if (domains.length === 0) return
+    if (!domains.some((d) => d.id === activeDomain)) setActiveDomain(domains[0]!.id)
+  }, [domains, activeDomain, setActiveDomain])
+  useEffect(() => {
+    if (domainTopics.length === 0) return
+    if (!domainTopics.some((t) => t.id === activeId)) setActiveId(domainTopics[0]!.id)
+  }, [domainTopics, activeId, setActiveId])
+
   const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(
     viewDate,
     activeId || undefined
@@ -108,11 +129,15 @@ export default function App(): React.JSX.Element {
     <div className="flex h-full overflow-hidden">
       <Sidebar
         active={nav}
-        topics={topics}
+        topics={domainTopics}
         activeTopic={activeId}
         onPickTopic={setActiveId}
+        domains={domains}
+        activeDomain={activeDomain}
+        onPickDomain={setActiveDomain}
+        onCreateDomain={createDomain}
         topicsAvailable={topicsAvailable}
-        onCreateTopic={createTopic}
+        onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
         onNavigate={go}
         itemCount={itemCount}
         savedCount={flags.counts.saved}
@@ -184,6 +209,12 @@ export default function App(): React.JSX.Element {
               summary={summary}
               initialAdding={subRoute === 'add'}
               initialEdit={subRoute === 'edit'}
+              domains={domains}
+              topics={topics}
+              activeDomain={activeDomain}
+              activeTopic={activeId}
+              onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
+              onTopicsChanged={reloadTopics}
             />
           )}
 
@@ -191,8 +222,13 @@ export default function App(): React.JSX.Element {
             <SettingsPage
               topicId={activeId}
               topics={topics}
+              domains={domains}
               onPickTopic={setActiveId}
               onTopicsChanged={reloadTopics}
+              onCreateDomain={createDomain}
+              onRenameDomain={renameDomain}
+              onRemoveDomain={removeDomain}
+              onDomainsChanged={reloadDomains}
             />
           )}
 

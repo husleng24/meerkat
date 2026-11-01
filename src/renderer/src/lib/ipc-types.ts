@@ -167,9 +167,17 @@ export interface ChatBridge {
   setModel: (input: { provider: ProviderId; model: string }) => Promise<{ ok: boolean; error?: string }>
 }
 
+export interface DomainPayload {
+  id: string
+  name: string
+  createdAt: number
+  topicCount: number
+}
+
 export interface TopicPayload {
   id: string
   name: string
+  domainId: string
   enabled: boolean
   hour: number
   minute: number
@@ -183,9 +191,15 @@ export interface TopicPayload {
 
 export interface MeerkatBridge {
   chat?: ChatBridge
+  domains?: {
+    list: () => Promise<DomainPayload[]>
+    create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>
+    rename: (input: { id: string; name: string }) => Promise<{ ok: boolean; error?: string }>
+    remove: (id: string) => Promise<{ ok: boolean; error?: string }>
+  }
   topics?: {
     list: () => Promise<TopicPayload[]>
-    create: (input: { id: string; name: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>
+    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>
     update: (input: { id: string; name?: string; enabled?: boolean }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
     sourceIds: (id: string) => Promise<string[]>

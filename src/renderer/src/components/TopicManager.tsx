@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import type { TopicPayload } from '../lib/ipc-types'
+import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
 
 interface Props {
   topics: TopicPayload[]
+  domains: DomainPayload[]
   activeId: string
   onPick: (id: string) => void
   /** 新建 / 改名 / 删除之后刷新主题列表 */
@@ -10,15 +11,16 @@ interface Props {
 }
 
 /**
- * 主题管理。
+ * 主题管理：按领域分组列出全部主题。
  *
- * 引导页会按"领域"建主题，但那是首启才走一次的路径；日常增减主题必须有个
- * 常规入口，否则用户永远只有一个主题。
+ * 主题是采集与简报的单位；领域只是分组。这里同时负责"把主题放进哪个领域"，
+ * 因为新建主题时必须有一个归属。
  */
-export function TopicManager({ topics, activeId, onPick, onChanged }: Props): React.JSX.Element {
-  const active = topics.find((t) => t.id === activeId)
+export function TopicManager({ topics, domains, activeId, onPick, onChanged }: Props): React.JSX.Element {
   const [draftName, setDraftName] = useState('')
+  const [draftDomain, setDraftDomain] = useState(domains[0]?.id ?? 'ai')
   const [rename, setRename] = useState('')
+  const [editing, setEditing] = useState<string | null>(null)
   const [note, setNote] = useState('')
 
   const api = window.meerkat?.topics
@@ -30,7 +32,7 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
     const name = draftName.trim()
     if (!name) return
     const id = `t-${Date.now().toString(36)}`
-    const res = await api.create({ id, name })
+    const res = await api.create({ id, name, domainId: draftDomain })
     if (res.ok) {
       setDraftName('')
       setNote(`已创建「${name}」，默认收录全部源`)
@@ -41,22 +43,22 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
     }
   }
 
-  const doRename = async (): Promise<void> => {
+  const doRename = async (t: TopicPayload): Promise<void> => {
     const name = rename.trim()
-    if (!name || !active) return
-    const res = await api.update({ id: active.id, name })
+    if (!name) return
+    const res = await api.update({ id: t.id, name })
     setNote(res.ok ? `已改名为「${name}」` : (res.error ?? '改名失败'))
     if (res.ok) {
+      setEditing(null)
       setRename('')
       onChanged()
     }
   }
 
-  const remove = async (): Promise<void> => {
-    if (!active) return
-    if (!window.confirm(`删除领域「${active.name}」？它的简报与源归属会一起删掉，源本身不受影响。`)) return
-    const res = await api.remove(active.id)
-    setNote(res.ok ? `已删除「${active.name}」` : (res.error ?? '删除失败'))
+  const remove = async (t: TopicPayload): Promise<void> => {
+    if (!window.confirm(`删除主题「${t.name}」？它的简报与源归属会一起删掉，源本身不受影响。`)) return
+    const res = await api.remove(t.id)
+    setNote(res.ok ? `已删除「${t.name}」` : (res.error ?? '删除失败'))
     if (res.ok) {
       onChanged()
       onPick('')
@@ -64,54 +66,101 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
   }
 
   return (
-    <div className="card px-5 py-4">
-      <div className="flex items-center gap-3">
-        <span className="text-[12px] text-ink-2">当前领域</span>
-        <span className="text-[13px] font-semibold text-ink">{active?.name ?? '—'}</span>
-        <span className="ml-auto text-[11px] text-ink-3">
-          {active ? `${active.sourceCount} 个源 · ${active.hasBrief ? '已有简报' : '还没有简报'}` : ''}
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          value={rename}
-          onChange={(e) => setRename(e.target.value)}
-          placeholder={active?.name ?? '改个名字'}
-          className="min-w-0 flex-1 rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] outline-none focus:border-accent"
-        />
-        <button
-          onClick={() => void doRename()}
-          disabled={!rename.trim() || !active}
-          className="rounded-lg border border-cream px-3 py-1.5 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
-        >
-          改名
-        </button>
-        <button
-          onClick={() => void remove()}
-          disabled={topics.length <= 1 || !active}
-          className="rounded-lg border border-cream px-3 py-1.5 text-[12px] text-ink-3 transition-colors hover:border-alert hover:text-alert disabled:opacity-40"
-        >
-          删除
-        </button>
-      </div>
-
-      <div className="mt-3 flex items-center gap-2 border-t border-rule pt-3">
+    <div>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <input
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
-          placeholder="新领域名字，例如「芯片与算力」"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void create()
+          }}
+          placeholder="新主题名，例如「芯片与算力」"
           className="min-w-0 flex-1 rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] outline-none focus:border-accent"
         />
+        <select
+          value={draftDomain}
+          onChange={(e) => setDraftDomain(e.target.value)}
+          className="rounded-lg border border-cream bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-accent"
+        >
+          {domains.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => void create()}
           disabled={!draftName.trim()}
           className="rounded-lg bg-ink px-3 py-1.5 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
         >
-          新建领域
+          新建主题
         </button>
       </div>
 
+      <div className="overflow-hidden rounded-lg border border-cream">
+        {domains.map((d) => {
+          const list = topics.filter((t) => t.domainId === d.id)
+          return (
+            <div key={d.id} className="border-b border-cream/70 last:border-b-0">
+              <div className="bg-cream/40 px-3 py-1.5 text-[11px] font-semibold text-ink-3">{d.name}</div>
+              {list.length === 0 && <div className="px-3 py-2 text-[11.5px] text-ink-3">这个领域还没有主题</div>}
+              {list.map((t) => {
+                const isActive = t.id === activeId
+                return (
+                  <div
+                    key={t.id}
+                    className={[
+                      'flex flex-wrap items-center gap-2 px-3 py-2 text-[12px]',
+                      isActive ? 'bg-accent-soft/50' : ''
+                    ].join(' ')}
+                  >
+                    {editing === t.id ? (
+                      <input
+                        autoFocus
+                        value={rename}
+                        onChange={(e) => setRename(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') void doRename(t)
+                          if (e.key === 'Escape') setEditing(null)
+                        }}
+                        className="w-40 rounded border border-accent/40 px-2 py-1 text-[12px] outline-none"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => onPick(t.id)}
+                        className={['font-medium', isActive ? 'text-accent' : 'text-ink'].join(' ')}
+                      >
+                        {t.name}
+                      </button>
+                    )}
+                    <span className="text-[11px] text-ink-3">
+                      {t.sourceCount} 个源 · {t.hasBrief ? '已有简报' : '还没有简报'}
+                    </span>
+                    <span className="ml-auto flex gap-1">
+                      <button
+                        onClick={() => {
+                          setEditing(t.id)
+                          setRename(t.name)
+                        }}
+                        className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink/60 transition-colors hover:border-accent hover:text-ink"
+                      >
+                        改名
+                      </button>
+                      <button
+                        onClick={() => void remove(t)}
+                        disabled={topics.length <= 1}
+                        className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink-3 transition-colors hover:border-alert hover:text-alert disabled:opacity-40"
+                      >
+                        删除
+                      </button>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
       {note && <p className="mt-2 text-[11px] text-ink-3">{note}</p>}
     </div>
   )

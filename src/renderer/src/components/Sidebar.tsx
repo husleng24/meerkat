@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import type { TopicPayload } from '../lib/ipc-types'
+import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
 
 interface Props {
   active: string
+  /** 当前领域下的主题 */
   topics: TopicPayload[]
   activeTopic: string
   onPickTopic: (id: string) => void
+  /** 全部领域 */
+  domains: DomainPayload[]
+  activeDomain: string
+  onPickDomain: (id: string) => void
+  onCreateDomain?: (input: { id: string; name: string }) => Promise<string | null>
   topicsAvailable: boolean
-  /** 就地新建领域；返回新领域 id 或 null */
+  /** 就地新建主题；返回新主题 id 或 null */
   onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
   onNavigate: (id: string) => void
   itemCount: number
@@ -29,17 +35,20 @@ const NAV = [
 ]
 
 /**
- * 左侧导航。
+ * 左侧导航，两层：领域（作用域）→ 主题（采集与简报的单位）。
  *
- * 领域是**作用域**（决定今日/时间线看哪一份数据），和导航不是同一层：
- * 所以它是一行切换器（常驻显示当前值），点开才是列表——而不是第二排导航。
- * 位置遵循 Slack / Multica 的习惯：左上角。
+ * 领域是"在哪个世界"，主题是"看哪一栏"。切换器常驻显示当前领域，
+ * 点开才是列表——位置遵循 Slack / Multica 的左上角习惯。
  */
 export function Sidebar({
   active,
   topics,
   activeTopic,
   onPickTopic,
+  domains,
+  activeDomain,
+  onPickDomain,
+  onCreateDomain,
   topicsAvailable,
   onCreateTopic,
   onNavigate,
@@ -52,39 +61,38 @@ export function Sidebar({
   dateLabel
 }: Props): React.JSX.Element {
   const [open, setOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [creating, setCreating] = useState<'domain' | 'topic' | null>(null)
   const [draft, setDraft] = useState('')
-  const [cursor, setCursor] = useState(0)
+  const [domainCursor, setDomainCursor] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
 
-  const activeInfo = topics.find((t) => t.id === activeTopic)
-  const activeIndex = topics.findIndex((t) => t.id === activeTopic)
+  const activeDomainInfo = domains.find((d) => d.id === activeDomain)
+  const activeDomainIndex = domains.findIndex((d) => d.id === activeDomain)
 
   const close = (): void => {
     setOpen(false)
-    setCreating(false)
+    setCreating(null)
     setDraft('')
   }
 
   const toggleSwitcher = (): void => {
-    if (!open) setCursor(activeIndex >= 0 ? activeIndex : 0)
+    if (!open) setDomainCursor(activeDomainIndex >= 0 ? activeDomainIndex : 0)
     setOpen((v) => !v)
   }
 
-  const submitTopic = async (): Promise<void> => {
+  const submit = async (): Promise<void> => {
     const name = draft.trim()
-    if (!name || !onCreateTopic) return
-    const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
-    close()
-    if (id) onPickTopic(id)
+    if (!name) return
+    if (creating === 'domain' && onCreateDomain) {
+      const id = await onCreateDomain({ id: `d-${Date.now().toString(36)}`, name })
+      close()
+      if (id) onPickDomain(id)
+    } else if (creating === 'topic' && onCreateTopic) {
+      const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
+      close()
+      if (id) onPickTopic(id)
+    }
   }
-
-  // 领域被换掉时（弹层里选、⌘1–9、或别处触发）收起弹层，避免它停在旧状态
-  useEffect(() => {
-    setOpen(false)
-    setCreating(false)
-    setDraft('')
-  }, [activeTopic])
 
   // 弹层打开时：点外部关闭、Esc 关闭、上下键移动、回车选中
   useEffect(() => {
@@ -98,18 +106,18 @@ export function Sidebar({
         close()
         return
       }
-      if (creating) return // 输入框自己处理按键
+      if (creating) return
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setCursor((c) => Math.min(c + 1, topics.length - 1))
+        setDomainCursor((c) => Math.min(c + 1, domains.length - 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setCursor((c) => Math.max(c - 1, 0))
+        setDomainCursor((c) => Math.max(c - 1, 0))
       } else if (e.key === 'Enter') {
-        const t = topics[cursor]
-        if (!t) return
+        const d = domains[domainCursor]
+        if (!d) return
         e.preventDefault()
-        onPickTopic(t.id)
+        onPickDomain(d.id)
         close()
       }
     }
@@ -119,12 +127,17 @@ export function Sidebar({
       document.removeEventListener('mousedown', onPointerDown)
       window.removeEventListener('keydown', onKey)
     }
-  }, [open, creating, topics, cursor, onPickTopic])
+  }, [open, creating, domains, domainCursor, onPickDomain])
+
+  // 领域或主题被换掉时收起弹层，避免它停在旧状态
+  useEffect(() => {
+    close()
+  }, [activeDomain, activeTopic])
 
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
-      {topicsAvailable && topics.length > 0 && (
+      {topicsAvailable && domains.length > 0 && (
         <div ref={wrapRef} className="relative mb-1">
           <button
             onClick={toggleSwitcher}
@@ -135,18 +148,16 @@ export function Sidebar({
           >
             <span className="shrink-0 text-[13px] font-semibold text-ink-3">领域</span>
             <span className="min-w-0 truncate text-[13px] font-semibold text-ink">
-              {activeInfo?.name ?? '—'}
+              {activeDomainInfo?.name ?? '—'}
             </span>
-            {activeInfo && activeInfo.unreadCount > 0 && (
-              <span
-                aria-label={`${activeInfo.unreadCount} 条未读`}
-                className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-              />
-            )}
-            <span
-              className={['ml-auto shrink-0 text-ink-3 transition-transform', open ? 'rotate-180' : ''].join(' ')}
-            >
-              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+            <span className="ml-auto shrink-0 text-ink-3">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                aria-hidden="true"
+                className={open ? 'rotate-180' : ''}
+              >
                 <path
                   d="M2 3.5 5 6.5 8 3.5"
                   fill="none"
@@ -167,52 +178,41 @@ export function Sidebar({
               style={{ boxShadow: '0 18px 40px -24px rgba(11,18,32,.45), 0 2px 6px rgba(11,18,32,.06)' }}
             >
               <div className="px-2 pb-1 pt-0.5 text-[10px] tracking-[0.08em] text-ink-3">切换领域</div>
-              {topics.map((t, i) => {
-                const isActive = t.id === activeTopic
+              {domains.map((d, i) => {
+                const isActive = d.id === activeDomain
                 return (
                   <button
-                    key={t.id}
+                    key={d.id}
                     role="option"
                     aria-selected={isActive}
-                    onMouseEnter={() => setCursor(i)}
+                    onMouseEnter={() => setDomainCursor(i)}
                     onClick={() => {
-                      onPickTopic(t.id)
+                      onPickDomain(d.id)
                       close()
                     }}
                     className={[
                       'flex w-full items-center gap-1.5 rounded-md px-2 py-[5px] text-left text-[13px] transition-colors',
-                      cursor === i ? 'bg-cream' : '',
+                      domainCursor === i ? 'bg-cream' : '',
                       isActive ? 'font-semibold text-accent' : 'text-ink-2'
                     ].join(' ')}
                   >
-                    <span className="min-w-0 truncate">{t.name}</span>
-                    {t.unreadCount > 0 && (
-                      <span
-                        aria-label={`${t.unreadCount} 条未读`}
-                        className={['h-1.5 w-1.5 shrink-0 rounded-full', isActive ? 'bg-accent' : 'bg-ink/35'].join(' ')}
-                      />
-                    )}
-                    <span className="ml-auto shrink-0 tabular-nums text-[11px] text-ink-3">
-                      {t.hasBrief ? t.todayCount : '—'}
-                    </span>
-                    <span className="w-[18px] shrink-0 text-right text-[10px] tabular-nums text-ink-3/70">
-                      {i < 9 ? `⌘${i + 1}` : ''}
-                    </span>
+                    <span className="min-w-0 truncate">{d.name}</span>
+                    <span className="ml-auto shrink-0 tabular-nums text-[11px] text-ink-3">{d.topicCount}</span>
                   </button>
                 )
               })}
 
               <div className="my-1 h-px bg-rule" />
 
-              {creating ? (
+              {creating === 'domain' ? (
                 <input
                   autoFocus
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') void submitTopic()
+                    if (e.key === 'Enter') void submit()
                     if (e.key === 'Escape') {
-                      setCreating(false)
+                      setCreating(null)
                       setDraft('')
                     }
                   }}
@@ -220,12 +220,14 @@ export function Sidebar({
                   className="w-full rounded-md border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"
                 />
               ) : (
-                <button
-                  onClick={() => setCreating(true)}
-                  className="flex w-full items-center rounded-md px-2 py-[5px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
-                >
-                  ＋ 新建领域
-                </button>
+                onCreateDomain && (
+                  <button
+                    onClick={() => setCreating('domain')}
+                    className="flex w-full items-center rounded-md px-2 py-[5px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+                  >
+                    ＋ 新建领域
+                  </button>
+                )
               )}
               <button
                 onClick={() => {
@@ -241,7 +243,74 @@ export function Sidebar({
         </div>
       )}
 
-      <nav className="mt-2 flex flex-col gap-0.5">
+      <div className="mb-1 mt-2 px-2.5 text-[13px] font-semibold text-ink-3">主题</div>
+      <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto">
+        {topics.map((t) => {
+          const isActive = t.id === activeTopic
+          return (
+            <button
+              key={t.id}
+              onClick={() => onPickTopic(t.id)}
+              title={t.unreadCount > 0 ? `${t.unreadCount} 条未读` : undefined}
+              className={[
+                'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
+                isActive
+                  ? 'bg-accent-soft font-semibold text-accent'
+                  : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
+              ].join(' ')}
+            >
+              <span className="min-w-0 truncate">{t.name}</span>
+              {t.unreadCount > 0 && (
+                <span
+                  aria-label={`${t.unreadCount} 条未读`}
+                  className={['h-1.5 w-1.5 shrink-0 rounded-full', isActive ? 'bg-accent' : 'bg-ink/35'].join(' ')}
+                />
+              )}
+              <span className="flex-1" />
+              <span
+                className={[
+                  'shrink-0 tabular-nums text-[11px]',
+                  isActive ? 'text-accent/80' : 'text-ink-3'
+                ].join(' ')}
+              >
+                {t.hasBrief ? t.todayCount : '—'}
+              </span>
+            </button>
+          )
+        })}
+
+        {topics.length === 0 && topicsAvailable && (
+          <div className="px-2.5 py-1 text-[12px] text-ink-3">这个领域还没有主题</div>
+        )}
+
+        {creating === 'topic' ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void submit()
+              if (e.key === 'Escape') {
+                setCreating(null)
+                setDraft('')
+              }
+            }}
+            placeholder="主题名，回车创建"
+            className="w-full rounded-lg border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"
+          />
+        ) : (
+          onCreateTopic && (
+            <button
+              onClick={() => setCreating('topic')}
+              className="flex w-full items-center gap-1 rounded-lg px-2.5 py-[7px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+            >
+              ＋ 新建主题
+            </button>
+          )
+        )}
+      </div>
+
+      <nav className="mt-3 flex flex-col gap-0.5 border-t border-rule pt-3">
         {NAV.map((n) => {
           const isActive = n.id === active
           return (
@@ -269,7 +338,7 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="mx-2 my-5 h-px bg-rule" />
+      <div className="mx-2 my-4 h-px bg-rule" />
 
       <div className="space-y-2 px-2.5 text-[11px] text-ink-3">
         <Row label="今日条目" value={String(itemCount)} />

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { healthOf, suggestReplacement, type HealthLevel } from '../../../app/source-health'
 import { BUCKET_LABEL, type Bucket, type Source } from '../../../core/domain/types'
 import type { SourcesState } from '../lib/useSources'
+import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
+import { suggestTopic } from '../../../app/suggest-topic'
 
 const KIND_LABEL: Record<string, string> = {
   rss: 'RSS',
@@ -28,16 +30,49 @@ interface Props {
   summary: ReturnType<typeof import('../../../app/source-health').summarizeHealth>
   initialAdding?: boolean
   initialEdit?: boolean
+  /** 领域与主题：加源时要选归属 */
+  domains?: DomainPayload[]
+  topics?: TopicPayload[]
+  activeTopic?: string
+  activeDomain?: string
+  onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
+  onTopicsChanged?: () => void
 }
 
 /**
  * 源管理页 = 这个应用的"维修间"。
  * 排序规则：坏源排前面（见 sortByHealth），因为打开这一页的人 90% 是来修东西的。
  */
-export function SourcesPage({ state, sorted, summary, initialAdding = false, initialEdit = false }: Props): React.JSX.Element {
+export function SourcesPage({
+  state,
+  sorted,
+  summary,
+  initialAdding = false,
+  initialEdit = false,
+  domains = [],
+  topics = [],
+  activeTopic,
+  onCreateTopic,
+  onTopicsChanged
+}: Props): React.JSX.Element {
   const { probing, progress } = state
   const [adding, setAdding] = useState(initialAdding)
   const [editing, setEditing] = useState<Source | null>(null)
+  // 源 → 它属于哪些主题：加源之后这里是用户唯一的反馈，所以每次主题变化都重取
+  const [membership, setMembership] = useState<Record<string, string[]>>({})
+  useEffect(() => {
+    const api = window.meerkat?.topics
+    if (!api || topics.length === 0) return
+    let cancelled = false
+    void Promise.all(topics.map(async (t) => [t.id, await api.sourceIds(t.id)] as const)).then((pairs) => {
+      if (!cancelled) setMembership(Object.fromEntries(pairs))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [topics])
+  const topicNames = (sourceId: string): string[] =>
+    topics.filter((t) => (membership[t.id] ?? []).includes(sourceId)).map((t) => t.name)
   // 深链 #sources/edit：等源加载完再打开第一个"需关注的源"，只自动开一次
   const didInitEdit = useRef(false)
   useEffect(() => {
@@ -84,7 +119,20 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
       </div>
 
 
-      {adding && <AddSourceForm state={state} onDone={() => setAdding(false)} />}
+      {adding && (
+        <AddSourceForm
+          state={state}
+          sources={sorted}
+          domains={domains}
+          topics={topics}
+          activeTopic={activeTopic}
+          onCreateTopic={onCreateTopic}
+          onDone={() => {
+            setAdding(false)
+            onTopicsChanged?.()
+          }}
+        />
+      )}
 
       {editing && (
         <EditSourceForm
@@ -130,6 +178,17 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
                   <span className="shrink-0 rounded bg-cream px-1.5 py-px text-[9.5px] text-ink/60">T{s.tier}</span>
                   {!s.enabled && (
                     <span className="shrink-0 rounded bg-cream px-1.5 py-px text-[9.5px] text-ink-3">已停用</span>
+                  )}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px]">
+                  {topicNames(s.id).length > 0 ? (
+                    topicNames(s.id).map((n) => (
+                      <span key={n} className="rounded bg-accent-soft px-1.5 py-px text-accent/80">
+                        {n}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-alert/80">未加入任何主题 · 不会被采集</span>
                   )}
                 </div>
                 {s.lastError && level !== 'ok' && (
@@ -328,27 +387,73 @@ function EditSourceForm({
 }
 
 /** 新增源表单：字段少到一屏能填完，错误就地提示 */
-function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => void }): React.JSX.Element {
+function AddSourceForm({
+  state,
+  sources,
+  domains,
+  topics,
+  activeTopic,
+  onCreateTopic,
+  onDone
+}: {
+  state: SourcesState
+  sources: Source[]
+  domains: DomainPayload[]
+  topics: TopicPayload[]
+  activeTopic?: string
+  activeDomain?: string
+  onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
+  onDone: () => void
+}): React.JSX.Element {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [kind, setKind] = useState('rss')
   const [tier, setTier] = useState(2)
   const [bucket, setBucket] = useState<Bucket>('product')
+  const [picked, setPicked] = useState<string[]>(() => (activeTopic ? [activeTopic] : []))
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+
+  // 推荐：按名字/域名与各主题语料的重合度，只给一个候选，用户自己决定要不要采用
+  const suggestion = suggestTopic(
+    { name, url, kind },
+    topics,
+    Object.fromEntries(
+      topics.map((t) => [t.id, sources.map((s) => s.name)])
+    )
+  )
+
+  const toggle = (id: string): void => {
+    setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+  }
 
   const submit = async (): Promise<void> => {
     setBusy(true)
     setMsg('')
     const r = await state.add({ name, url, kind, tier, bucketHint: bucket })
-    setBusy(false)
-    if (r.ok) {
-      setName('')
-      setUrl('')
-      setMsg('已添加。点该行的「测试」可以立刻验证能不能抓到内容。')
-    } else {
+    if (!r.ok) {
+      setBusy(false)
       setMsg(r.error ?? '添加失败')
+      return
     }
+    // 归属：把新源并入所选主题（取并集，不覆盖该主题原有的源）
+    const api = window.meerkat?.topics
+    const id = r.id
+    if (api && id && picked.length > 0) {
+      for (const topicId of picked) {
+        const current = await api.sourceIds(topicId)
+        await api.setSources({ topicId, sourceIds: [...new Set([...current, id])] })
+      }
+    }
+    setBusy(false)
+    setName('')
+    setUrl('')
+    setMsg(
+      picked.length > 0
+        ? `已添加，并加入 ${picked.length} 个主题。点「测试」可以立刻验证能不能抓到内容。`
+        : '已添加，但没有加入任何主题——它不会被采集，请在下面勾选归属。'
+    )
+    onDone()
   }
 
   return (
@@ -408,6 +513,60 @@ function AddSourceForm({ state, onDone }: { state: SourcesState; onDone: () => v
           </select>
         </Field>
       </div>
+
+      <div className="mt-3">
+        <div className="mb-1 flex flex-wrap items-center gap-2 text-[10.5px] text-ink-3">
+          <span>归属主题（可多选；不选就不会被采集）</span>
+          {suggestion && !picked.includes(suggestion.topicId) && (
+            <button
+              onClick={() => setPicked((cur) => [...cur, suggestion.topicId])}
+              title={suggestion.reason}
+              className="rounded-full border border-accent/40 px-2 py-0.5 text-[10.5px] text-accent transition-colors hover:bg-accent-soft"
+            >
+              ✨ 建议：{suggestion.name} · 采用
+            </button>
+          )}
+        </div>
+        <div className="max-h-[160px] overflow-y-auto rounded-lg border border-cream p-2">
+          {domains.map((d) => {
+            const list = topics.filter((t) => t.domainId === d.id)
+            if (list.length === 0) return null
+            return (
+              <div key={d.id} className="mb-1 last:mb-0">
+                <div className="px-1 pb-0.5 text-[10px] font-semibold text-ink-3">{d.name}</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 px-1">
+                  {list.map((t) => (
+                    <label key={t.id} className="flex cursor-pointer items-center gap-1.5 text-[12px] text-ink-2">
+                      <input
+                        type="checkbox"
+                        checked={picked.includes(t.id)}
+                        onChange={() => toggle(t.id)}
+                        className="accent-accent"
+                      />
+                      {t.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+          {topics.length === 0 && <span className="text-[11.5px] text-ink-3">还没有主题</span>}
+        </div>
+        {onCreateTopic && (
+          <button
+            onClick={async () => {
+              const newName = window.prompt('新主题名')
+              if (!newName) return
+              const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name: newName })
+              if (id) setPicked((cur) => [...cur, id])
+            }}
+            className="mt-1.5 text-[11px] text-ink-3 hover:text-ink"
+          >
+            ＋ 新建主题并加入
+          </button>
+        )}
+      </div>
+
       <div className="mt-3 flex items-center gap-2">
         <button
           disabled={busy || name.trim().length < 2}

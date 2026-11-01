@@ -2,9 +2,10 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  ChatStore
+  DomainStore, ChatStore
 } from '../../core/ports/store'
 import type {
+  Domain,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole
 } from '../../core/domain/types'
 
@@ -47,8 +48,12 @@ interface ChatMessageRow {
   tokens_in: number | null; tokens_out: number | null; context_json: string | null; created_at: number
 }
 interface TopicRow {
-  id: string; name: string; enabled: number; hour: number; minute: number
+  id: string; name: string; domain_id: string; enabled: number; hour: number; minute: number
   created_at: number; updated_at: number
+}
+
+interface DomainRow {
+  id: string; name: string; created_at: number
 }
 
 const toSource = (r: SourceRow): Source => ({
@@ -93,6 +98,7 @@ const toItem = (r: ItemRow): Item => ({
 const toTopic = (r: TopicRow): Topic => ({
   id: r.id,
   name: r.name,
+  domainId: r.domain_id,
   enabled: bool(r.enabled),
   hour: r.hour,
   minute: r.minute,
@@ -437,13 +443,14 @@ class SqliteTopicStore implements TopicStore {
   upsert(t: Topic): void {
     this.db
       .prepare(
-        `INSERT INTO topics (id,name,enabled,hour,minute,created_at,updated_at)
-         VALUES (@id,@name,@enabled,@hour,@minute,@created_at,@updated_at)
-         ON CONFLICT(id) DO UPDATE SET name=excluded.name, enabled=excluded.enabled,
-           hour=excluded.hour, minute=excluded.minute, updated_at=excluded.updated_at`
+        `INSERT INTO topics (id,name,domain_id,enabled,hour,minute,created_at,updated_at)
+         VALUES (@id,@name,@domain_id,@enabled,@hour,@minute,@created_at,@updated_at)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, domain_id=excluded.domain_id,
+           enabled=excluded.enabled, hour=excluded.hour, minute=excluded.minute,
+           updated_at=excluded.updated_at`
       )
       .run({
-        id: t.id, name: t.name, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
+        id: t.id, name: t.name, domain_id: t.domainId, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
         created_at: t.createdAt, updated_at: t.updatedAt
       })
   }
@@ -468,6 +475,29 @@ class SqliteTopicStore implements TopicStore {
   }
   removeSource(topicId: string, sourceId: string): void {
     this.db.prepare('DELETE FROM topic_sources WHERE topic_id = ? AND source_id = ?').run(topicId, sourceId)
+  }
+}
+
+class SqliteDomainStore implements DomainStore {
+  constructor(private db: DB) {}
+  list(): Domain[] {
+    const rows = this.db.prepare('SELECT * FROM domains ORDER BY created_at ASC').all() as DomainRow[]
+    return rows.map((r) => ({ id: r.id, name: r.name, createdAt: r.created_at }))
+  }
+  get(id: string): Domain | undefined {
+    const r = this.db.prepare('SELECT * FROM domains WHERE id = ?').get(id) as DomainRow | undefined
+    return r ? { id: r.id, name: r.name, createdAt: r.created_at } : undefined
+  }
+  upsert(d: Domain): void {
+    this.db
+      .prepare(
+        `INSERT INTO domains (id,name,created_at) VALUES (@id,@name,@created_at)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name`
+      )
+      .run({ id: d.id, name: d.name, created_at: d.createdAt })
+  }
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM domains WHERE id = ?').run(id)
   }
 }
 
@@ -638,6 +668,7 @@ class SqliteChatStore implements ChatStore {
 
 class SqliteStore implements Store {
   readonly sources: SourceStore
+  readonly domains: DomainStore
   readonly topics: TopicStore
   readonly items: ItemStore
   readonly briefs: BriefStore
@@ -648,6 +679,7 @@ class SqliteStore implements Store {
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
+    this.domains = new SqliteDomainStore(db)
     this.topics = new SqliteTopicStore(db)
     this.items = new SqliteItemStore(db)
     this.briefs = new SqliteBriefStore(db)
@@ -671,12 +703,19 @@ class SqliteStore implements Store {
  * 放在仓储工厂而不是 app 层，是因为 brief_items.topic_id 有外键——
  * 任何写「已推送」的路径都必须先有一个主题存在，否则写入直接失败。
  */
+function ensureDefaultDomain(store: Store): Store {
+  if (store.domains.list().length > 0) return store
+  store.domains.upsert({ id: 'ai', name: 'AI', createdAt: Date.now() })
+  return store
+}
+
 function ensureDefaultTopic(store: Store): Store {
   if (store.topics.list().length > 0) return store
   const now = Date.now()
   store.topics.upsert({
     id: 'ai',
     name: 'AI 综合',
+    domainId: 'ai',
     enabled: true,
     hour: 8,
     minute: 30,
@@ -687,10 +726,10 @@ function ensureDefaultTopic(store: Store): Store {
 }
 
 export function createStore(file: string): Store {
-  return ensureDefaultTopic(new SqliteStore(openDatabase(file)))
+  return ensureDefaultTopic(ensureDefaultDomain(new SqliteStore(openDatabase(file))))
 }
 
 /** 测试用：内存库 */
 export function createMemoryStore(): Store {
-  return ensureDefaultTopic(new SqliteStore(openDatabase(':memory:')))
+  return ensureDefaultTopic(ensureDefaultDomain(new SqliteStore(openDatabase(':memory:'))))
 }

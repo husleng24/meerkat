@@ -203,6 +203,24 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_chat_messages_thread ON chat_messages(thread_id, created_at);
     `
+  },
+  {
+    version: 4,
+    name: 'domains',
+    up: `
+      -- 领域：主题的分组；领域汇总以它为单位
+      CREATE TABLE domains (
+        id         TEXT PRIMARY KEY,
+        name       TEXT    NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      INSERT INTO domains (id, name, created_at)
+      VALUES ('ai', 'AI', CAST(strftime('%s','now') AS INTEGER) * 1000);
+
+      -- 回填：已有主题全部归入默认领域，升级后仍能看到原来的主题
+      ALTER TABLE topics ADD COLUMN domain_id TEXT NOT NULL DEFAULT 'ai';
+      CREATE INDEX idx_topics_domain ON topics(domain_id);
+    `
   }
 ]
 

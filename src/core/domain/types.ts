@@ -121,6 +121,13 @@ export interface Brief {
   createdAt: number
 }
 
+/** 领域：主题的分组，也是领域汇总的单位（一个领域下有多个主题） */
+export interface Domain {
+  id: string
+  name: string
+  createdAt: number
+}
+
 /**
  * 主题：一个主题＝一组源 + 一套排程 + 一条独立简报。
  *
@@ -130,6 +137,8 @@ export interface Brief {
 export interface Topic {
   id: string
   name: string
+  /** 所属领域；主题不能没有领域 */
+  domainId: string
   enabled: boolean
   /** 本地时间的触发点 */
   hour: number
