@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.1 · 400 tests · typecheck / build green · verified on macOS, Windows artifacts built by CI
+> v0.1.1 · 402 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -22,15 +22,21 @@ Grab an installer from [Releases](https://github.com/husleng24/meerkat/releases)
 | Windows (installer) | [Meerkat-0.1.1-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.exe) |
 | Windows (portable) | [Meerkat-0.1.1-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-portable.exe) |
 
-Neither platform is code-signed: on macOS, right-click the app and choose **Open** (or run
-`xattr -dr com.apple.quarantine /Applications/Meerkat.app`); on Windows, SmartScreen needs
-**More info → Run anyway**.
+Neither platform is code-signed, and that has consequences:
+
+- **macOS**: right-click **Open** or `xattr -dr com.apple.quarantine` may still be refused —
+  Gatekeeper/AMFI can reject an unsigned build on macOS 15+ (`Unrecoverable CT signature issue`).
+  Until a Developer ID certificate and notarization are in place, the macOS build is for local
+  development only.
+- **Windows**: SmartScreen → **More info → Run anyway**; this works, but the publisher is unknown.
 
 ## What it is
 
 - A **local-first desktop brief**: data, keys and briefs stay on your own machine; there is no server
 - For people with five minutes a day who want to know what *actually changed* in a field
 - Organized as **domain → topic**: a domain groups topics; each topic has its own sources, schedule and brief
+- **AI is the default example** (sources and prompts ship tuned for it); the domain/topic/source model is
+  generic — fashion, chips or policy work the same way once you add sources
 
 ## What it is not
 
@@ -39,11 +45,21 @@ Neither platform is code-signed: on macOS, right-click the app and choose **Open
 - Not a general reader: it keeps titles, one-line interpretations and links; no full-text extraction
 - Not a chatbot: the built-in chat only asks and summarizes today's brief
 
+## Why Meerkat
+
+- **Local by design** — no account, no telemetry; keys are encrypted on disk and your data is one SQLite file
+  you can back up or delete
+- **Only the delta** — a 48-hour window, scoring and cross-day dedupe, so an issue is 15–24 items, not a feed
+- **Domain → topic → rollup** — start from a domain-level overview and drill into a topic; new topics start
+  with a few recommended sources instead of copying every source
+- **Never a blank page** — without a model it produces a links-only digest, a failed rollup falls back to
+  excerpts, and unhealthy sources are visible and replaceable
+
 ## Features
 
 ### One brief per day
 
-Collects over a 48-hour window, scores (tier 26/18/10 + time decay + engagement), dedupes, then has a model write
+Collects over a 48-hour window, scores and dedupes, then has a model write
 "three-line overview + per-section items + one closing line". With no model configured it degrades to a
 titles-and-links digest instead of failing.
 
@@ -84,6 +100,8 @@ excerpt sheet instead of blocking. The **Domain rollup** page in the sidebar let
 Bottom-right panel (`⌘J`): ask and summarize today's brief, switching between configured providers. One thread
 per topic per day; context carries the brief and history, not the raw material. Reordering the brief is
 deferred to P2.
+
+![AI chat over the day's brief](docs/assets/ui-chat.png)
 
 ### Update notice
 
@@ -199,7 +217,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **400 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **402 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
@@ -217,6 +235,7 @@ Common commands: `pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `p
 - **Single instance**: launching again focuses the existing window; no side-by-side
 - **AI chat is not streaming**; reordering is P2
 - **Updates are a notice, not a download**: the app links to the Release page instead of installing it
+- **macOS distribution needs a Developer ID**: unsigned/ad-hoc builds can be refused by AMFI (see Download)
 - **Rollup quality depends on topic briefs**: a topic without a brief for the day falls back to its latest one
 
 ## Docs

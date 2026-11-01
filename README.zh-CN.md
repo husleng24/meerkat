@@ -8,7 +8,7 @@
 
 ![两层侧栏：领域与主题](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.1 · 400 个测试 · typecheck / build 通过 · macOS 实测，Windows 由 CI 出包
+> v0.1.1 · 402 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -21,15 +21,20 @@
 | Windows（安装版） | [Meerkat-0.1.1-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.exe) |
 | Windows（便携版） | [Meerkat-0.1.1-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-portable.exe) |
 
-两个平台都没有代码签名：macOS 首次打开需右键「打开」（或
-`xattr -dr com.apple.quarantine /Applications/Meerkat.app`）；Windows SmartScreen 选
-「更多信息 → 仍要运行」。
+两个平台都没有代码签名，后果要说清楚：
+
+- **macOS**：右键「打开」或 `xattr -dr com.apple.quarantine` 之后**仍可能被拒绝**——macOS 15+
+  的 Gatekeeper/AMFI 会直接拦下未签名包（`Unrecoverable CT signature issue`）。在拿到
+  Developer ID 证书并公证之前，macOS 包只适合开发者本机使用。
+- **Windows**：SmartScreen 选「更多信息 → 仍要运行」即可，但发布者会显示为未知。
 
 ## 它是什么
 
 - **本地优先的桌面简报工具**：数据、密钥、简报都在你自己机器上，没有服务端
 - 面向每天只有 5 分钟、想知道"这个领域今天真正变了什么"的人
 - 按「领域 → 主题」组织：一个领域是一组主题，一个主题有自己的源、排程和简报
+- **AI 只是默认示例**（默认源与提示词为它调过）；领域/主题/源模型是通用的，时装、芯片、政策
+  加好源后走同一套流程
 
 ## 它不是什么
 
@@ -38,12 +43,19 @@
 - 不是通用阅读器：只保留标题、一句解读和原文链接，不做全文抓取
 - 不是聊天机器人：内置对话只用来问和总结今天的简报
 
+## 为什么是 Meerkat
+
+- **本地优先**：没有账号、没有遥测；密钥加密存在本机，数据就是一个 SQLite 文件，可备份可删
+- **只讲变化**：48 小时窗口 + 打分 + 跨天去重，一期 15–24 条，不是信息流
+- **领域 → 主题 → 汇总**：先看领域综述，再下钻主题；新主题默认只带几个推荐源，不复制全部源
+- **不会开天窗**：没接模型出"仅聚合"版，汇总失败出摘录版，源不健康有看板、可替换
+
 ## 功能
 
 ### 每天一份简报
 
-48 小时窗口内抓取、打分（层级 26/18/10 + 时效衰减 + 互动量）、去重，再由模型写成
-"三句话速览 + 分板块条目 + 今日一句"。没有配置模型时自动降级为"仅聚合"版，不会空白。
+48 小时窗口内抓取、打分、去重，再由模型写成"三句话速览 + 分板块条目 + 今日一句"。
+没有配置模型时自动降级为"仅聚合"版，不会空白。
 
 ### 领域 → 主题
 
@@ -79,6 +91,8 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时
 
 右下角浮层（`⌘J`）：基于当天简报提问、总结，可切换已配置的供应商。每个主题每天一段会话，
 上下文只带简报与历史消息，不重发原始素材。重排（把简报重新编排）留到 P2。
+
+![基于当天简报的 AI 对话](docs/assets/ui-chat.png)
 
 ### 升级提醒
 
@@ -187,7 +201,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**389 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**402 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
@@ -203,6 +217,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 - **单实例**：多开只会唤起已有窗口，不支持并排
 - **AI 对话非流式**：一次返回；重排功能在 P2
 - **升级只提醒、不自动下载**：点「下载更新」跳到 Release 页面
+- **macOS 分发需要 Developer ID**：未签名/ad-hoc 包可能被 AMFI 拒绝（见「下载」）
 - **领域汇总的质量依赖各主题简报**：主题当天没出简报时用它最新一期，没有的话跳过
 
 ## 文档
