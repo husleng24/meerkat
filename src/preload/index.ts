@@ -272,6 +272,18 @@ const api = {
     importDsh: (): Promise<{ ok: boolean; masked?: string; error?: string }> => ipcRenderer.invoke('key:importDsh')
   },
 
+  update: {
+    current: (): Promise<string> => ipcRenderer.invoke('update:current'),
+    latest: (): Promise<unknown> => ipcRenderer.invoke('update:latest'),
+    check: (): Promise<unknown> => ipcRenderer.invoke('update:check'),
+    open: (url: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('update:open', url),
+    onAvailable: (cb: (info: unknown) => void): (() => void) => {
+      const handler = (_e: unknown, info: unknown): void => cb(info)
+      ipcRenderer.on('update:available', handler)
+      return () => ipcRenderer.removeListener('update:available', handler)
+    }
+  },
+
   domainBrief: {
     latest: (input: { domainId: string; date?: string }): Promise<unknown> =>
       ipcRenderer.invoke('domainBrief:latest', input),

@@ -48,3 +48,14 @@ macos-14 与 windows-latest，测试通过后打包并附加到一个 **draft** 
 - Windows NSIS 在本机（Windows 开发机）因实时防护会失败，CI 上正常
 - macOS 的 dmg 需要 `dmg-builder` 二进制，国内要设 `ELECTRON_BUILDER_BINARIES_MIRROR`
 - 不要用 `--publish always` 在本机发版：CI 是唯一出包入口
+
+## 更新检查的前提
+
+应用通过 `https://api.github.com/repos/husleng24/meerkat/releases/latest` 判断有没有新版本，
+这是**匿名请求**：
+
+- **仓库必须是 public**。private 仓库匿名访问会返回 404，应用只会显示"找不到 Release"
+- Release 必须是**已发布**状态，draft 不会被 `/releases/latest` 返回
+- 未认证请求限流 60 次/小时；应用 24 小时内最多查一次
+- 国内访问 api.github.com 可能失败，应用会静默跳过，不影响使用
+

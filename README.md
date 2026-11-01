@@ -82,6 +82,12 @@ Bottom-right panel (`⌘J`): ask and summarize today's brief, switching between 
 per topic per day; context carries the brief and history, not the raw material. Reordering the brief is
 deferred to P2.
 
+### Update notice
+
+On launch it asks GitHub for the latest release (cached for 24 hours) and shows a slim banner plus a
+notification when a newer version exists, linking to the download. Check manually under Settings → About.
+It never downloads or replaces the app itself — both platforms are unsigned.
+
 ### Export
 
 Markdown / HTML / PDF / rich text, written to `Documents/Meerkat/`.
@@ -206,6 +212,7 @@ Common commands: `pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `p
   `app.dock.setIcon`)
 - **Single instance**: launching again focuses the existing window; no side-by-side
 - **AI chat is not streaming**; reordering is P2
+- **Updates are a notice, not a download**: the app links to the Release page instead of installing it
 - **Rollup quality depends on topic briefs**: a topic without a brief for the day falls back to its latest one
 
 ## Docs

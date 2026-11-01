@@ -6,7 +6,7 @@
  *  - 长任务（全量自检）走事件推送进度，不用轮询
  *  - 所有 handler 都返回 Result 形状，尽量不把异常抛给渲染层
  */
-import { BrowserWindow, app, ipcMain } from 'electron'
+import { BrowserWindow, Notification, app, ipcMain, net, shell } from 'electron'
 import { existsSync, readFileSync } from 'node:fs'
 import { z } from 'zod'
 import { createStore } from '../adapters/store-sqlite/store'
@@ -23,6 +23,7 @@ import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './schedule
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { composeDomainRollup, type DomainDeps } from './domain-daily'
+import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
   chatModels,
   defaultChatModel,
@@ -164,6 +165,53 @@ const flagsSetSchema = z.object({
       message: '至少给一个字段'
     })
 })
+
+const UPDATE_LAST_KEY = 'update.lastCheckedAt'
+const UPDATE_CACHE_KEY = 'update.cached'
+const UPDATE_NOTIFIED_KEY = 'update.notified'
+const UPDATE_INTERVAL_MS = 24 * 3_600_000
+
+/** 手动与后台共用：查 GitHub 最新 Release，成功才写缓存 */
+async function runUpdateCheck(): Promise<UpdateCheckResult> {
+  const s = requireStore()
+  const r = await checkForUpdate(
+    (url, init) => net.fetch(url, init) as never,
+    { current: app.getVersion() }
+  )
+  s.settings.set(UPDATE_LAST_KEY, Date.now())
+  // settings 自己会 JSON 序列化，这里直接存对象；再 stringify 会变成双重编码
+  if (r.ok) s.settings.set(UPDATE_CACHE_KEY, r)
+  return r
+}
+
+/**
+ * 启动时的后台检查：24 小时内查过就跳过；有新版本才通知，且同一版本只提醒一次。
+ * 失败静默——国内访问 api.github.com 经常不通，不该因此弹错误。
+ */
+export async function checkUpdatesInBackground(): Promise<void> {
+  const s = requireStore()
+  const last = s.settings.get<number>(UPDATE_LAST_KEY) ?? 0
+  if (Date.now() - last < UPDATE_INTERVAL_MS) return
+  const r = await runUpdateCheck()
+  if (!r.ok || !r.hasUpdate || !r.latest) return
+  if (s.settings.get<string>(UPDATE_NOTIFIED_KEY) === r.latest) return
+  s.settings.set(UPDATE_NOTIFIED_KEY, r.latest)
+
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('update:available', r)
+  }
+  if (Notification.isSupported()) {
+    const n = new Notification({
+      title: 'Meerkat 有新版本',
+      body: `${r.latest} 可用，点此查看`,
+      silent: false
+    })
+    n.on('click', () => {
+      if (r.url) void shell.openExternal(r.url)
+    })
+    n.show()
+  }
+}
 
 /** 手动采集与定时任务共用同一份依赖构造 */
 export function dailyDeps(): DailyDeps {
@@ -737,6 +785,34 @@ export function registerIpc(): void {
       itemCount: out.itemCount,
       ...(out.reason ? { note: out.reason } : {})
     }
+  })
+
+  ipcMain.handle('update:current', () => app.getVersion())
+
+  ipcMain.handle('update:latest', () => {
+    return requireStore().settings.get<UpdateCheckResult>(UPDATE_CACHE_KEY) ?? null
+  })
+
+  ipcMain.handle('update:check', async () => {
+    const r = await runUpdateCheck()
+    // 手动检查出结果时也推一条，设置页点完 banner 能立刻出现（不用重启）
+    if (r.ok && r.hasUpdate) {
+      for (const w of BrowserWindow.getAllWindows()) {
+        if (!w.isDestroyed()) w.webContents.send('update:available', r)
+      }
+    }
+    return r
+  })
+
+  ipcMain.handle('update:open', async (_e, raw: unknown) => {
+    const parsed = z.string().url().max(500).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    // 只允许打开本仓库的 Release 链接，避免被渲染层当成任意外链通道
+    if (!parsed.data.startsWith('https://github.com/husleng24/meerkat/releases/')) {
+      return { ok: false, error: '不支持的地址' }
+    }
+    await shell.openExternal(parsed.data)
+    return { ok: true }
   })
 
   ipcMain.handle('prefs:get', () => ({ autoLaunch: autoLaunchState(requireStore()) }))

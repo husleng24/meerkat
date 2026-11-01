@@ -62,6 +62,9 @@ vi.mock('electron', () => {
       createEmpty: () => ({ isEmpty: () => true })
     },
     shell: { openExternal: async () => {}, showItemInFolder: () => {}, openPath: async () => '' },
+    net: {
+      fetch: async () => ({ ok: false, status: 404, json: async () => ({}) })
+    },
     clipboard: { writeText: () => {} },
     dialog: { showSaveDialog: async () => ({ canceled: true }) },
     screen: { getPrimaryDisplay: () => ({ workAreaSize: { width: 1280, height: 800 } }) },
@@ -117,6 +120,25 @@ describe('IPC：领域与主题的两层结构', () => {
     const list = call('sources:recommend', { topicId: 'ai', limit: 3 }) as unknown[]
     expect(Array.isArray(list)).toBe(true)
     expect(list.length).toBeLessThanOrEqual(3)
+  })
+
+  it('update:current 返回版本；没有缓存时 latest 为 null；检查失败给可读原因', async () => {
+    expect(call('update:current')).toBe('0.0.1-test')
+    expect(call('update:latest')).toBeNull()
+    const r = (await call('update:check')) as { ok: boolean; error?: string }
+    expect(r.ok).toBe(false)
+    expect(r.error).toContain('找不到 Release')
+  })
+
+  it('update:open 只接受本仓库的 Release 链接', async () => {
+    expect(await call('update:open', 'https://example.com/evil')).toEqual({
+      ok: false,
+      error: '不支持的地址'
+    })
+    expect(await call('update:open', 'not-a-url')).toEqual({ ok: false, error: '参数非法' })
+    expect(await call('update:open', 'https://github.com/husleng24/meerkat/releases/tag/v0.2.0')).toEqual({
+      ok: true
+    })
   })
 
   it('domainBrief:latest 非法入参返回 null，不抛异常', () => {

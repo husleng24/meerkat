@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, nativeImage, screen, shell } from 'electron'
 import { join } from 'node:path'
-import { closeStore, dailyDeps, domainDeps, initStore, registerIpc } from './ipc'
+import { checkUpdatesInBackground, closeStore, dailyDeps, domainDeps, initStore, registerIpc } from './ipc'
 import { Scheduler } from './scheduler'
 import { runDaily } from './daily'
 import { composeDomainRollup } from './domain-daily'
@@ -175,6 +175,11 @@ if (process.argv.includes('--verify')) {
       })
       scheduler.start()
       log('info', '托盘与定时任务已启动')
+
+      // 后台查一次新版本（24h 内查过就跳过）；失败静默，不影响启动
+      void checkUpdatesInBackground().catch((e) => {
+        log('warn', `检查更新失败：${e instanceof Error ? e.message : String(e)}`)
+      })
 
       // 开机自启：默认开启，让「每天自动」在重启后依然成立
       const al = applyAutoLaunch(store)

@@ -6,7 +6,7 @@ import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
 import { TopicManager } from './TopicManager'
 import { DomainManager } from './DomainManager'
-import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
+import type { DomainPayload, TopicPayload, UpdateCheckPayload } from '../lib/ipc-types'
 import type { SchedulePayload } from '../lib/ipc-types'
 
 const SECONDARY_BTN =
@@ -371,6 +371,14 @@ export function SettingsPage({
           <Row k="温度" v="0.55" />
           <Row k="最大输出" v="32,000 tokens" />
         </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">关于</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          检查 GitHub 上有没有新版本。只提示，不自动下载——两个平台的安装包目前都未签名。
+        </p>
+        <AboutCard />
       </section>
 
       <section className="mt-8">
@@ -815,6 +823,68 @@ function KeyPanel(): React.JSX.Element {
       )}
       {msg && <p className="mt-2 text-[11.5px] text-ink/70">{msg}</p>}
       {!hasIpc && <p className="mt-2 text-[11px] text-ink-3/70">预览模式下不可用。</p>}
+    </div>
+  )
+}
+
+
+function AboutCard(): React.JSX.Element {
+  const [version, setVersion] = useState('')
+  const [checking, setChecking] = useState(false)
+  const [result, setResult] = useState<UpdateCheckPayload | null>(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    void window.meerkat?.update?.current().then((v) => setVersion(v))
+  }, [])
+
+  const check = async (): Promise<void> => {
+    const api = window.meerkat?.update
+    if (!api || checking) return
+    setChecking(true)
+    setError('')
+    try {
+      const r = await api.check()
+      setResult(r)
+      if (!r.ok) setError(r.error ?? '检查失败')
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div className="card px-5 py-4 text-[12px]">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-ink">
+          Meerkat <span className="font-semibold tabular-nums">v{version || '…'}</span>
+        </span>
+        <button
+          onClick={() => void check()}
+          disabled={checking}
+          className="rounded-lg border border-cream px-3 py-1.5 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
+        >
+          {checking ? '检查中…' : '检查更新'}
+        </button>
+        {result?.ok && result.hasUpdate && result.url && (
+          <button
+            onClick={() => void window.meerkat?.update?.open(result.url!)}
+            className="font-medium text-accent hover:underline"
+          >
+            下载 v{result.latest}
+          </button>
+        )}
+      </div>
+      {error && <p className="mt-2 text-[11.5px] text-alert">{error}</p>}
+      {!error && result?.ok && (
+        <p className="mt-2 text-[11.5px] text-ink-3">
+          {result.hasUpdate
+            ? `发现新版本 ${result.latest}，当前 v${result.current}`
+            : `已是最新版本（v${result.current}）`}
+        </p>
+      )}
+      {!error && !result && (
+        <p className="mt-2 text-[11.5px] text-ink-3">启动时会自动检查一次（24 小时内不重复）。</p>
+      )}
     </div>
   )
 }

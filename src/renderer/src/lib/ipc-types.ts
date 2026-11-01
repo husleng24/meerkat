@@ -207,7 +207,24 @@ export interface DomainBriefPayload {
   createdAt: number
 }
 
+export interface UpdateCheckPayload {
+  ok: boolean
+  current: string
+  latest?: string
+  hasUpdate: boolean
+  url?: string
+  publishedAt?: string
+  error?: string
+}
+
 export interface MeerkatBridge {
+  update?: {
+    current: () => Promise<string>
+    latest: () => Promise<UpdateCheckPayload | null>
+    check: () => Promise<UpdateCheckPayload>
+    open: (url: string) => Promise<{ ok: boolean; error?: string }>
+    onAvailable: (cb: (info: UpdateCheckPayload) => void) => () => void
+  }
   chat?: ChatBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
