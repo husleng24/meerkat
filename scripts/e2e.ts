@@ -27,11 +27,12 @@ async function main(): Promise<void> {
   const seed = JSON.parse(readFileSync(join(ROOT, 'resources', 'sources.json'), 'utf8')) as Source[]
   const added = seedSources(store, seed)
   seedDefaultMembership(store)
+  const apiKey = resolveApiKey()
   const deps = {
-    apiKey: resolveApiKey(),
+    compose: apiKey ? { provider: 'deepseek' as const, key: apiKey, model: 'deepseek-flash' } : null,
     promptText: readFileSync(join(ROOT, 'resources', 'prompts', 'compose.zh.md'), 'utf8')
   }
-  console.log(`[1] 建库 schema v${store.schemaVersion()} · 灌入 ${added} 个源 · key ${deps.apiKey ? '有' : '无'}`)
+  console.log(`[1] 建库 schema v${store.schemaVersion()} · 灌入 ${added} 个源 · key ${deps.compose ? '有' : '无'}`)
   console.log(`    首次排程判定 due=${decideDue(undefined, Date.now(), { enabled: true, hour: 8, minute: 30 }).due}`)
 
   // ── 第一次：今天 ───────────────────────────────────────

@@ -109,6 +109,8 @@ export interface ChatThreadPayload {
   updatedAt: number
   archived: boolean
   contextTokens: number
+  /** 会话创建之后简报又被重写过：历史回答可能对不上当前内容 */
+  briefStale?: boolean
 }
 
 export interface ChatMessagePayload {
@@ -130,6 +132,17 @@ export interface ChatModelPayload {
   tier: 'fast' | 'deep'
 }
 
+export interface ChatProviderPayload {
+  id: ProviderId
+  label: string
+  protocol: string
+  /** 该供应商的默认模型 id（输入框的 placeholder） */
+  defaultModel: string
+  /** 用户覆盖的模型 id；空串表示用默认 */
+  override: string
+  hasKey: boolean
+}
+
 export interface ChatBridge {
   models: () => Promise<ChatModelPayload[]>
   ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
@@ -149,6 +162,9 @@ export interface ChatBridge {
     model?: string
   }>
   cancel: () => Promise<{ cancelled: boolean }>
+  reset: (threadId: string) => Promise<{ ok: boolean; error?: string }>
+  providers: () => Promise<ChatProviderPayload[]>
+  setModel: (input: { provider: ProviderId; model: string }) => Promise<{ ok: boolean; error?: string }>
 }
 
 export interface TopicPayload {

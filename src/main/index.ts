@@ -1,11 +1,8 @@
 import { app, BrowserWindow, Menu, screen, shell } from 'electron'
 import { join } from 'node:path'
-import { closeStore, initStore, registerIpc } from './ipc'
+import { closeStore, dailyDeps, initStore, registerIpc } from './ipc'
 import { Scheduler } from './scheduler'
 import { runDaily } from './daily'
-import { getApiKey } from './keystore'
-import { resourcePath } from './paths'
-import { readFileSync } from 'node:fs'
 import { installCrashHandlers, log } from './log'
 import { runElectronSelfCheck } from './selfcheck'
 import { apply as applyAutoLaunch } from './autolaunch'
@@ -19,17 +16,6 @@ if (process.platform === 'win32') app.setAppUserModelId('com.meerkat.daily')
 let mainWindow: BrowserWindow | null = null
 let scheduler: Scheduler | null = null
 let quitting = false
-
-/** 每日任务的外部依赖：密钥 + 编辑方针。集中一处，便于排查"为什么走了降级" */
-function dailyDeps(): { apiKey: string; promptText: string } {
-  let promptText = ''
-  try {
-    promptText = readFileSync(resourcePath('prompts/compose.zh.md'), 'utf8')
-  } catch {
-    promptText = '你是一份 AI 行业日报的主编。链接必须逐字复制素材里的 URL。'
-  }
-  return { apiKey: getApiKey().key, promptText }
-}
 
 /**
  * 深链：`Meerkat.exe --route=search/Gemini` 直接打开某个页面。

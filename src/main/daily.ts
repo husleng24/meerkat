@@ -13,7 +13,8 @@
  * 只能有一份实现，否则重跑出来的简报和正常跑出来的会慢慢对不上。
  */
 import { fetchSource } from '../adapters/sources'
-import { createDeepSeekComposer } from '../adapters/llm/deepseek'
+import { createChatComposer, createNoopComposer } from '../adapters/llm/chat-composer'
+import { createProviderInstance, type ComposeTarget } from './providers'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../app/compose-brief'
 import { runCollect, COLLECT_DEFAULTS, type CollectResult } from '../app/run-collect'
 import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
@@ -24,7 +25,8 @@ import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 
 export interface DailyDeps {
-  apiKey: string
+  /** 成稿用哪家供应商；null = 没配任何 key，简报会降级成"仅聚合" */
+  compose: ComposeTarget | null
   promptText: string
 }
 
@@ -192,11 +194,17 @@ interface FinishInput {
 async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): Promise<DailyOutcome> {
   const { topic, items, now } = input
   const dateLabel = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
-  const composer = createDeepSeekComposer({
-    apiKey: deps.apiKey,
-    systemPrompt: deps.promptText,
-    maxTokens: 32_000
-  })
+  const target = deps.compose
+  const provider = target ? createProviderInstance(target.provider, target.key) : null
+  const composer =
+    target && provider
+      ? createChatComposer({
+          provider,
+          model: target.model,
+          systemPrompt: deps.promptText,
+          maxTokens: 32_000
+        })
+      : createNoopComposer()
 
   let out
   try {

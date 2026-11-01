@@ -14,7 +14,7 @@ export interface OpenAICompatibleOptions {
 }
 
 interface ChatResponse {
-  choices?: Array<{ message?: { content?: string | null } }>
+  choices?: Array<{ message?: { content?: string | null }; finish_reason?: string }>
   usage?: { prompt_tokens?: number; completion_tokens?: number }
   error?: { message?: string }
 }
@@ -73,14 +73,23 @@ export function createOpenAICompatibleChat(opts: OpenAICompatibleOptions): ChatP
       } catch {
         return { ok: false, reason: 'provider-error', detail: '响应不是合法 JSON' }
       }
-      const content = json.choices?.[0]?.message?.content?.trim() ?? ''
-      if (!content) return { ok: false, reason: 'empty-output', detail: '模型没有返回正文' }
+      const choice = json.choices?.[0]
+      const content = choice?.message?.content?.trim() ?? ''
+      if (!content) {
+        return {
+          ok: false,
+          reason: 'empty-output',
+          detail: '模型没有返回正文',
+          ...(choice?.finish_reason ? { finishReason: choice.finish_reason } : {})
+        }
+      }
 
       return {
         ok: true,
         text: content,
         model: request.model,
-        usage: { input: json.usage?.prompt_tokens ?? 0, output: json.usage?.completion_tokens ?? 0 }
+        usage: { input: json.usage?.prompt_tokens ?? 0, output: json.usage?.completion_tokens ?? 0 },
+        ...(choice?.finish_reason ? { finishReason: choice.finish_reason } : {})
       }
     }
   }

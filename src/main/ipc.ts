@@ -16,12 +16,21 @@ import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
-import { getApiKey } from './keystore'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
-import { recomposeDaily, runDaily } from './daily'
-import { chatModels, defaultChatModel, ensureThread, previewContextTokens, sendChatMessage, type ChatDeps } from './chat'
+import { recomposeDaily, runDaily, type DailyDeps } from './daily'
+import {
+  chatModels,
+  defaultChatModel,
+  ensureThread,
+  previewContextTokens,
+  sendChatMessage,
+  threadBriefStale,
+  type ChatDeps
+} from './chat'
+import { composeTarget, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
+import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
 import { RunCancelledError } from '../app/run-cancel'
@@ -144,21 +153,25 @@ const flagsSetSchema = z.object({
 })
 
 /** 手动采集与定时任务共用同一份依赖构造 */
-export function dailyDeps(): { apiKey: string; promptText: string } {
+export function dailyDeps(): DailyDeps {
   let promptText = ''
   try {
     promptText = readFileSync(resourcePath('prompts/compose.zh.md'), 'utf8')
   } catch {
     promptText = '你是一份 AI 行业日报的主编。链接必须逐字复制素材里的 URL。'
   }
-  return { apiKey: getApiKey().key, promptText }
+  // 成稿也用同一套供应商：只配了 OpenAI/Anthropic 的机器不该被迫降级
+  const keys: ProviderKeys = {}
+  for (const p of availableProviders()) keys[p.id] = p.key
+  const overrides = store ? readModelOverrides(store) : {}
+  return { compose: composeTarget(keys, overrides), promptText }
 }
 
 /** 对话的依赖：可用供应商的 key 集合 */
 export function chatDeps(): ChatDeps {
-  const keys: ChatDeps['keys'] = {}
+  const keys: ProviderKeys = {}
   for (const p of availableProviders()) keys[p.id] = p.key
-  return { keys }
+  return { keys, overrides: store ? readModelOverrides(store) : {} }
 }
 
 export function initStore(dbPath: string): Store {
@@ -528,7 +541,12 @@ export function registerIpc(): void {
       model: parsed.data.model ?? defaultChatModel(deps)
     })
     if (!thread) return null
-    return { ...thread, contextTokens: previewContextTokens(requireStore(), thread.id, false) }
+    const s = requireStore()
+    return {
+      ...thread,
+      contextTokens: previewContextTokens(s, thread.id, false),
+      briefStale: threadBriefStale(s, thread)
+    }
   })
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {
@@ -547,6 +565,41 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('chat:cancel', () => ({ cancelled: chatLatch.cancel() }))
+
+  /** 丢弃当前会话（简报更新后重新开始用） */
+  ipcMain.handle('chat:reset', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(60).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().chat.remove(parsed.data)
+    return { ok: true }
+  })
+
+  /** 供应商目录 + 当前覆盖的模型 id：设置页用它渲染"模型 id"输入框 */
+  ipcMain.handle('chat:providers', () => {
+    const s = requireStore()
+    const overrides = readModelOverrides(s)
+    const keys: ProviderKeys = {}
+    for (const p of availableProviders()) keys[p.id] = p.key
+    return PROVIDERS.map((p) => ({
+      id: p.id,
+      label: p.label,
+      protocol: p.protocol,
+      defaultModel: p.models[0]!.id,
+      override: overrides[p.id] ?? '',
+      hasKey: Boolean(keys[p.id])
+    }))
+  })
+
+  ipcMain.handle('chat:setModel', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ provider: providerIdSchema, model: z.string().max(80) })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    if (!providerMeta(parsed.data.provider)) return { ok: false, error: '未知供应商' }
+    // 空串表示"恢复默认"：readModelOverrides 会忽略空值
+    requireStore().settings.set(modelOverrideKey(parsed.data.provider), parsed.data.model.trim())
+    return { ok: true }
+  })
 
   ipcMain.handle('sources:add', (_e, raw: unknown) => {
     const parsed = newSourceSchema.safeParse(raw)

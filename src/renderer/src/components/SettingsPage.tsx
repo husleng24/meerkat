@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { describeNext, describeSchedule, type ScheduleConfig } from '../../../app/schedule'
-import type { AutoLaunchState, KeyStatusPayload } from '../lib/ipc-types'
+import type { AutoLaunchState, ChatProviderPayload, KeyStatusPayload } from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
@@ -334,7 +334,7 @@ export function SettingsPage({
         </p>
         <KeyPanel />
         <div className="mt-3 card px-5 py-4 text-[12px]">
-          <Row k="模型" v="deepseek-flash" />
+          <Row k="成稿模型" v="自动（优先 DeepSeek）" />
           <Row k="温度" v="0.55" />
           <Row k="最大输出" v="32,000 tokens" />
         </div>
@@ -608,21 +608,32 @@ function Row({ k, v }: { k: string; v: string }): React.JSX.Element {
  */
 function KeyPanel(): React.JSX.Element {
   const [statuses, setStatuses] = useState<KeyStatusPayload[]>([])
+  const [providers, setProviders] = useState<ChatProviderPayload[]>([])
   const [inputs, setInputs] = useState<Record<string, string>>({})
+  const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({})
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
 
   const api = window.meerkat?.key
+  const chatApi = window.meerkat?.chat
   const hasIpc = api !== undefined
 
   const refresh = useCallback(async () => {
     if (!api) return
     try {
-      setStatuses(await api.all())
+      const [list, provs] = await Promise.all([api.all(), chatApi?.providers?.() ?? Promise.resolve([])])
+      setStatuses(list)
+      setProviders(provs)
+      // 只在第一次填充：用户正在输入时不要被刷新覆盖
+      setModelDrafts((prev) => {
+        const next = { ...prev }
+        for (const p of provs) if (next[p.id] === undefined) next[p.id] = p.override
+        return next
+      })
     } catch {
       /* 预览模式忽略 */
     }
-  }, [api])
+  }, [api, chatApi])
 
   useEffect(() => {
     void refresh()
@@ -651,8 +662,8 @@ function KeyPanel(): React.JSX.Element {
   return (
     <div className="card px-5 py-4">
       <p className="mb-3 text-[11.5px] leading-relaxed text-ink-3">
-        简报生成只用 DeepSeek；对话可以切到任意一家已配置的供应商。密钥保存在本机（加密文件），
-        也可以走环境变量。
+        简报成稿优先用 DeepSeek，其次 OpenAI / Anthropic；对话可以切到任意一家已配置的供应商。
+        密钥保存在本机（加密文件），也可以走环境变量。
       </p>
 
       <div className="space-y-4">
@@ -711,6 +722,40 @@ function KeyPanel(): React.JSX.Element {
                 </button>
               )}
             </div>
+
+            {(() => {
+              const p = providers.find((x) => x.id === st.provider)
+              if (!p) return null
+              return (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className="shrink-0 text-[10.5px] text-ink-3">模型 id</span>
+                  <input
+                    value={modelDrafts[st.provider] ?? ''}
+                    onChange={(e) =>
+                      setModelDrafts((prev) => ({ ...prev, [st.provider]: e.target.value }))
+                    }
+                    placeholder={`默认 ${p.defaultModel}`}
+                    disabled={!hasIpc}
+                    className="min-w-0 flex-1 rounded-lg border border-cream bg-white px-2.5 py-1 text-[11px] text-ink-2 outline-none focus:border-accent disabled:opacity-50"
+                  />
+                  <button
+                    disabled={busy || !hasIpc}
+                    onClick={() =>
+                      void run(
+                        () => chatApi!.setModel({ provider: st.provider, model: modelDrafts[st.provider] ?? '' }),
+                        (modelDrafts[st.provider] ?? '').trim()
+                          ? `已把 ${st.providerLabel} 的模型改为 ${modelDrafts[st.provider]}`
+                          : `已恢复 ${st.providerLabel} 的默认模型`,
+                        st.provider
+                      )
+                    }
+                    className="shrink-0 rounded-lg border border-cream px-2.5 py-1 text-[11px] text-ink/70 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
+                  >
+                    保存
+                  </button>
+                </div>
+              )
+            })()}
 
             {st.provider === 'deepseek' && st.dshAvailable && st.source !== 'store' && (
               <div className="mt-2 flex items-center gap-2 rounded-lg bg-cream/50 px-3 py-2">

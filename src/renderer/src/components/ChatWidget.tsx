@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { actionPrompt, visibleActions, type ChatActionId } from '../../../core/chat/actions'
+import { ChatMarkdown } from './ChatMarkdown'
 import type { ChatMessagePayload, ChatModelPayload, ChatThreadPayload } from '../lib/ipc-types'
 
 interface Props {
@@ -22,6 +23,7 @@ const MODEL_KEY = 'meerkat.chat.model'
 export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JSX.Element {
   const [open, setOpen] = useState(() => readFlag(OPEN_KEY, false))
   const [thread, setThread] = useState<ChatThreadPayload | null>(null)
+  const [briefStale, setBriefStale] = useState(false)
   const [messages, setMessages] = useState<ChatMessagePayload[]>([])
   const [models, setModels] = useState<ChatModelPayload[]>([])
   const [model, setModel] = useState(() => readString(MODEL_KEY) || 'deepseek-flash')
@@ -47,7 +49,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
         }
       })
       .catch(() => undefined)
-  }, [api, model])
+  }, [api, model, open])
 
   // 打开时确保有会话并拉历史
   useEffect(() => {
@@ -58,6 +60,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
       .then(async (t) => {
         if (cancelled || !t) return
         setThread(t)
+        setBriefStale(t.briefStale ?? false)
         const history = await api.messages(t.id)
         if (!cancelled) setMessages(history)
       })
@@ -130,6 +133,17 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     await api?.cancel()
   }, [api])
 
+  /** 简报更新后重新开始：丢掉旧会话，按当前简报建一段新的 */
+  const restart = useCallback(async () => {
+    if (!api || !thread) return
+    await api.reset(thread.id)
+    const t = await api.ensure({ topicId, ...(briefDate ? { briefDate } : {}), model })
+    if (!t) return
+    setThread(t)
+    setBriefStale(t.briefStale ?? false)
+    setMessages([])
+  }, [api, thread, topicId, briefDate, model])
+
   const onComposerKey = (e: React.KeyboardEvent<HTMLTextAreaElement>): void => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault()
@@ -148,7 +162,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     <>
       {open && (
         <section
-          className="fixed bottom-24 right-5 z-40 flex h-[min(72vh,640px)] w-[420px] flex-col overflow-hidden rounded-2xl border border-rule bg-white"
+          className="fixed bottom-24 right-5 z-40 flex h-[min(72vh,640px)] w-[420px] flex-col overflow-hidden rounded-2xl border border-rule bg-white max-[900px]:right-4 max-[900px]:w-[calc(100vw-32px)]"
           style={{ boxShadow: '0 30px 80px -40px rgba(11,18,32,.45), 0 2px 8px rgba(11,18,32,.05)' }}
           role="dialog"
           aria-label="AI 对话"
@@ -185,6 +199,15 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
             )}
           </div>
 
+          {briefStale && (
+            <div className="flex items-center gap-2 border-b border-rule bg-accent-soft/60 px-4 py-2 text-[11px] text-ink-2">
+              <span className="flex-1">简报在这次对话之后更新过，历史回答可能对不上当前内容。</span>
+              <button onClick={() => void restart()} className="shrink-0 font-medium text-accent hover:underline">
+                重新开始
+              </button>
+            </div>
+          )}
+
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
             {models.length === 0 && (
               <p className="rounded-lg bg-cream/70 px-3 py-2 text-[11.5px] leading-relaxed text-ink-2">
@@ -207,7 +230,11 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
                 {m.role === 'assistant' && (
                   <div className="mb-1 text-[10px] text-ink-3">AI{m.model ? ` · ${m.model}` : ''}</div>
                 )}
-                <div className="whitespace-pre-wrap">{m.content}</div>
+                {m.role === 'assistant' ? (
+                  <ChatMarkdown text={m.content} />
+                ) : (
+                  <div className="whitespace-pre-wrap">{m.content}</div>
+                )}
               </div>
             ))}
             {sending && (

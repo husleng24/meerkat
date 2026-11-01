@@ -661,7 +661,8 @@ TODO 里挂了很久的一条：「今天有什么」已经有了，「和昨天
 - **能停**：正在回复时点「停止」，错误框显示「已取消」，不会把半截回答当结果
 
 **多供应商与协议差异**：DeepSeek 与 OpenAI 走 OpenAI 兼容协议，Anthropic 走 Messages 协议
-（`x-api-key`、`system` 顶层、`content[]` 响应）。key 按供应商分别加密保存，也可以走环境变量。
+（`x-api-key`、`system` 顶层、`content[]` 响应）。key 按供应商分别加密保存，也可以走环境变量；
+**成稿也优先走同一套供应商**（DeepSeek → OpenAI → Anthropic），模型 id 可在设置里覆盖（模型下线时不用改代码）。
 
 ![模型与密钥](docs/assets/ui-providers.png)
 

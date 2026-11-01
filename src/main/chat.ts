@@ -5,10 +5,15 @@
  * 与 runDaily 的区别：那边是"定时跑一整条流水线"，这边是"按需回一句话"，
  * 所以不复用 DailyOutcome 那套结构。
  */
-import { createOpenAICompatibleChat } from '../adapters/llm/openai-compatible'
-import { createAnthropicChat } from '../adapters/llm/anthropic'
 import { actionPrompt, CHAT_SYSTEM_PROMPT, type ChatActionId } from '../core/chat/actions'
-import { providerForModel, providerMeta, PROVIDERS, type ProviderId } from '../core/chat/providers'
+import { PROVIDERS, providerMeta, type ProviderId } from '../core/chat/providers'
+import {
+  createProviderInstance,
+  modelCatalog,
+  readModelOverrides,
+  resolveModel,
+  type ProviderKeys
+} from './providers'
 import { buildChatContext, estimateTokens, type ChatContextSource } from '../core/chat/context'
 import { chatLatch } from './run-control'
 import { log } from './log'
@@ -18,22 +23,13 @@ import type { ChatStoredMessage, ChatThread } from '../core/domain/types'
 
 export interface ChatDeps {
   /** 已配置 key 的供应商；聊天只在这些里面选模型 */
-  keys: Partial<Record<ProviderId, string>>
+  keys: ProviderKeys
+  /** 用户覆盖的模型 id（设置里改） */
+  overrides?: Partial<Record<ProviderId, string>>
 }
 
-/** 按供应商声明的协议挑适配器：这就是"协议差异"被收敛的唯一位置 */
-function createProvider(id: ProviderId, key: string) {
-  const meta = providerMeta(id)
-  if (!meta) return null
-  if (meta.protocol === 'anthropic') {
-    return createAnthropicChat({ apiKey: key, baseUrl: meta.baseUrl, models: meta.models })
-  }
-  return createOpenAICompatibleChat({
-    id: meta.id,
-    baseUrl: meta.baseUrl,
-    apiKey: key,
-    models: meta.models
-  })
+function overridesOf(deps: ChatDeps, store?: Store): Partial<Record<ProviderId, string>> {
+  return deps.overrides ?? (store ? readModelOverrides(store) : {})
 }
 
 export interface SendInput {
@@ -55,8 +51,10 @@ export interface SendResult {
   model?: string
 }
 
-/** 默认模型：取第一个有 key 的供应商的第一个模型 */
+/** 默认模型：取第一个有 key 的供应商的第一个（可能被覆盖的）模型 */
 export function defaultChatModel(deps: ChatDeps): string {
+  const first = modelCatalog(deps.keys, deps.overrides ?? {})[0]
+  if (first) return first.model.id
   for (const p of PROVIDERS) {
     if (deps.keys[p.id]) return p.models[0]!.id
   }
@@ -67,7 +65,7 @@ const HISTORY_LIMIT = 8
 
 /** 只返回已配置 key 的供应商的模型：界面上不该出现"选了也发不出去"的选项 */
 export function chatModels(deps: ChatDeps): ChatModelInfo[] {
-  return PROVIDERS.filter((p) => deps.keys[p.id]).flatMap((p) => p.models)
+  return modelCatalog(deps.keys, deps.overrides ?? {}).map((c) => c.model)
 }
 
 /** 取这个主题当前的简报（优先线程记录的日期，其次最新一期） */
@@ -141,12 +139,16 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
       { role: 'user', content: text }
     ]
 
-    const meta = providerForModel(model)
-    if (!meta) return { ok: false, error: `未知模型：${model}` }
-    const key = deps.keys[meta.id]
-    if (!key) return { ok: false, error: `${meta.label} 还没有配置 API Key` }
-    const provider = createProvider(meta.id, key)
-    if (!provider) return { ok: false, error: `${meta.label} 适配器不可用` }
+    const resolved = resolveModel(model, deps.keys, overridesOf(deps, store))
+    if (!resolved) {
+      const meta = providerMeta(model.split('-')[0] ?? '')
+      return {
+        ok: false,
+        error: meta ? `${meta.label} 还没有配置 API Key` : `未知模型：${model}`
+      }
+    }
+    const provider = createProviderInstance(resolved.provider, resolved.key)
+    if (!provider) return { ok: false, error: `${resolved.provider} 适配器不可用` }
     const result = await provider.chat(
       {
         model,
@@ -225,6 +227,18 @@ export function ensureThread(
   }
   store.chat.create(thread)
   return thread
+}
+
+/**
+ * 会话是否基于旧版简报。
+ *
+ * 简报可以在对话之后被"立即采集 / 重新成稿"覆盖，而历史消息里的结论是针对旧内容的。
+ * 静默不管会让用户拿着过期的回答当依据——所以界面要能看见这个事实。
+ */
+export function threadBriefStale(store: Store, thread: ChatThread): boolean {
+  const brief = resolveBrief(store, thread)
+  if (!brief) return false
+  return brief.createdAt > thread.createdAt
 }
 
 /** 界面显示"上下文 6.2k tokens"用 */

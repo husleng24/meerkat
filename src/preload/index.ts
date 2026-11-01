@@ -105,6 +105,7 @@ const api = {
       updatedAt: number
       archived: boolean
       contextTokens: number
+      briefStale: boolean
     } | null> => ipcRenderer.invoke('chat:ensure', input),
     messages: (
       threadId: string
@@ -135,7 +136,21 @@ const api = {
       estimatedTokens?: number
       model?: string
     }> => ipcRenderer.invoke('chat:send', input),
-    cancel: (): Promise<{ cancelled: boolean }> => ipcRenderer.invoke('chat:cancel')
+    cancel: (): Promise<{ cancelled: boolean }> => ipcRenderer.invoke('chat:cancel'),
+    reset: (threadId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('chat:reset', threadId),
+    providers: (): Promise<
+      Array<{
+        id: string
+        label: string
+        protocol: string
+        defaultModel: string
+        override: string
+        hasKey: boolean
+      }>
+    > => ipcRenderer.invoke('chat:providers'),
+    setModel: (input: { provider: string; model: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('chat:setModel', input)
   },
 
   topics: {

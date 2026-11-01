@@ -34,8 +34,15 @@ export interface ChatRequest {
 export type ChatFailureReason = 'rate-limit' | 'context-overflow' | 'provider-error' | 'empty-output' | 'aborted'
 
 export type ChatResult =
-  | { ok: true; text: string; model: string; usage: { input: number; output: number } }
-  | { ok: false; reason: ChatFailureReason; detail: string }
+  | {
+      ok: true
+      text: string
+      model: string
+      usage: { input: number; output: number }
+      /** 停止原因：成稿时用来区分"被 max_tokens 截断"与"模型什么都没说" */
+      finishReason?: string
+    }
+  | { ok: false; reason: ChatFailureReason; detail: string; finishReason?: string }
 
 export interface ChatProvider {
   readonly id: string

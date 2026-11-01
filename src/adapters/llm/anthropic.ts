@@ -19,6 +19,7 @@ export interface AnthropicOptions {
 }
 
 interface AnthropicResponse {
+  stop_reason?: string
   content?: Array<{ type?: string; text?: string }>
   usage?: { input_tokens?: number; output_tokens?: number }
   error?: { message?: string; type?: string }
@@ -106,13 +107,21 @@ export function createAnthropicChat(opts: AnthropicOptions): ChatProvider {
         .map((b) => b.text ?? '')
         .join('')
         .trim()
-      if (!content) return { ok: false, reason: 'empty-output', detail: '模型没有返回正文' }
+      if (!content) {
+        return {
+          ok: false,
+          reason: 'empty-output',
+          detail: '模型没有返回正文',
+          ...(json.stop_reason ? { finishReason: json.stop_reason } : {})
+        }
+      }
 
       return {
         ok: true,
         text: content,
         model: request.model,
-        usage: { input: json.usage?.input_tokens ?? 0, output: json.usage?.output_tokens ?? 0 }
+        usage: { input: json.usage?.input_tokens ?? 0, output: json.usage?.output_tokens ?? 0 },
+        ...(json.stop_reason ? { finishReason: json.stop_reason } : {})
       }
     }
   }
