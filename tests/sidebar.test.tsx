@@ -104,6 +104,29 @@ describe('侧栏领域列表', () => {
     expect(el.textContent).toContain('＋ 新建领域')
   })
 
+  it('领域可以收起：收起后行隐藏，标题行显示当前领域', async () => {
+    localStorage.removeItem('meerkat.sidebar.topicsOpen')
+    const el = await render(<Sidebar {...baseProps()} />)
+    const toggle = el.querySelector('button[aria-expanded]') as HTMLButtonElement
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(el.textContent).toContain('芯片与算力')
+
+    await act(async () => toggle.click())
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    // 列表行消失，但当前领域仍要可见（否则不知道自己在哪个领域）
+    expect(el.textContent).not.toContain('芯片与算力')
+    expect(toggle.textContent).toContain('AI 综合')
+    expect(localStorage.getItem('meerkat.sidebar.topicsOpen')).toBe('0')
+  })
+
+  it('收起状态会被记住', async () => {
+    localStorage.setItem('meerkat.sidebar.topicsOpen', '0')
+    const el = await render(<Sidebar {...baseProps()} />)
+    expect(el.querySelector('button[aria-expanded]')!.getAttribute('aria-expanded')).toBe('false')
+    expect(el.textContent).not.toContain('芯片与算力')
+    localStorage.removeItem('meerkat.sidebar.topicsOpen')
+  })
+
   it('就地新建：回车创建并切过去，Esc 取消', async () => {
     const created = vi.fn().mockResolvedValue('t-new')
     const onPick = vi.fn()

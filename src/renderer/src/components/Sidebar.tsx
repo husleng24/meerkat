@@ -1,6 +1,25 @@
 import { useState } from 'react'
 import type { TopicPayload } from '../lib/ipc-types'
 
+const TOPICS_OPEN_KEY = 'meerkat.sidebar.topicsOpen'
+
+function readOpenState(): boolean {
+  try {
+    const v = localStorage.getItem(TOPICS_OPEN_KEY)
+    return v === null ? true : v === '1'
+  } catch {
+    return true
+  }
+}
+
+function writeOpenState(open: boolean): void {
+  try {
+    localStorage.setItem(TOPICS_OPEN_KEY, open ? '1' : '0')
+  } catch {
+    /* 隐私模式忽略 */
+  }
+}
+
 interface Props {
   active: string
   topics: TopicPayload[]
@@ -53,6 +72,17 @@ export function Sidebar({
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState('')
+  // 折叠状态记在本机：领域多的人会长期收起来，不该每次启动都重新展开
+  const [topicsOpen, setTopicsOpen] = useState(() => readOpenState())
+
+  const toggleTopics = (): void => {
+    setTopicsOpen((v) => {
+      writeOpenState(!v)
+      return !v
+    })
+  }
+
+  const activeTopicInfo = topics.find((t) => t.id === activeTopic)
 
   const submitTopic = async (): Promise<void> => {
     const name = draft.trim()
@@ -68,7 +98,34 @@ export function Sidebar({
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
       {topicsAvailable && topics.length > 0 && (
         <div className="mb-1">
-          <div className="mb-1 px-2.5 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</div>
+          <button
+            onClick={toggleTopics}
+            aria-expanded={topicsOpen}
+            title={topicsOpen ? '收起领域' : '展开领域'}
+            className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left transition-colors hover:bg-cream"
+          >
+            <span className="shrink-0 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</span>
+            {/* 收起时把当前领域放到标题行：否则用户不知道现在在看哪个领域 */}
+            {!topicsOpen && activeTopicInfo && (
+              <span className="min-w-0 truncate text-[13px] font-medium text-ink">{activeTopicInfo.name}</span>
+            )}
+            {!topicsOpen && activeTopicInfo && activeTopicInfo.unreadCount > 0 && (
+              <span aria-label={`${activeTopicInfo.unreadCount} 条未读`} className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
+            )}
+            <span className="ml-auto shrink-0 text-ink-3">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                aria-hidden="true"
+                className={topicsOpen ? '' : '-rotate-90'}
+              >
+                <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+
+          {topicsOpen && (
           <div className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto">
             {topics.map((t) => {
               const isActive = t.id === activeTopic
@@ -134,6 +191,7 @@ export function Sidebar({
               )
             )}
           </div>
+          )}
         </div>
       )}
 
