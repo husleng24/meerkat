@@ -230,7 +230,12 @@ export interface MeerkatBridge {
   onDomainBriefUpdated?: (cb: (domainId: string) => void) => () => void
   topics?: {
     list: () => Promise<TopicPayload[]>
-    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>
+    create: (input: {
+      id: string
+      name: string
+      domainId?: string
+      sourceIds?: string[]
+    }) => Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }>
     update: (input: { id: string; name?: string; enabled?: boolean }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
     sourceIds: (id: string) => Promise<string[]>

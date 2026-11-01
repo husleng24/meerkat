@@ -29,7 +29,8 @@ export function SettingsPage({
   onCreateDomain,
   onRenameDomain,
   onRemoveDomain,
-  onDomainsChanged
+  onDomainsChanged,
+  onAddSource
 }: {
   topicId: string
   topics: TopicPayload[]
@@ -40,6 +41,7 @@ export function SettingsPage({
   onRenameDomain: (id: string, name: string) => Promise<boolean>
   onRemoveDomain: (id: string) => Promise<boolean>
   onDomainsChanged: () => void
+  onAddSource?: () => void
 }): React.JSX.Element {
   const sourcesRef = useRef<HTMLElement | null>(null)
   const focusSources = (topicId: string): void => {
@@ -287,6 +289,7 @@ export function SettingsPage({
         <TopicSources
           topicId={topicId}
           topicName={topics.find((t) => t.id === topicId)?.name ?? '这个主题'}
+          {...(onAddSource ? { onAddSource } : {})}
         />
       </section>
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryStore } from '../src/adapters/store-sqlite/store'
-import { recommendSources } from '../src/app/source-recommend'
+import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../src/app/source-recommend'
 
 const NOW = 1_793_500_000_000
 
@@ -151,6 +151,21 @@ describe('按主题推荐源', () => {
     }
     // s3 只和主题共享"OpenAI"这个到处都是的词 → 不推荐
     expect(recommendSources(s, 'ai', { now: NOW }).map((r) => r.id)).not.toContain('s3')
+  })
+
+  it('新建主题用同领域其他主题的语料推荐，而不是全选', () => {
+    const s = seed()
+    const rec = recommendSourcesForNewTopic(s, '芯片与算力', 'ai', { now: NOW })
+    expect(rec.map((r) => r.id)).toContain('semi')
+    expect(rec.length).toBeLessThanOrEqual(NEW_TOPIC_SOURCE_LIMIT)
+    // 已停用源不推荐
+    expect(rec.map((r) => r.id)).not.toContain('off')
+  })
+
+  it('空领域没有语料时，新主题按名字推荐；再没有就返回空', () => {
+    const s = createMemoryStore()
+    s.domains.upsert({ id: 'empty', name: '空领域', createdAt: 1 })
+    expect(recommendSourcesForNewTopic(s, '芯片与算力', 'empty', { now: NOW })).toEqual([])
   })
 
   it('主题不存在时返回空数组', () => {

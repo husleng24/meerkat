@@ -44,7 +44,11 @@ export function TopicManager({
     const res = await api.create({ id, name, domainId: draftDomain })
     if (res.ok) {
       setDraftName('')
-      setNote(`已创建「${name}」，默认收录全部源；下面可以按需取消勾选`)
+      setNote(
+        res.sourceCount && res.sourceCount > 0
+          ? `已创建「${name}」，按推荐加入了 ${res.sourceCount} 个源；下面可以增减`
+          : `已创建「${name}」，暂时没有匹配的源；下面手动勾选或用推荐`
+      )
       onChanged()
       onPick(id)
       // 新建之后最想知道的就是"去哪选源"——直接把页面带到那里

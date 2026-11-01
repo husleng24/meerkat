@@ -79,6 +79,12 @@ export default function App(): React.JSX.Element {
     if (typeof location !== 'undefined') history.replaceState(null, '', '#' + id)
   }
 
+  /** 跳到源页并直接展开"新增源"表单（表单里会默认勾上当前主题） */
+  const goAddSource = (): void => {
+    if (typeof location !== 'undefined') history.replaceState(null, '', '#sources/add')
+    setNav('sources')
+  }
+
   /**
    * 选主题。
    *
@@ -249,6 +255,7 @@ export default function App(): React.JSX.Element {
               onRenameDomain={renameDomain}
               onRemoveDomain={removeDomain}
               onDomainsChanged={reloadDomains}
+              onAddSource={goAddSource}
             />
           )}
 

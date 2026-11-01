@@ -12,12 +12,21 @@ import type { SourceRecommendationPayload } from '../lib/ipc-types'
  * 每次勾选立即落库：这里没有"保存"按钮，因为漏点保存导致的"我明明勾了"
  * 是这类界面最典型的投诉。
  */
-export function TopicSources({ topicId, topicName }: { topicId: string; topicName: string }): React.JSX.Element {
+export function TopicSources({
+  topicId,
+  topicName,
+  onAddSource
+}: {
+  topicId: string
+  topicName: string
+  onAddSource?: () => void
+}): React.JSX.Element {
   const [sources, setSources] = useState<Source[]>([])
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [note, setNote] = useState('')
   const [available, setAvailable] = useState(true)
   const [recs, setRecs] = useState<SourceRecommendationPayload[]>([])
+  const [query, setQuery] = useState('')
 
   // 推荐只算"还没进这个主题"的源；加进去之后从列表里移除，避免重复点
   const loadRecs = useCallback(async (): Promise<void> => {
@@ -51,8 +60,10 @@ export function TopicSources({ topicId, topicName }: { topicId: string; topicNam
   }, [topicId])
 
   const grouped = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    const visible = q === '' ? sources : sources.filter((s) => s.name.toLowerCase().includes(q))
     const byBucket = new Map<string, Source[]>()
-    for (const s of sources) {
+    for (const s of visible) {
       const list = byBucket.get(s.bucketHint) ?? []
       list.push(s)
       byBucket.set(s.bucketHint, list)
@@ -60,7 +71,7 @@ export function TopicSources({ topicId, topicName }: { topicId: string; topicNam
     // 按简报里的板块顺序排，而不是字典序——用户在简报里已经熟悉这个顺序
     const order = new Map(BUCKETS.map((b, i) => [b as string, i]))
     return [...byBucket.entries()].sort((a, b) => (order.get(a[0]) ?? 99) - (order.get(b[0]) ?? 99))
-  }, [sources])
+  }, [sources, query])
 
   const apply = useCallback(
     async (next: Set<string>) => {
@@ -113,12 +124,23 @@ export function TopicSources({ topicId, topicName }: { topicId: string; topicNam
         <button onClick={() => void apply(new Set())} className="text-accent hover:underline">
           全不选
         </button>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="搜索源…"
+          className="w-32 rounded-md border border-cream bg-white px-2 py-0.5 text-[11.5px] outline-none focus:border-accent"
+        />
+        {onAddSource && (
+          <button onClick={onAddSource} className="text-accent hover:underline">
+            ＋ 新建源
+          </button>
+        )}
         {note && <span className="ml-auto text-ink-3">{note}</span>}
       </div>
 
       {sources.length > 0 && picked.size === sources.length && (
         <p className="mb-2.5 text-[11px] text-ink-3">
-          已选全部 {sources.length} 个源。新主题默认全选；只想关注某几类时，取消勾选即可。
+          已选全部 {sources.length} 个源。全选时这个主题的简报会和别的主题高度重复；建议只保留相关的几类。
         </p>
       )}
 
@@ -172,6 +194,9 @@ export function TopicSources({ topicId, topicName }: { topicId: string; topicNam
           </div>
         ))}
         {sources.length === 0 && <p className="text-[12px] text-ink-3">还没有源</p>}
+        {sources.length > 0 && grouped.length === 0 && (
+          <p className="text-[12px] text-ink-3">没有匹配的源；也可以点「＋ 新建源」自己加一个。</p>
+        )}
       </div>
     </div>
   )

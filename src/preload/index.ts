@@ -171,7 +171,7 @@ const api = {
         unreadCount: number
       }>
     > => ipcRenderer.invoke('topics:list'),
-    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; error?: string }> =>
+    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }> =>
       ipcRenderer.invoke('topics:create', input),
     update: (input: { id: string; name?: string; enabled?: boolean }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:update', input),

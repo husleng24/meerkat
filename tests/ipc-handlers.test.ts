@@ -230,8 +230,24 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
     })
   })
 
+  it('新主题默认只带推荐源，显式 sourceIds 时以传入为准', () => {
+    const created = call('topics:create', { id: 'auto-sources', name: '芯片与算力' }) as { ok: boolean }
+    expect(created.ok).toBe(true)
+    const auto = call('topics:sourceIds', 'auto-sources') as string[]
+    expect(auto.length).toBeLessThanOrEqual(8)
+
+    const all = call('sources:list') as Array<{ id: string }>
+    const explicit = [all[0]!.id, all[1]!.id]
+    expect(call('topics:create', { id: 'explicit-sources', name: '显式主题', sourceIds: explicit }).ok).toBe(true)
+    expect(call('topics:sourceIds', 'explicit-sources')).toEqual(explicit)
+
+    // 清掉本用例创建的主题，后面的"不能删最后一个主题"仍然成立
+    expect(call('topics:remove', 'auto-sources').ok).toBe(true)
+    expect(call('topics:remove', 'explicit-sources').ok).toBe(true)
+  })
+
   it('topics:create 成功后出现在列表里，重复创建被拒', () => {
-    expect(call('topics:create', { id: 'chip', name: '芯片与算力' })).toEqual({ ok: true, id: 'chip' })
+    expect(call('topics:create', { id: 'chip', name: '芯片与算力' })).toMatchObject({ ok: true, id: 'chip' })
     expect(call('topics:create', { id: 'chip', name: '芯片' })).toEqual({
       ok: false,
       error: '主题已存在'

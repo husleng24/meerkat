@@ -17,7 +17,7 @@ import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
-import { recommendSources } from '../app/source-recommend'
+import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
@@ -488,9 +488,13 @@ export function registerIpc(): void {
       createdAt: now,
       updatedAt: now
     })
-    const ids = parsed.data.sourceIds ?? s.sources.list().map((x) => x.id)
+    // 新主题默认只带推荐源：全选会让每个主题内容雷同，领域汇总去重一半就是证据。
+    // 显式传入 sourceIds 时以传入为准（脚本/引导页可以要全部）。
+    const ids =
+      parsed.data.sourceIds ??
+      recommendSourcesForNewTopic(s, parsed.data.name, domainId, { limit: NEW_TOPIC_SOURCE_LIMIT }).map((r) => r.id)
     s.topics.setSources(parsed.data.id, ids)
-    return { ok: true, id: parsed.data.id }
+    return { ok: true, id: parsed.data.id, sourceCount: ids.length }
   })
 
   ipcMain.handle('topics:update', (_e, raw: unknown) => {
