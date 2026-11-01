@@ -223,4 +223,4 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 ## 许可证
 
-仓库目前没有 LICENSE 文件，未声明许可证。
+[MIT](LICENSE) © 2026 husleng24
