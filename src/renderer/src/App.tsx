@@ -13,7 +13,6 @@ import { useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
 import { DomainRollupView } from './components/DomainRollupView'
-import { UpdateBanner } from './components/UpdateBanner'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 
@@ -169,7 +168,6 @@ export default function App(): React.JSX.Element {
       />
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <UpdateBanner />
         {/* 今日页不设页头：报头在内容里，页头会跟它抢同一件事 */}
         {nav !== 'today' && (
           <header className="flex items-baseline gap-3 px-10 pb-3 pt-6">

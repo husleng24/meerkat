@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
+import { UpdateNotice } from './UpdateNotice'
 
 interface Props {
   active: string
@@ -360,12 +361,15 @@ export function Sidebar({
         <Row label="需关注" value={String(attentionSources)} warn={attentionSources > 0} />
       </div>
 
-      <div className="mt-auto px-2.5 text-[11px] leading-relaxed text-ink-3">
+      <div className="mt-auto">
+        <UpdateNotice />
+        <div className="px-2.5 text-[11px] leading-relaxed text-ink-3">
         {!bridgeAvailable
           ? '浏览器预览（无 preload）'
           : origin === 'sample'
             ? '示例数据 · 还没有简报'
             : '数据来源：本地数据库'}
+        </div>
       </div>
     </aside>
   )

@@ -84,10 +84,10 @@ deferred to P2.
 
 ### Update notice
 
-On launch it asks GitHub for the latest release (cached for 24 hours) and, when a newer version exists,
-shows a slim banner (`v0.1.1 → v0.1.2`) plus one notification. The banner can expand the release notes
-(changelog) inline, and both it and Settings → About link to the download. It never downloads or replaces the
-app itself — both platforms are unsigned.
+On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
+**sidebar-footer entry** appears (`↓ v0.1.2 · Download`); clicking it opens the release page, where both the
+changelog and the installers are. Settings → About checks on demand and expands the changelog in place.
+It never downloads or replaces the app itself — both platforms are unsigned.
 
 ### Export
 
