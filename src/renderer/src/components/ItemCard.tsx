@@ -63,7 +63,8 @@ export function ItemCard({
       onClick={onSelect}
       className={[
         'card card-hover group relative cursor-default px-[18px]',
-        selected ? 'border-accent/60 bg-accent-soft/30' : '',
+        // 选中态要"一眼看到"：加一圈 3px 的靛蓝光晕，不改边框宽度（避免布局抖动）
+        selected ? 'border-accent bg-accent-soft/45 shadow-[0_0_0_3px_rgba(79,70,229,0.14)]' : '',
         lead ? 'py-[18px]' : 'py-[15px]'
       ].join(' ')}
     >
@@ -114,6 +115,7 @@ export function ItemCard({
               ✕
             </IconButton>
           </span>
+          {saved && <span className="font-medium text-accent/80">★ 已收藏</span>}
           {read && <span className="text-accent/70">已读</span>}
           {item.dateLabel && <span className="tabular-nums tracking-[0.04em]">{item.dateLabel}</span>}
         </span>

@@ -8,6 +8,9 @@ import { TopicManager } from './TopicManager'
 import type { TopicPayload } from '../lib/ipc-types'
 import type { SchedulePayload } from '../lib/ipc-types'
 
+const SECONDARY_BTN =
+  'rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink'
+
 const DEFAULT: SchedulePayload = { enabled: true, hour: 8, minute: 30, lastRunAt: null }
 
 type Phase = 'idle' | 'running' | 'done' | 'error'
@@ -258,62 +261,53 @@ export function SettingsPage({
           立即采集：抓取本主题的源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
           （换了提示词或想换个说法时用）。导出文件落在「文档/Meerkat/」。
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          {phase === 'running' ? (
-            <>
-              <button
-                disabled
-                className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper opacity-40"
-              >
-                运行中…
-              </button>
-              <button
-                onClick={() => void cancel()}
-                className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink-2 transition-colors hover:border-alert hover:text-alert"
-              >
-                取消
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => void runNow()}
-                className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90"
-              >
-                立即采集
-              </button>
-              <button
-                onClick={() => void composeAgain()}
-                className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
-              >
-                重新成稿
-              </button>
-            </>
-          )}
-          <button
-            onClick={() => void doExport()}
-            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
-          >
-            导出 Markdown
-          </button>
-          <button
-            onClick={() => void doExportAs('richtext')}
-            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
-          >
-            复制富文本
-          </button>
-          <button
-            onClick={() => void doExportAs('html')}
-            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
-          >
-            导出 HTML
-          </button>
-          <button
-            onClick={() => void doExportAs('pdf')}
-            className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
-          >
-            导出 PDF
-          </button>
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-7 shrink-0 text-[11px] text-ink-3">运行</span>
+            {phase === 'running' ? (
+              <>
+                <button
+                  disabled
+                  className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper opacity-40"
+                >
+                  运行中…
+                </button>
+                <button
+                  onClick={() => void cancel()}
+                  className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink-2 transition-colors hover:border-alert hover:text-alert"
+                >
+                  取消
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => void runNow()}
+                  className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90"
+                >
+                  立即采集
+                </button>
+                <button onClick={() => void composeAgain()} className={SECONDARY_BTN}>
+                  重新成稿
+                </button>
+              </>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-7 shrink-0 text-[11px] text-ink-3">导出</span>
+            <button onClick={() => void doExport()} className={SECONDARY_BTN}>
+              导出 Markdown
+            </button>
+            <button onClick={() => void doExportAs('richtext')} className={SECONDARY_BTN}>
+              复制富文本
+            </button>
+            <button onClick={() => void doExportAs('html')} className={SECONDARY_BTN}>
+              导出 HTML
+            </button>
+            <button onClick={() => void doExportAs('pdf')} className={SECONDARY_BTN}>
+              导出 PDF
+            </button>
+          </div>
         </div>
         {message && (
           <p
@@ -334,6 +328,7 @@ export function SettingsPage({
         </p>
         <KeyPanel />
         <div className="mt-3 card px-5 py-4 text-[12px]">
+          <div className="mb-2 text-[10.5px] text-ink-3">当前生效的成稿参数（这一版写死在代码里，界面不改）</div>
           <Row k="成稿模型" v="自动（优先 DeepSeek）" />
           <Row k="温度" v="0.55" />
           <Row k="最大输出" v="32,000 tokens" />

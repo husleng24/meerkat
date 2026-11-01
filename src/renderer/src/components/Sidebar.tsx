@@ -10,7 +10,8 @@ interface Props {
   itemCount: number
   savedCount: number
   readCount: number
-  failedSources: number
+  /** 需关注的源（连续失败 + 不稳定），与源页同一个口径 */
+  attentionSources: number
   origin: 'ipc' | 'sample'
   bridgeAvailable: boolean
   dateLabel: string
@@ -41,7 +42,7 @@ export function Sidebar({
   itemCount,
   savedCount,
   readCount,
-  failedSources,
+  attentionSources,
   origin,
   bridgeAvailable,
   dateLabel
@@ -91,9 +92,9 @@ export function Sidebar({
               ].join(' ')}
             >
               <span className="flex-1">{n.label}</span>
-              {n.id === 'sources' && failedSources > 0 && (
+              {n.id === 'sources' && attentionSources > 0 && (
                 <span className="grid h-[17px] min-w-[17px] place-items-center rounded-full bg-[#fee2e2] px-1 text-[10px] font-bold text-[#dc2626]">
-                  {failedSources}
+                  {attentionSources}
                 </span>
               )}
               {n.id === 'timeline' && <span className="text-[10px] tabular-nums text-ink-3">{dateLabel}</span>}
@@ -108,7 +109,7 @@ export function Sidebar({
         <Row label="今日条目" value={String(itemCount)} />
         <Row label="已读" value={String(readCount)} />
         <Row label="已收藏" value={String(savedCount)} />
-        <Row label="失效源" value={failedSources > 0 ? String(failedSources) : '0'} warn={failedSources > 0} />
+        <Row label="需关注" value={String(attentionSources)} warn={attentionSources > 0} />
       </div>
 
       <div className="mt-auto px-2.5 text-[10px] leading-relaxed text-ink-3">

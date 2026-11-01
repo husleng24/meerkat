@@ -146,9 +146,9 @@ export function SearchPage(): React.JSX.Element {
         )}
       </div>
 
-      {hits === null && (
+      {(hits === null || hits.length === 0) && (
         <div className="mt-4 flex flex-wrap items-center gap-2 text-[11.5px] text-ink-3">
-          <span>试试：</span>
+          <span>{hits === null ? '试试：' : '没有匹配，换个词试试：'}</span>
           {hint.map((h) => (
             <button
               key={h}
@@ -164,7 +164,7 @@ export function SearchPage(): React.JSX.Element {
       {hits !== null && (
         <div className="mt-5">
           <div className="mb-2 flex items-baseline gap-2 text-[11.5px] text-ink-3">
-            <span>{hits.length === 0 ? '没有匹配的条目' : `${hits.length} 条结果`}</span>
+            {hits.length > 0 && <span>{hits.length} 条结果</span>}
             {filtered && hits.length === 0 && (
               <button onClick={reset} className="text-accent hover:underline">
                 放宽筛选试试
@@ -190,6 +190,16 @@ export function SearchPage(): React.JSX.Element {
                     <Highlight text={h.summary} term={q.trim()} />
                   </p>
                 )}
+                {/* 命中常在摘要被 line-clamp 截掉的后半段，不补一行片段用户看不出为什么命中 */}
+                {(() => {
+                  const snip = matchSnippet(h.summary ?? '', q.trim())
+                  return snip ? (
+                    <p className="mt-1 text-[11.5px] leading-5 text-ink-3">
+                      <span className="mr-1 text-ink-3/60">命中</span>
+                      <Highlight text={snip} term={q.trim()} />
+                    </p>
+                  ) : null
+                })()}
                 <div className="mt-1.5 flex items-center gap-2 text-[10.5px] text-ink-3/80">
                   <span className="rounded bg-cream px-1.5 py-0.5">{BUCKET_LABEL[h.bucket as Bucket] ?? h.bucket}</span>
                   <span>{h.sourceName}</span>
@@ -209,6 +219,26 @@ export function SearchPage(): React.JSX.Element {
 }
 
 /** 命中词高亮。只做大小写无关的子串匹配，不做分词——查询串是什么就标什么 */
+/** 命中位置在摘要可见部分之外时，截一段带上下文的文字出来 */
+function matchSnippet(summary: string, term: string, visibleChars = 110): string | undefined {
+  if (!summary || term.length === 0) return undefined
+  const idx = summary.toLowerCase().indexOf(term.toLowerCase())
+  if (idx < 0 || idx < visibleChars) return undefined
+  // 起点/终点都退到词边界，否则片段会从半个单词开始（"…th Claude Code"）
+  let start = Math.max(0, idx - 34)
+  if (start > 0) {
+    const sp = summary.indexOf(' ', start)
+    if (sp !== -1 && sp < idx) start = sp + 1
+  }
+  let end = Math.min(summary.length, idx + term.length + 34)
+  if (end < summary.length) {
+    const sp = summary.lastIndexOf(' ', end)
+    if (sp > idx + term.length) end = sp
+  }
+  const body = summary.slice(start, end).replace(/\s+/g, ' ').trim()
+  return `${start > 0 ? '…' : ''}${body}${end < summary.length ? '…' : ''}`
+}
+
 function Highlight({ text, term }: { text: string; term: string }): React.JSX.Element {
   if (!term) return <>{text}</>
   const lower = text.toLowerCase()

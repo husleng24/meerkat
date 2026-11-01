@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 /** 单一真源：快捷键面板与各处提示都从这里取，避免两处写得不一样 */
 export const SHORTCUTS: Array<{ keys: string[]; what: string }> = [
   { keys: ['j', 'k'], what: '下一条 / 上一条' },
-  { keys: ['g', 'G'], what: '跳到首条 / 末条' },
+  { keys: ['g', '⇧G'], what: '跳到首条 / 末条' },
   { keys: ['s'], what: '收藏' },
   { keys: ['o'], what: '打开原文' },
   { keys: ['m'], what: '标记已读' },
@@ -54,8 +54,13 @@ export function ShortcutHelp({ open, onClose }: Props): React.JSX.Element | null
       >
         <div className="mb-3.5 flex items-baseline justify-between">
           <h2 className="text-[14px] font-bold tracking-[-0.01em] text-ink">快捷键</h2>
-          <button onClick={onClose} className="text-[11px] text-ink-3 transition-colors hover:text-ink">
-            关闭 Esc
+          <button
+            onClick={onClose}
+            aria-label="关闭"
+            title="关闭 (Esc)"
+            className="grid h-6 w-6 place-items-center rounded-md text-[13px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+          >
+            ✕
           </button>
         </div>
 

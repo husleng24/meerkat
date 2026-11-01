@@ -44,6 +44,7 @@ export default function App(): React.JSX.Element {
   const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [nav, setNav] = useState<string>(() => {
     const head = hashParts[0]
     // 未知路由一律回落到今日，避免深链写错时界面一片空白
@@ -53,6 +54,18 @@ export default function App(): React.JSX.Element {
   const go = (id: string): void => {
     setNav(id)
     if (typeof location !== 'undefined') history.replaceState(null, '', '#' + id)
+  }
+
+  /** 报头右侧的"更新"：和设置页走同一个 run:now，跑完靠 brief:updated 广播刷新界面 */
+  const refresh = async (): Promise<void> => {
+    const api = window.meerkat?.runNow
+    if (!api || refreshing) return
+    setRefreshing(true)
+    try {
+      await api(activeId || undefined)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const itemCount = brief ? brief.sections.reduce((n, s) => n + s.items.length, 0) : 0
@@ -88,7 +101,7 @@ export default function App(): React.JSX.Element {
         itemCount={itemCount}
         savedCount={flags.counts.saved}
         readCount={flags.counts.read}
-        failedSources={summary.failing}
+        attentionSources={summary.attention}
         origin={origin}
         bridgeAvailable={bridgeAvailable}
         dateLabel={dateLabel}
@@ -129,6 +142,8 @@ export default function App(): React.JSX.Element {
               flags={flags}
               comparison={comparison}
               previousDate={previousDate}
+              onRefresh={() => void refresh()}
+              refreshing={refreshing}
             />
           )}
 

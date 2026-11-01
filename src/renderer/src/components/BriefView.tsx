@@ -11,6 +11,9 @@ interface Props {
   /** 与上一期的对比；没有上一期时为 null */
   comparison: BriefComparison | null
   previousDate: string
+  /** 立即采集并重新生成；入口在报头右侧，不藏在设置里 */
+  onRefresh?: () => void
+  refreshing?: boolean
 }
 
 /** 从简报的元信息行里抠数字：覆盖最近 48 小时 · 34 个信息源 · 精选 24 条 */
@@ -41,7 +44,14 @@ function dateLine(raw: string | undefined): string {
  *
  * 键盘模型：j/k 上下、s 收藏、o 打开、m 已读、h 隐藏、g/G 首尾。
  */
-export function BriefView({ brief, flags, comparison, previousDate }: Props): React.JSX.Element {
+export function BriefView({
+  brief,
+  flags,
+  comparison,
+  previousDate,
+  onRefresh,
+  refreshing = false
+}: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
   const [cursor, setCursor] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -122,13 +132,25 @@ export function BriefView({ brief, flags, comparison, previousDate }: Props): Re
             {meta.windowHours ? ` · 覆盖最近 ${meta.windowHours} 小时` : ''}
           </p>
         </div>
-        {(meta.sources !== undefined || meta.picked !== undefined) && (
-          <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
-            {meta.sources !== undefined ? `${meta.sources} 源` : ''}
-            {meta.sources !== undefined && meta.picked !== undefined ? ' · ' : ''}
-            {meta.picked !== undefined ? `${meta.picked} 条` : ''}
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={refreshing}
+              title="立即采集并重新生成今天的简报（约 1–2 分钟）"
+              className="rounded-full border border-rule px-2.5 py-1 text-[11px] text-ink-2 transition-colors hover:border-accent hover:text-ink disabled:opacity-50"
+            >
+              {refreshing ? '更新中…' : '更新'}
+            </button>
+          )}
+          {(meta.sources !== undefined || meta.picked !== undefined) && (
+            <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+              {meta.sources !== undefined ? `${meta.sources} 源` : ''}
+              {meta.sources !== undefined && meta.picked !== undefined ? ' · ' : ''}
+              {meta.picked !== undefined ? `${meta.picked} 条` : ''}
+            </span>
+          )}
+        </div>
       </header>
 
       {comparison && (

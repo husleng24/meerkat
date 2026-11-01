@@ -48,11 +48,16 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
 
   return (
     <div className="mx-auto max-w-[900px] px-10 pb-24 pt-8">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-[11.5px] text-ink-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex items-center gap-3 whitespace-nowrap text-[11.5px] text-ink-3">
           <span>可用 {summary.ok}</span>
           <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
           <span className={summary.attention > 0 ? 'font-medium text-alert' : ''}>需关注 {summary.attention}</span>
+          {summary.attention > 0 && (
+            <span className="hidden text-[10.5px] text-ink-3/70 min-[900px]:inline">
+              失效 {summary.failing} · 不稳定 {summary.degraded}
+            </span>
+          )}
           <span className="h-[3px] w-[3px] rounded-full bg-ink-3/50" />
           <span>共 {summary.total}</span>
         </div>
@@ -64,14 +69,14 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
           )}
           <button
             onClick={() => setAdding((v) => !v)}
-            className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
+            className="whitespace-nowrap rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
           >
             {adding ? '收起' : '新增源'}
           </button>
           <button
             onClick={() => void state.testAll()}
             disabled={progress !== null}
-            className="rounded-lg bg-ink px-3.5 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="whitespace-nowrap rounded-lg bg-ink px-3.5 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             全部自检
           </button>
@@ -90,7 +95,8 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
       )}
 
       <div className="overflow-hidden card">
-        <div className="grid grid-cols-[1fr_78px_92px_80px_58px_104px] items-center gap-2 border-b border-cream px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-3/80">
+        {/* 宽屏是表；窄屏每一行折成两行（名称 + 元信息/操作），因为 720px 宽时名称列会被挤成 0 */}
+        <div className="hidden grid-cols-[1fr_58px_82px_62px_50px_102px] items-center gap-2 border-b border-cream px-4 py-2.5 text-[10.5px] font-semibold uppercase tracking-wider text-ink-3/80 min-[900px]:grid">
           <span>名称</span>
           <span>类型</span>
           <span>最近成功</span>
@@ -107,8 +113,9 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
             <div
               key={s.id}
               className={[
-                'grid grid-cols-[1fr_78px_92px_80px_58px_104px] items-center gap-2 border-b border-cream/70 px-4 py-2.5 text-[12px] last:border-b-0',
-                s.enabled ? '' : 'opacity-45'
+                'grid grid-cols-[1fr_auto] items-start gap-x-3 gap-y-1 border-b border-cream/70 px-4 py-3 text-[12px] last:border-b-0',
+                'min-[900px]:grid-cols-[1fr_58px_82px_62px_50px_102px] min-[900px]:items-center min-[900px]:gap-2 min-[900px]:py-2.5',
+                s.enabled ? '' : 'opacity-55'
               ].join(' ')}
             >
               <div className="min-w-0">
@@ -121,48 +128,74 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
                     {s.name}
                   </button>
                   <span className="shrink-0 rounded bg-cream px-1.5 py-px text-[9.5px] text-ink/60">T{s.tier}</span>
+                  {!s.enabled && (
+                    <span className="shrink-0 rounded bg-cream px-1.5 py-px text-[9.5px] text-ink-3">已停用</span>
+                  )}
                 </div>
                 {s.lastError && level !== 'ok' && (
                   <div className="mt-0.5 truncate text-[10.5px] text-alert/90" title={s.lastError}>
                     {s.lastError}
                   </div>
                 )}
-                {replacement && (
-                  <div className="mt-0.5 truncate text-[10.5px] text-ink-3">
-                    可换用：{replacement.name}
+                {replacement && s.enabled && (
+                  <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-3">
+                    <span className="truncate" title={`可换用：${replacement.name}`}>
+                      可换用：{replacement.name}
+                    </span>
+                    <button
+                      onClick={() => void state.toggle(s.id, false)}
+                      title={`停用「${s.name}」，采集交给「${replacement.name}」；随时可以再启用`}
+                      className="shrink-0 rounded border border-cream px-1.5 py-px text-[10px] text-ink/70 transition-colors hover:border-accent hover:text-accent"
+                    >
+                      改用它
+                    </button>
                   </div>
                 )}
+                {replacement && !s.enabled && (
+                  <div className="mt-0.5 truncate text-[10.5px] text-ink-3">已停用，由「{replacement.name}」覆盖</div>
+                )}
               </div>
-              <span className="text-[11px] text-ink-3">{KIND_LABEL[s.kind] ?? s.kind}</span>
-              <span className="tabular-nums text-[11px] text-ink/60">{relTime(s.lastOkAt)}</span>
-              <span className="tabular-nums text-[11px] text-ink/60">
-                {s.avgItems !== undefined ? `${Math.round(s.avgItems)} 条` : '—'}
-              </span>
-              <HealthDot level={level} />
-              <div className="flex justify-end gap-1">
-                <button
-                  onClick={() => void state.testOne(s.id)}
-                  disabled={busy}
-                  className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink/70 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
-                >
-                  {busy ? '…' : '测试'}
-                </button>
-                <button
-                  onClick={() => void state.toggle(s.id, !s.enabled)}
-                  title={s.enabled ? '停用' : '启用'}
-                  className="grid h-6 w-6 place-items-center rounded border border-cream text-[10.5px] text-ink/50 transition-colors hover:border-accent hover:text-ink"
-                >
-                  {s.enabled ? '◉' : '○'}
-                </button>
-                <button
-                  onClick={() => {
-                    if (window.confirm(`删除源「${s.name}」？已抓取的条目会一并删除。`)) void state.remove(s.id)
-                  }}
-                  title="删除"
-                  className="grid h-6 w-6 place-items-center rounded border border-cream text-[10.5px] text-ink/40 transition-colors hover:border-alert hover:text-alert"
-                >
-                  ✕
-                </button>
+
+              <HealthDot
+                level={level}
+                className="justify-self-end self-center min-[900px]:col-start-5 min-[900px]:row-start-1 min-[900px]:justify-self-start"
+              />
+
+              <div className="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-3 min-[900px]:contents">
+                <span className="min-[900px]:col-start-2">{KIND_LABEL[s.kind] ?? s.kind}</span>
+                <span className="tabular-nums text-ink/60 min-[900px]:col-start-3">
+                  <span className="min-[900px]:hidden">最近成功 </span>
+                  {relTime(s.lastOkAt)}
+                </span>
+                <span className="tabular-nums text-ink/60 min-[900px]:col-start-4">
+                  <span className="min-[900px]:hidden">平均 </span>
+                  {s.avgItems !== undefined ? `${Math.round(s.avgItems)} 条` : '—'}
+                </span>
+                <div className="ml-auto flex gap-1 min-[900px]:col-start-6 min-[900px]:ml-0 min-[900px]:justify-end">
+                  <button
+                    onClick={() => void state.testOne(s.id)}
+                    disabled={busy}
+                    className="shrink-0 whitespace-nowrap rounded border border-cream px-2 py-1 text-[10.5px] text-ink/70 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
+                  >
+                    {busy ? '…' : '测试'}
+                  </button>
+                  <button
+                    onClick={() => void state.toggle(s.id, !s.enabled)}
+                    title={s.enabled ? '停用' : '启用'}
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded border border-cream text-[10.5px] text-ink/50 transition-colors hover:border-accent hover:text-ink"
+                  >
+                    {s.enabled ? '◉' : '○'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`删除源「${s.name}」？已抓取的条目会一并删除。`)) void state.remove(s.id)
+                    }}
+                    title="删除"
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded border border-cream text-[10.5px] text-ink/40 transition-colors hover:border-alert hover:text-alert"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             </div>
           )
@@ -177,7 +210,7 @@ export function SourcesPage({ state, sorted, summary, initialAdding = false, ini
   )
 }
 
-function HealthDot({ level }: { level: HealthLevel }): React.JSX.Element {
+function HealthDot({ level, className = '' }: { level: HealthLevel; className?: string }): React.JSX.Element {
   const color =
     level === 'ok'
       ? 'bg-ink/70'
@@ -187,7 +220,7 @@ function HealthDot({ level }: { level: HealthLevel }): React.JSX.Element {
           ? 'bg-alert'
           : 'bg-ink/25'
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-ink/70">
+    <span className={`flex items-center gap-1.5 text-[11px] text-ink/70 ${className}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${color}`} />
       {LEVEL_TEXT[level]}
     </span>

@@ -52,11 +52,21 @@ function trayImage(): Electron.NativeImage {
   const candidates = ['icon-meerkat-head-16.png', 'icon-meerkat-head-32.png', 'icon-meerkat-32.png']
   for (const name of candidates) {
     const p = brandPath(name)
-    if (existsSync(p)) {
-      const img = nativeImage.createFromPath(p)
-      return img.resize({ width: 16, height: 16 })
+    if (!existsSync(p)) {
+      log('warn', `托盘图标候选不存在：${name}`)
+      continue
     }
+    const img = nativeImage.createFromPath(p)
+    if (img.isEmpty()) {
+      // 静默返回空图会让托盘变成一个看不见的空位，事后极难排查
+      log('warn', `托盘图标解码为空：${p}`)
+      continue
+    }
+    const size = img.getSize()
+    log('info', `托盘图标使用 ${name}（${size.width}x${size.height}）`)
+    return img.resize({ width: 16, height: 16 })
   }
+  log('error', '托盘图标：所有候选都不可用，托盘会是一个空位')
   return nativeImage.createEmpty()
 }
 

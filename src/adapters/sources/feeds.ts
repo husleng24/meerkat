@@ -106,7 +106,7 @@ export const githubTrendingFetcher: Fetcher = {
         const stars = s ? Number(s[1]!.replace(/,/g, '')) : 0
         if (!REPO_TERMS.test(`${repo} ${desc}`)) continue
         items.push({
-          title: `${repo} — ${desc.slice(0, 90)}`,
+          title: `${repo} — ${clip(desc, 90)}`,
           url: `https://github.com/${repo}`,
           publishedAt: ctx.now,
           summary: `${desc} · 今日 +${stars} star`,
@@ -124,3 +124,15 @@ export const githubTrendingFetcher: Fetcher = {
 
 /** 供诊断用：给个源能跑多久 */
 export const _debugHoursAgo = hoursAgo
+
+/**
+ * 按词边界截断，并补一个省略号。
+ * 直接 slice(0, 90) 会把英文切断在词中间（"…does d"），读起来像数据坏了。
+ */
+export function clip(text: string, max: number): string {
+  if (text.length <= max) return text
+  const head = text.slice(0, max)
+  const cut = head.lastIndexOf(' ')
+  const body = cut > max - 24 ? head.slice(0, cut) : head
+  return `${body.replace(/[\s,，、:：-]+$/, '')}…`
+}
