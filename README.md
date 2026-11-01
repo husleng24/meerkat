@@ -6,7 +6,7 @@ A daily AI brief that keeps only what actually changed — and tells you what is
 
 ![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.0 · 389 tests · typecheck / build green · verified on macOS, Windows artifacts built by CI
+> v0.1.1 · 400 tests · typecheck / build green · verified on macOS, Windows artifacts built by CI
 
 ## Download
 
@@ -14,10 +14,10 @@ Grab an installer from [Releases](https://github.com/husleng24/meerkat/releases)
 
 | Platform | File |
 |---|---|
-| macOS (Apple Silicon) | [Meerkat-0.1.0-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-arm64.dmg) |
-| macOS (Intel) | [Meerkat-0.1.0-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.dmg) |
-| Windows (installer) | [Meerkat-0.1.0-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.exe) |
-| Windows (portable) | [Meerkat-0.1.0-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-portable.exe) |
+| macOS (Apple Silicon) | [Meerkat-0.1.0-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.0-arm64.dmg) |
+| macOS (Intel) | [Meerkat-0.1.0-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.0-x64.dmg) |
+| Windows (installer) | [Meerkat-0.1.0-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.0-x64.exe) |
+| Windows (portable) | [Meerkat-0.1.0-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.0-portable.exe) |
 
 Neither platform is code-signed: on macOS, right-click the app and choose **Open** (or run
 `xattr -dr com.apple.quarantine /Applications/Meerkat.app`); on Windows, SmartScreen needs
@@ -195,7 +195,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **389 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **400 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
