@@ -269,6 +269,26 @@ const api = {
     importDsh: (): Promise<{ ok: boolean; masked?: string; error?: string }> => ipcRenderer.invoke('key:importDsh')
   },
 
+  domainBrief: {
+    latest: (input: { domainId: string; date?: string }): Promise<unknown> =>
+      ipcRenderer.invoke('domainBrief:latest', input),
+    compose: (input: { domainId: string }): Promise<{
+      ok: boolean
+      date?: string
+      degraded?: boolean
+      topicCount?: number
+      itemCount?: number
+      error?: string
+      note?: string
+    }> => ipcRenderer.invoke('domainBrief:compose', input)
+  },
+
+  onDomainBriefUpdated: (cb: (domainId: string) => void): (() => void) => {
+    const handler = (_e: unknown, domainId: string): void => cb(domainId)
+    ipcRenderer.on('domain-brief:updated', handler)
+    return () => ipcRenderer.removeListener('domain-brief:updated', handler)
+  },
+
   /** 定时任务完成后主进程会推这个事件，界面据此刷新 */
   onBriefUpdated: (cb: () => void): (() => void) => {
     const handler = (): void => cb()

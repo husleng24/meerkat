@@ -243,7 +243,20 @@ export function Sidebar({
         </div>
       )}
 
-      <div className="mb-1 mt-2 px-2.5 text-[13px] font-semibold text-ink-3">主题</div>
+      <button
+        onClick={() => onNavigate('rollup')}
+        className={[
+          'mt-2 flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
+          active === 'rollup'
+            ? 'bg-accent-soft font-semibold text-accent'
+            : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
+        ].join(' ')}
+      >
+        <span className="flex-1">领域汇总</span>
+        <span className="text-[11px] font-normal text-ink-3">今天</span>
+      </button>
+
+      <div className="mb-1 mt-3 px-2.5 text-[13px] font-semibold text-ink-3">主题</div>
       <div className="flex max-h-[220px] flex-col gap-0.5 overflow-y-auto">
         {topics.map((t) => {
           const isActive = t.id === activeTopic

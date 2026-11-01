@@ -189,6 +189,15 @@ export interface TopicPayload {
   unreadCount: number
 }
 
+export interface DomainBriefPayload {
+  id: string
+  domainId: string
+  date: string
+  markdown: string
+  model: string
+  createdAt: number
+}
+
 export interface MeerkatBridge {
   chat?: ChatBridge
   domains?: {
@@ -197,6 +206,19 @@ export interface MeerkatBridge {
     rename: (input: { id: string; name: string }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
   }
+  domainBrief?: {
+    latest: (input: { domainId: string; date?: string }) => Promise<DomainBriefPayload | null>
+    compose: (input: { domainId: string }) => Promise<{
+      ok: boolean
+      date?: string
+      degraded?: boolean
+      topicCount?: number
+      itemCount?: number
+      error?: string
+      note?: string
+    }>
+  }
+  onDomainBriefUpdated?: (cb: (domainId: string) => void) => () => void
   topics?: {
     list: () => Promise<TopicPayload[]>
     create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>

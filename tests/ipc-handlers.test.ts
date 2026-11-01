@@ -112,6 +112,17 @@ describe('IPC：领域与主题的两层结构', () => {
     })
   })
 
+  it('domainBrief:latest 非法入参返回 null，不抛异常', () => {
+    expect(call('domainBrief:latest', 'nope')).toBeNull()
+    expect(call('domainBrief:latest', { domainId: 'ai' })).toBeNull()
+  })
+
+  it('没有主题简报时，领域汇总给出可读的失败原因', async () => {
+    const r = (await call('domainBrief:compose', { domainId: 'ai' })) as { ok: boolean; error?: string }
+    expect(r.ok).toBe(false)
+    expect(r.error).toContain('还没有简报')
+  })
+
   it('领域下还有主题时不能删领域', () => {
     const r = call('domains:remove', 'ai')
     expect(r.ok).toBe(false)

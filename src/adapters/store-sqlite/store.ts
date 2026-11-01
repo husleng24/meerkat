@@ -2,10 +2,11 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore
+  DomainStore, DomainBriefStore, ChatStore
 } from '../../core/ports/store'
 import type {
   Domain,
+  DomainBrief,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole
 } from '../../core/domain/types'
 
@@ -501,6 +502,59 @@ class SqliteDomainStore implements DomainStore {
   }
 }
 
+class SqliteDomainBriefStore implements DomainBriefStore {
+  constructor(private db: DB) {}
+  save(b: DomainBrief): void {
+    this.db
+      .prepare(
+        `INSERT INTO domain_briefs (id,domain_id,date,markdown,model,tokens_in,tokens_out,created_at)
+         VALUES (@id,@domain_id,@date,@markdown,@model,@tokens_in,@tokens_out,@created_at)
+         ON CONFLICT(id) DO UPDATE SET markdown=excluded.markdown, model=excluded.model,
+           tokens_in=excluded.tokens_in, tokens_out=excluded.tokens_out,
+           -- 重新汇总后 createdAt 要跟着更新，否则界面还显示旧时间
+           created_at=excluded.created_at`
+      )
+      .run({
+        id: b.id,
+        domain_id: b.domainId,
+        date: b.date,
+        markdown: b.markdown,
+        model: b.model,
+        tokens_in: b.tokensIn,
+        tokens_out: b.tokensOut,
+        created_at: b.createdAt
+      })
+  }
+  latest(domainId: string, date?: string): DomainBrief | undefined {
+    const r = (
+      date
+        ? this.db
+            .prepare('SELECT * FROM domain_briefs WHERE domain_id = ? AND date = ? ORDER BY created_at DESC LIMIT 1')
+            .get(domainId, date)
+        : this.db
+            .prepare('SELECT * FROM domain_briefs WHERE domain_id = ? ORDER BY date DESC, created_at DESC LIMIT 1')
+            .get(domainId)
+    ) as
+      | {
+          id: string; domain_id: string; date: string; markdown: string; model: string
+          tokens_in: number; tokens_out: number; created_at: number
+        }
+      | undefined
+    return r
+      ? {
+          id: r.id,
+          domainId: r.domain_id,
+          date: r.date,
+          markdown: r.markdown,
+          model: r.model,
+          tokensIn: r.tokens_in,
+          tokensOut: r.tokens_out,
+          createdAt: r.created_at
+        }
+      : undefined
+  }
+}
+
 class SqliteRunStore implements RunStore {
   constructor(private db: DB) {}
   start(r: RunRecord): void {
@@ -672,6 +726,7 @@ class SqliteStore implements Store {
   readonly topics: TopicStore
   readonly items: ItemStore
   readonly briefs: BriefStore
+  readonly domainBriefs: DomainBriefStore
   readonly chat: ChatStore
   readonly runs: RunStore
   readonly flags: FlagStore
@@ -683,6 +738,7 @@ class SqliteStore implements Store {
     this.topics = new SqliteTopicStore(db)
     this.items = new SqliteItemStore(db)
     this.briefs = new SqliteBriefStore(db)
+    this.domainBriefs = new SqliteDomainBriefStore(db)
     this.chat = new SqliteChatStore(db)
     this.runs = new SqliteRunStore(db)
     this.flags = new SqliteFlagStore(db)

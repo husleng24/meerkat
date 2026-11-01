@@ -12,12 +12,14 @@ import { useFlags } from './lib/useFlags'
 import { useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
+import { DomainRollupView } from './components/DomainRollupView'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 
 const TITLES: Record<string, string> = {
   search: '搜索',
   sources: '信息源',
+  rollup: '领域汇总',
   settings: '设置',
   timeline: '时间线',
   onboarding: '开始使用'
@@ -62,7 +64,7 @@ export default function App(): React.JSX.Element {
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
-  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding']
+  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding', 'rollup']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -186,6 +188,13 @@ export default function App(): React.JSX.Element {
                 {refreshing ? '运行中…' : '立即采集'}
               </button>
             </div>
+          )}
+
+          {nav === 'rollup' && (
+            <DomainRollupView
+              domainId={activeDomain}
+              domainName={domains.find((d) => d.id === activeDomain)?.name ?? '领域'}
+            />
           )}
 
           {!loading && brief && nav === 'today' && (

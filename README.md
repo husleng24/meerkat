@@ -664,8 +664,13 @@ TODO 里挂了很久的一条：「今天有什么」已经有了，「和昨天
 
 ![加源时选主题](docs/assets/ui-source-topic-picker.png)
 
-领域级汇总（每天把所有主题的简报合成一份「领域综述」）在 P2，设计见
-[docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md)。
+**领域汇总**：默认每天 08:45（各主题跑完后）把同一领域各主题当天的简报合成一份——
+一段跨主题综述 + 分主题条目，跨主题按 URL 去重；没接模型时出摘录兜底稿，
+页面上可以随时「重新汇总」。
+
+![领域汇总](docs/assets/ui-domain-rollup.png)
+
+细节见 [docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md)。
 没有简报的领域显示「「X」还没有简报」+「立即采集」，而不是一个空的 0 条。
 
 ![空领域](docs/assets/ui-topic-empty.png)

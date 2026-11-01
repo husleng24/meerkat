@@ -147,6 +147,21 @@ export interface Topic {
   updatedAt: number
 }
 
+/**
+ * 领域汇总：每天把该领域各主题的简报合成一份。
+ * 存在的意义是"先看一层"，所以它自己不含条目 id，只引用各主题简报里的链接。
+ */
+export interface DomainBrief {
+  id: string
+  domainId: string
+  date: string
+  markdown: string
+  model: string
+  tokensIn: number
+  tokensOut: number
+  createdAt: number
+}
+
 export interface ChatThread {
   id: string
   title: string

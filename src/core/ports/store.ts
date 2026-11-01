@@ -4,7 +4,7 @@
  * 设计取舍：方法全部同步。better-sqlite3 是同步 API，本地单文件库延迟在微秒级，
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
-import type { Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage } from '../domain/types'
+import type { Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, DomainBrief, ChatThread, ChatStoredMessage } from '../domain/types'
 
 export interface SourceStore {
   list(): Source[]
@@ -69,6 +69,12 @@ export interface BriefStore {
   list(limit?: number, topicId?: string): Brief[]
 }
 
+export interface DomainBriefStore {
+  save(brief: DomainBrief): void
+  /** 不传 date 时取这个领域最新一份 */
+  latest(domainId: string, date?: string): DomainBrief | undefined
+}
+
 export interface ChatStore {
   threads(topicId?: string): ChatThread[]
   get(id: string): ChatThread | undefined
@@ -106,6 +112,7 @@ export interface Store {
   topics: TopicStore
   items: ItemStore
   briefs: BriefStore
+  domainBriefs: DomainBriefStore
   chat: ChatStore
   runs: RunStore
   flags: FlagStore

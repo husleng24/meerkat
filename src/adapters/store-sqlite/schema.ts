@@ -221,6 +221,25 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE topics ADD COLUMN domain_id TEXT NOT NULL DEFAULT 'ai';
       CREATE INDEX idx_topics_domain ON topics(domain_id);
     `
+  },
+  {
+    version: 5,
+    name: 'domain_briefs',
+    up: `
+      -- 领域汇总：从各主题当天的简报合成，所以只存 markdown
+      CREATE TABLE domain_briefs (
+        id         TEXT PRIMARY KEY,
+        domain_id  TEXT NOT NULL,
+        date       TEXT NOT NULL,
+        markdown   TEXT NOT NULL,
+        model      TEXT NOT NULL,
+        tokens_in  INTEGER NOT NULL DEFAULT 0,
+        tokens_out INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_domain_briefs ON domain_briefs(domain_id, date DESC);
+    `
   }
 ]
 

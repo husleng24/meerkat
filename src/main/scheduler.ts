@@ -21,6 +21,7 @@ const LAST_RUN_KEY = 'schedule.lastRunAt'
 export interface SchedulerDeps {
   store: Store
   /** 跑一个主题的采集 + 简报；返回值用于日志与通知文案 */
+  composeDomains?: (domainId: string, signal?: AbortSignal) => Promise<void>
   runOnce: (topicId: string, signal?: AbortSignal) => Promise<DailyOutcome>
   getWindow: () => BrowserWindow | null
   showWindow: () => void
@@ -118,9 +119,35 @@ export class Scheduler {
         log('info', `定时触发（${topic.name} · ${reason}）`)
         await this.runTopic(topic, handle.controller.signal)
       }
+      await this.maybeDomainRollup(handle.controller.signal)
     } finally {
       endRun(handle)
       this.refreshTray(this.lastSummary)
+    }
+  }
+
+  /**
+   * 领域汇总：默认 08:45，在主题跑完之后执行。
+   * 每个领域记自己的 lastRunAt，所以某天某个领域失败不会影响其他领域。
+   */
+  private async maybeDomainRollup(signal?: AbortSignal): Promise<void> {
+    const compose = this.deps.composeDomains
+    if (!compose) return
+    const hour = this.deps.store.settings.get<number>('domain.hour') ?? 8
+    const minute = this.deps.store.settings.get<number>('domain.minute') ?? 45
+    const cfg = { enabled: true, hour, minute }
+    const now = Date.now()
+    for (const d of this.deps.store.domains.list()) {
+      const lastRunAt = this.deps.store.settings.get<number>(`domain.lastRunAt.${d.id}`)
+      if (!decideDue(lastRunAt, now, cfg).due) continue
+      try {
+        await compose(d.id, signal)
+        this.deps.store.settings.set(`domain.lastRunAt.${d.id}`, Date.now())
+        log('info', `领域汇总完成（${d.name}）`)
+        this.deps.getWindow()?.webContents.send('domain-brief:updated', d.id)
+      } catch (e) {
+        log('error', `领域汇总失败（${d.name}）：${e instanceof Error ? e.message : String(e)}`)
+      }
     }
   }
 
