@@ -50,7 +50,7 @@
         "undici": "^8.12.3",
         "zod": "^4.6.7"
     },
-    "description": "Meerkat · 替你盯着 AI 领域真正变了什么",
+    "description": "让你轻松看清任何领域的变化",
     "author": "Meerkat",
     "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499"
 }

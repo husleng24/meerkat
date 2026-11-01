@@ -1,8 +1,11 @@
-# Meerkat · Watching AI for you
+# Meerkat · Watching change for you
 
 **English** · [简体中文](README.zh-CN.md)
 
-A daily AI brief that keeps only what actually changed — and tells you what is different from yesterday.
+**See what changed in any field, effortlessly.**
+
+A local-first daily brief: it watches the fields you care about, keeps only what actually changed,
+and tells you what is different from yesterday.
 
 ![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
 
