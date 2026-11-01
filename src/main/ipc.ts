@@ -721,6 +721,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const out = await composeDomainRollup(requireStore(), domainDeps(), { domainId: parsed.data.domainId })
     if (!out.ok) return { ok: false, error: out.reason ?? '生成失败' }
+    requireStore().settings.set(`domain.lastRunAt.${out.domainId}`, Date.now())
     for (const w of BrowserWindow.getAllWindows()) {
       if (!w.isDestroyed()) w.webContents.send('domain-brief:updated', out.domainId)
     }
