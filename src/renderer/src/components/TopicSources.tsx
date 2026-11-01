@@ -116,6 +116,12 @@ export function TopicSources({ topicId, topicName }: { topicId: string; topicNam
         {note && <span className="ml-auto text-ink-3">{note}</span>}
       </div>
 
+      {sources.length > 0 && picked.size === sources.length && (
+        <p className="mb-2.5 text-[11px] text-ink-3">
+          已选全部 {sources.length} 个源。新主题默认全选；只想关注某几类时，取消勾选即可。
+        </p>
+      )}
+
       {recs.length > 0 && (
         <div className="mb-2.5 rounded-lg border border-accent/25 bg-accent-soft/40 px-3 py-2">
           <div className="mb-1 flex items-center gap-2 text-[11px] text-ink-3">

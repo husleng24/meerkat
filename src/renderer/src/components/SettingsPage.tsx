@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { describeNext, describeSchedule, type ScheduleConfig } from '../../../app/schedule'
 import type { AutoLaunchState, ChatProviderPayload, KeyStatusPayload } from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
@@ -41,6 +41,11 @@ export function SettingsPage({
   onRemoveDomain: (id: string) => Promise<boolean>
   onDomainsChanged: () => void
 }): React.JSX.Element {
+  const sourcesRef = useRef<HTMLElement | null>(null)
+  const focusSources = (topicId: string): void => {
+    onPickTopic(topicId)
+    sourcesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const [cfg, setCfg] = useState<SchedulePayload>(DEFAULT)
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
   const [phase, setPhase] = useState<Phase>('idle')
@@ -209,6 +214,7 @@ export function SettingsPage({
           activeId={topicId}
           onPick={onPickTopic}
           onChanged={onTopicsChanged}
+          onManageSources={focusSources}
         />
       </section>
 
@@ -273,7 +279,7 @@ export function SettingsPage({
         </div>
       </section>
 
-      <section className="mb-8">
+      <section ref={sourcesRef} className="mb-8 scroll-mt-6">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的源</h2>
         <p className="mb-4 text-[12px] text-ink-3">
           只有勾选的源会参与这个领域的采集。不同领域可以各选各的，源的健康度仍然全局共享。

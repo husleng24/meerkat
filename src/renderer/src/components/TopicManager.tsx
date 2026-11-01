@@ -8,6 +8,8 @@ interface Props {
   onPick: (id: string) => void
   /** 新建 / 改名 / 删除之后刷新主题列表 */
   onChanged: () => void
+  /** 跳到「本主题的源」并聚焦到这个主题 */
+  onManageSources?: (topicId: string) => void
 }
 
 /**
@@ -16,7 +18,14 @@ interface Props {
  * 主题是采集与简报的单位；领域只是分组。这里同时负责"把主题放进哪个领域"，
  * 因为新建主题时必须有一个归属。
  */
-export function TopicManager({ topics, domains, activeId, onPick, onChanged }: Props): React.JSX.Element {
+export function TopicManager({
+  topics,
+  domains,
+  activeId,
+  onPick,
+  onChanged,
+  onManageSources
+}: Props): React.JSX.Element {
   const [draftName, setDraftName] = useState('')
   const [draftDomain, setDraftDomain] = useState(domains[0]?.id ?? 'ai')
   const [rename, setRename] = useState('')
@@ -35,9 +44,11 @@ export function TopicManager({ topics, domains, activeId, onPick, onChanged }: P
     const res = await api.create({ id, name, domainId: draftDomain })
     if (res.ok) {
       setDraftName('')
-      setNote(`已创建「${name}」，默认收录全部源`)
+      setNote(`已创建「${name}」，默认收录全部源；下面可以按需取消勾选`)
       onChanged()
       onPick(id)
+      // 新建之后最想知道的就是"去哪选源"——直接把页面带到那里
+      onManageSources?.(id)
     } else {
       setNote(res.error ?? '创建失败')
     }
@@ -137,6 +148,15 @@ export function TopicManager({ topics, domains, activeId, onPick, onChanged }: P
                       {t.sourceCount} 个源 · {t.hasBrief ? '已有简报' : '还没有简报'}
                     </span>
                     <span className="ml-auto flex gap-1">
+                      {onManageSources && (
+                        <button
+                          onClick={() => onManageSources(t.id)}
+                          title="选择这个主题要采集哪些源"
+                          className="rounded border border-cream px-2 py-1 text-[10.5px] text-accent/90 transition-colors hover:border-accent hover:text-accent"
+                        >
+                          选源
+                        </button>
+                      )}
                       <button
                         onClick={() => {
                           setEditing(t.id)
