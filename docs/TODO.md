@@ -1,6 +1,6 @@
 # 待办与路线图
 
-> 更新于 2026-11-01。当前代码状态：**256 个测试通过**，typecheck 绿，打包产物已出。
+> 更新于 2026-11-01。当前代码状态：**273 个测试通过**，typecheck 绿，打包产物已出。
 
 ## 怎么读
 
@@ -85,27 +85,8 @@
 
 ## 四、工程债
 
-### 🟢 6. 渲染层没有组件测试
+暂无。剩下的都是需要在 Windows 真机上做的事（见第一节与第二节）。
 
-**现状**：键盘导航、收藏切换、搜索防抖都只靠截图验证。
-
-**验收标准**：至少覆盖 `BriefView` 的键盘模型（j/k 边界、s 切换、h 隐藏/撤销）。
-
-### 🟢 7. 日志策略
-
-**现状**：单文件超过 2MB 轮转，只留两代。
-
-**缺口**：没有按天归档，排查"上周三那次失败"时可能已经被覆盖。
-
-**验收标准**：按天分文件，保留 7 天。
-
-### 🟢 8. electron-builder 的重复依赖提示
-
-构建日志里有一条：`@electron/rebuild already used by electron-builder,
-please consider to remove excess dependency from devDependencies`。
-
-**验收标准**：`pnpm rebuild:native` 改用 `electron-builder install-app-deps` 或直接删掉该依赖，
-构建日志无警告。
 
 ---
 
@@ -135,6 +116,14 @@ API Key 三级来源（加密存储 + 一键导入）· 开机自启 · 全文�
 
 ### P3 反馈与修复
 应用内反馈材料生成（无"提交"按钮，因为没有服务器）· `docs/FEEDBACK.md` 分级与 72h 流程
+
+### 工程债清零（2026-11-01）
+- **组件测试**：`tests/brief-view.test.tsx` 用 jsdom + React 19 `act` 覆盖键盘模型（9 个用例），
+  断言的是"按 j 之后操作哪一条""h 之后 DOM 里还在不在"，而不是截图
+- **日志按天**：`main-YYYY-MM-DD.log`，保留 7 天；命名/清理策略抽成纯函数并补了 8 个测试，
+  包括 `2026-13-40` 这种假日期必须被拒绝
+- **重复依赖**：删掉 `@electron/rebuild`，`pnpm rebuild:native` 改走
+  `electron-builder install-app-deps`（electron-builder 自带的那份），构建日志不再提示
 
 ### 多主题（2026-11-01）
 主题＝一组源 + 一套排程 + 一条独立简报。数据层加了 `topics` / `topic_sources` / `brief_items`

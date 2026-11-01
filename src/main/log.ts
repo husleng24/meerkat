@@ -6,45 +6,67 @@
  *
  * 三个硬要求：
  *  1. 写日志本身绝不抛异常（否则错误处理会把应用搞崩）
- *  2. 单文件超过 2MB 就轮转，只留两份（不无限增长）
+ *  2. 按天分文件、保留 7 天；单日超过 2MB 再轮转一份（不无限增长）
  *  3. 崩溃时能把栈写下去，而且能读到日志尾部做诊断包
  */
 import { app } from 'electron'
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
+import { expiredLogFiles, logFileName, rotatedFileName, shouldRotate } from './log-files'
 
-const MAX_BYTES = 2 * 1024 * 1024
+/** 保留最近 7 天：排查"上周三那次失败"时还在 */
+const KEEP_DAYS = 7
 
 let logDir = ''
+/** 当前正在写的文件 */
 let logFile = ''
+let pruned = false
 
 function ensureDir(): string {
   if (logDir) return logDir
   try {
     logDir = join(app.getPath('userData'), 'logs')
     mkdirSync(logDir, { recursive: true })
-    logFile = join(logDir, 'main.log')
+    switchToToday()
   } catch {
     logDir = ''
   }
   return logDir
 }
 
+/** 跨天时换文件；顺便在每天第一次写入时清理过期日志 */
+function switchToToday(): void {
+  const now = new Date()
+  const name = logFileName(now)
+  if (logFile.endsWith(name)) return
+  logFile = join(logDir, name)
+  if (!pruned) {
+    pruned = true
+    pruneOld()
+  }
+}
+
+function pruneOld(): void {
+  try {
+    const files = readdirSync(logDir)
+    for (const f of expiredLogFiles(files, new Date(), KEEP_DAYS)) {
+      try {
+        unlinkSync(join(logDir, f))
+      } catch {
+        /* 单个文件删不掉不影响其余 */
+      }
+    }
+  } catch {
+    // 清理失败不该影响写日志
+  }
+}
+
 function rotateIfNeeded(): void {
   try {
     if (!existsSync(logFile)) return
-    if (statSync(logFile).size < MAX_BYTES) return
-    const bak = join(logDir, 'main.1.log')
-    if (existsSync(bak)) {
-      // 直接覆盖旧备份：只保留最近两代
-      try {
-        renameSync(logFile, bak)
-      } catch {
-        // 备份失败就继续写原文件，不阻塞
-      }
-    } else {
-      renameSync(logFile, bak)
-    }
+    if (!shouldRotate(statSync(logFile).size)) return
+    const bak = join(logDir, rotatedFileName(new Date(), 1))
+    renameSync(logFile, bak)
   } catch {
     // 轮转失败不影响写日志
   }
@@ -56,6 +78,7 @@ export function log(level: LogLevel, message: string): void {
   const line = `${new Date().toISOString()} [${level}] ${message}\n`
   try {
     if (!ensureDir()) return
+    switchToToday()
     rotateIfNeeded()
     appendFileSync(logFile, line, 'utf8')
   } catch {
@@ -64,12 +87,25 @@ export function log(level: LogLevel, message: string): void {
   if (level === 'error') console.error(message)
 }
 
+/**
+ * 读日志尾部。先读今天，不够再往前读——跨天后的第一份诊断包
+ * 仍然应该看得到昨夜失败的那几行。
+ */
 export function readLogTail(maxLines = 300): string[] {
   try {
-    if (!ensureDir() || !existsSync(logFile)) return []
-    const text = readFileSync(logFile, 'utf8')
-    const lines = text.split('\n').filter((l) => l.length > 0)
-    return lines.slice(-maxLines)
+    if (!ensureDir()) return []
+    const names = readdirSync(logDir)
+      .filter((f) => f.startsWith('main-') && f.endsWith('.log'))
+      .sort()
+      .reverse()
+    const collected: string[] = []
+    for (const name of names) {
+      if (collected.length >= maxLines) break
+      const text = readFileSync(join(logDir, name), 'utf8')
+      const lines = text.split('\n').filter((l) => l.length > 0)
+      collected.unshift(...lines)
+    }
+    return collected.slice(-maxLines)
   } catch {
     return []
   }
@@ -77,6 +113,7 @@ export function readLogTail(maxLines = 300): string[] {
 
 export function logPath(): string {
   ensureDir()
+  switchToToday()
   return logFile
 }
 
