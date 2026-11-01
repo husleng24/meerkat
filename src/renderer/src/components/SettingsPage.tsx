@@ -601,39 +601,42 @@ function Row({ k, v }: { k: string; v: string }): React.JSX.Element {
 }
 
 /**
- * 密钥面板。
- * 三种来源要能一眼看懂：本地加密存储 / 环境变量 / DSH 凭据文件。
- * 本机装了 DSH 的话，给一个一键导入——这是最快让应用"真的会用 AI"的路径。
+ * 密钥面板（多供应商）。
+ *
+ * 每个供应商一把 key，存成各自的加密文件。界面上一次列全，是因为"我到底配了哪几家"
+ * 这个问题在对话里会反复出现——模型选不出来的原因八成是这里少一把 key。
  */
 function KeyPanel(): React.JSX.Element {
-  const [status, setStatus] = useState<KeyStatusPayload | null>(null)
-  const [input, setInput] = useState('')
+  const [statuses, setStatuses] = useState<KeyStatusPayload[]>([])
+  const [inputs, setInputs] = useState<Record<string, string>>({})
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const api = window.meerkat?.key
+  const hasIpc = api !== undefined
+
   const refresh = useCallback(async () => {
-    const api = window.meerkat?.key
     if (!api) return
     try {
-      setStatus(await api.status())
+      setStatuses(await api.all())
     } catch {
       /* 预览模式忽略 */
     }
-  }, [])
+  }, [api])
 
   useEffect(() => {
     void refresh()
   }, [refresh])
 
-  const act = useCallback(
-    async (fn: () => Promise<{ ok: boolean; error?: string; masked?: string }>, okText: string) => {
+  const run = useCallback(
+    async (fn: () => Promise<{ ok: boolean; error?: string }>, okText: string, provider: string) => {
       setBusy(true)
       setMsg('')
       try {
         const r = await fn()
         setMsg(r.ok ? okText : (r.error ?? '操作失败'))
         if (r.ok) {
-          setInput('')
+          setInputs((prev) => ({ ...prev, [provider]: '' }))
           await refresh()
         }
       } catch (e) {
@@ -645,70 +648,92 @@ function KeyPanel(): React.JSX.Element {
     [refresh]
   )
 
-  const api = window.meerkat?.key
-  const hasIpc = api !== undefined
-
   return (
     <div className="card px-5 py-4">
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] text-ink">DeepSeek API Key</span>
-        {status?.hasKey ? (
-          <span className="flex items-center gap-1.5 text-[11.5px] text-ink/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink/70" />
-            {status.sourceLabel} · {status.masked}
-          </span>
-        ) : (
-          <span className="flex items-center gap-1.5 text-[11.5px] text-alert">
-            <span className="h-1.5 w-1.5 rounded-full bg-alert" />
-            未配置 · 简报会降级
-          </span>
-        )}
+      <p className="mb-3 text-[11.5px] leading-relaxed text-ink-3">
+        简报生成只用 DeepSeek；对话可以切到任意一家已配置的供应商。密钥保存在本机（加密文件），
+        也可以走环境变量。
+      </p>
+
+      <div className="space-y-4">
+        {statuses.map((st) => (
+          <div key={st.provider} className="border-t border-rule pt-3 first:border-t-0 first:pt-0">
+            <div className="flex items-center justify-between">
+              <span className="text-[12.5px] font-medium text-ink">{st.providerLabel}</span>
+              {st.hasKey ? (
+                <span className="flex items-center gap-1.5 text-[11px] text-ink-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink/60" />
+                  {st.sourceLabel} · {st.masked}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-[11px] text-ink-3">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink/20" />
+                  未配置
+                </span>
+              )}
+            </div>
+
+            <div className="mt-2 flex gap-2">
+              <input
+                type="password"
+                value={inputs[st.provider] ?? ''}
+                onChange={(e) => setInputs((prev) => ({ ...prev, [st.provider]: e.target.value }))}
+                placeholder={st.provider === 'anthropic' ? 'sk-ant-…' : 'sk-…'}
+                disabled={!hasIpc}
+                className="flex-1 rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] outline-none focus:border-accent disabled:opacity-50"
+              />
+              <button
+                disabled={busy || !hasIpc || !(inputs[st.provider] ?? '').trim()}
+                onClick={() =>
+                  void run(
+                    () => api!.set({ provider: st.provider, value: inputs[st.provider]!.trim() }),
+                    `已保存 ${st.providerLabel} 的密钥（加密）`,
+                    st.provider
+                  )
+                }
+                className="rounded-lg border border-cream px-3 py-1.5 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
+              >
+                保存
+              </button>
+              {st.source === 'store' && (
+                <button
+                  disabled={busy || !hasIpc}
+                  onClick={() =>
+                    void run(
+                      () => api!.clear(st.provider),
+                      `已清除 ${st.providerLabel} 的本机密钥`,
+                      st.provider
+                    )
+                  }
+                  className="rounded-lg border border-cream px-3 py-1.5 text-[12px] text-ink/60 transition-colors hover:border-alert hover:text-alert disabled:opacity-40"
+                >
+                  清除
+                </button>
+              )}
+            </div>
+
+            {st.provider === 'deepseek' && st.dshAvailable && st.source !== 'store' && (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-cream/50 px-3 py-2">
+                <span className="flex-1 text-[11px] text-ink-2">
+                  检测到本机的 DeepSeek Harness 凭据，可直接导入并加密保存
+                </span>
+                <button
+                  disabled={busy || !hasIpc}
+                  onClick={() => void run(() => api!.importDsh(), '已导入并加密保存', 'deepseek')}
+                  className="shrink-0 rounded-md bg-ink px-2.5 py-1 text-[11px] font-medium text-paper disabled:opacity-40"
+                >
+                  一键导入
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      {status?.dshAvailable && status.source !== 'store' && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-cream/50 px-3 py-2">
-          <span className="flex-1 text-[11.5px] text-ink/70">
-            检测到本机的 DeepSeek Harness 凭据，可直接导入并加密保存
-          </span>
-          <button
-            disabled={busy || !hasIpc}
-            onClick={() => void act(() => api!.importDsh(), '已导入并加密保存')}
-            className="shrink-0 rounded-md bg-ink px-2.5 py-1 text-[11px] font-medium text-paper disabled:opacity-40"
-          >
-            一键导入
-          </button>
-        </div>
-      )}
-
-      <div className="mt-3 flex gap-2">
-        <input
-          type="password"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="sk-…"
-          disabled={!hasIpc}
-          className="flex-1 rounded-lg border border-cream bg-white px-3 py-2 text-[12px] outline-none focus:border-accent disabled:opacity-50"
-        />
-        <button
-          disabled={busy || !hasIpc || input.trim().length === 0}
-          onClick={() => void act(() => api!.set(input), '已保存（加密存储）')}
-          className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink disabled:opacity-40"
-        >
-          保存
-        </button>
-        {status?.source === 'store' && (
-          <button
-            disabled={busy}
-            onClick={() => void act(() => api!.clear(), '已清除本机保存的密钥')}
-            className="rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/60 transition-colors hover:border-alert hover:text-alert disabled:opacity-40"
-          >
-            清除
-          </button>
-        )}
-      </div>
-
-      {status && !status.canEncrypt && (
-        <p className="mt-2 text-[11px] text-alert">系统加密不可用，无法安全保存。请改用环境变量。</p>
+      {statuses.some((s) => !s.canEncrypt) && (
+        <p className="mt-3 text-[11px] text-alert">
+          系统加密不可用，无法安全保存密钥。请改用环境变量（DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY）。
+        </p>
       )}
       {msg && <p className="mt-2 text-[11.5px] text-ink/70">{msg}</p>}
       {!hasIpc && <p className="mt-2 text-[11px] text-ink-3/70">预览模式下不可用。</p>}

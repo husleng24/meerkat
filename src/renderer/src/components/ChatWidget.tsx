@@ -34,11 +34,20 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
 
   const actions = useMemo(() => visibleActions(hasPrevious), [hasPrevious])
 
-  // 模型目录
+  // 模型目录：只列已配置 key 的供应商；当前选中的模型不在其中时自动落到第一个
   useEffect(() => {
     if (!api) return
-    void api.models().then(setModels).catch(() => undefined)
-  }, [api])
+    void api
+      .models()
+      .then((list) => {
+        setModels(list)
+        if (list.length > 0 && !list.some((m) => m.id === model)) {
+          setModel(list[0]!.id)
+          writeString(MODEL_KEY, list[0]!.id)
+        }
+      })
+      .catch(() => undefined)
+  }, [api, model])
 
   // 打开时确保有会话并拉历史
   useEffect(() => {
@@ -177,7 +186,12 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
           </div>
 
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
-            {messages.length === 0 && !sending && (
+            {models.length === 0 && (
+              <p className="rounded-lg bg-cream/70 px-3 py-2 text-[11.5px] leading-relaxed text-ink-2">
+                还没有可用的模型。去「设置 → 模型与密钥」配置任意一家供应商（DeepSeek / OpenAI / Anthropic）。
+              </p>
+            )}
+            {messages.length === 0 && !sending && models.length > 0 && (
               <p className="text-[12px] leading-relaxed text-ink-3">
                 就这期简报提问，或者用下面的动作。回答只依据简报内容，不会编外部信息。
               </p>

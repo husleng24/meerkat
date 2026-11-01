@@ -212,16 +212,32 @@ const api = {
   },
 
   key: {
-    status: (): Promise<{
+    all: (): Promise<
+      Array<{
+        provider: string
+        providerLabel: string
+        hasKey: boolean
+        source: string
+        sourceLabel: string
+        masked: string
+        canEncrypt: boolean
+        dshAvailable: boolean
+      }>
+    > => ipcRenderer.invoke('key:all'),
+    status: (provider: string): Promise<{
+      provider: string
+      providerLabel: string
       hasKey: boolean
       source: string
       sourceLabel: string
       masked: string
       canEncrypt: boolean
       dshAvailable: boolean
-    }> => ipcRenderer.invoke('key:status'),
-    set: (value: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('key:set', value),
-    clear: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('key:clear'),
+    }> => ipcRenderer.invoke('key:status', provider),
+    set: (input: { provider: string; value: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('key:set', input),
+    clear: (provider: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('key:clear', provider),
     importDsh: (): Promise<{ ok: boolean; masked?: string; error?: string }> => ipcRenderer.invoke('key:importDsh')
   },
 

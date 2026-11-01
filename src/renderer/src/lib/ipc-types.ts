@@ -80,7 +80,11 @@ export interface SchedulePayload {
   lastRunAt: number | null
 }
 
+export type ProviderId = 'deepseek' | 'openai' | 'anthropic'
+
 export interface KeyStatusPayload {
+  provider: ProviderId
+  providerLabel: string
   hasKey: boolean
   source: 'store' | 'env' | 'dsh-file' | 'none'
   sourceLabel: string
@@ -186,9 +190,10 @@ export interface MeerkatBridge {
     }) => Promise<SearchHit[]>
   }
   key?: {
-    status: () => Promise<KeyStatusPayload>
-    set: (value: string) => Promise<{ ok: boolean; error?: string }>
-    clear: () => Promise<{ ok: boolean }>
+    all: () => Promise<KeyStatusPayload[]>
+    status: (provider: ProviderId) => Promise<KeyStatusPayload>
+    set: (input: { provider: ProviderId; value: string }) => Promise<{ ok: boolean; error?: string }>
+    clear: (provider: ProviderId) => Promise<{ ok: boolean; error?: string }>
     importDsh: () => Promise<{ ok: boolean; masked?: string; error?: string }>
   }
   feedback?: {

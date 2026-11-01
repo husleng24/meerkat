@@ -5,8 +5,10 @@
  * 与 runDaily 的区别：那边是"定时跑一整条流水线"，这边是"按需回一句话"，
  * 所以不复用 DailyOutcome 那套结构。
  */
-import { createDeepSeekChat, DEEPSEEK_MODELS } from '../adapters/llm/deepseek-chat'
+import { createOpenAICompatibleChat } from '../adapters/llm/openai-compatible'
+import { createAnthropicChat } from '../adapters/llm/anthropic'
 import { actionPrompt, CHAT_SYSTEM_PROMPT, type ChatActionId } from '../core/chat/actions'
+import { providerForModel, providerMeta, PROVIDERS, type ProviderId } from '../core/chat/providers'
 import { buildChatContext, estimateTokens, type ChatContextSource } from '../core/chat/context'
 import { chatLatch } from './run-control'
 import { log } from './log'
@@ -15,7 +17,23 @@ import type { ChatModelInfo, ChatMessage } from '../core/ports/chat'
 import type { ChatStoredMessage, ChatThread } from '../core/domain/types'
 
 export interface ChatDeps {
-  apiKey: string
+  /** 已配置 key 的供应商；聊天只在这些里面选模型 */
+  keys: Partial<Record<ProviderId, string>>
+}
+
+/** 按供应商声明的协议挑适配器：这就是"协议差异"被收敛的唯一位置 */
+function createProvider(id: ProviderId, key: string) {
+  const meta = providerMeta(id)
+  if (!meta) return null
+  if (meta.protocol === 'anthropic') {
+    return createAnthropicChat({ apiKey: key, baseUrl: meta.baseUrl, models: meta.models })
+  }
+  return createOpenAICompatibleChat({
+    id: meta.id,
+    baseUrl: meta.baseUrl,
+    apiKey: key,
+    models: meta.models
+  })
 }
 
 export interface SendInput {
@@ -37,12 +55,19 @@ export interface SendResult {
   model?: string
 }
 
-export const DEFAULT_CHAT_MODEL = 'deepseek-flash'
+/** 默认模型：取第一个有 key 的供应商的第一个模型 */
+export function defaultChatModel(deps: ChatDeps): string {
+  for (const p of PROVIDERS) {
+    if (deps.keys[p.id]) return p.models[0]!.id
+  }
+  return 'deepseek-flash'
+}
 /** 历史消息只带最近这么多条：更早的用摘要替代（P2），现在直接截断 */
 const HISTORY_LIMIT = 8
 
-export function chatModels(): ChatModelInfo[] {
-  return DEEPSEEK_MODELS
+/** 只返回已配置 key 的供应商的模型：界面上不该出现"选了也发不出去"的选项 */
+export function chatModels(deps: ChatDeps): ChatModelInfo[] {
+  return PROVIDERS.filter((p) => deps.keys[p.id]).flatMap((p) => p.models)
 }
 
 /** 取这个主题当前的简报（优先线程记录的日期，其次最新一期） */
@@ -82,7 +107,7 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
     const text = input.text.trim() || (input.actionId ? actionPrompt(input.actionId) : '')
     if (!text) return { ok: false, error: '消息是空的' }
 
-    const model = input.model ?? thread.model ?? DEFAULT_CHAT_MODEL
+    const model = input.model ?? thread.model ?? defaultChatModel(deps)
     const now = Date.now()
     const userMessage: ChatStoredMessage = {
       id: `cm-${now}-u`,
@@ -116,7 +141,12 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
       { role: 'user', content: text }
     ]
 
-    const provider = createDeepSeekChat({ apiKey: deps.apiKey })
+    const meta = providerForModel(model)
+    if (!meta) return { ok: false, error: `未知模型：${model}` }
+    const key = deps.keys[meta.id]
+    if (!key) return { ok: false, error: `${meta.label} 还没有配置 API Key` }
+    const provider = createProvider(meta.id, key)
+    if (!provider) return { ok: false, error: `${meta.label} 适配器不可用` }
     const result = await provider.chat(
       {
         model,
@@ -188,7 +218,7 @@ export function ensureThread(
     title: '新对话',
     topicId: topic.id,
     ...(date ? { briefDate: date } : {}),
-    model: input.model ?? DEFAULT_CHAT_MODEL,
+    model: input.model ?? defaultChatModel({ keys: {} }),
     createdAt: now,
     updatedAt: now,
     archived: false

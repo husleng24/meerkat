@@ -21,7 +21,7 @@ import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolau
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
 import { recomposeDaily, runDaily } from './daily'
-import { chatModels, ensureThread, previewContextTokens, sendChatMessage } from './chat'
+import { chatModels, defaultChatModel, ensureThread, previewContextTokens, sendChatMessage, type ChatDeps } from './chat'
 import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
 import { RunCancelledError } from '../app/run-cancel'
@@ -29,7 +29,7 @@ import { resourcePath } from './paths'
 import { log } from './log'
 import { exportDiagnostic } from './diagnostic'
 import { composeFeedback, copyFeedback, saveFeedback } from './feedback'
-import { clearApiKey, importFromDsh, keyStatus, setApiKey } from './keystore'
+import { allKeyStatuses, availableProviders, clearApiKey, importFromDsh, keyStatus, setApiKey } from './keystore'
 import type { Store } from '../core/ports/store'
 import type { Source } from '../core/domain/types'
 
@@ -88,6 +88,7 @@ const feedbackTextSchema = z.object({
   body: z.string().min(1).max(20_000)
 })
 const topicIdSchema = z.string().min(1).max(40)
+const providerIdSchema = z.enum(['deepseek', 'openai', 'anthropic'])
 const chatEnsureSchema = z.object({
   topicId: topicIdSchema,
   briefDate: z.string().max(20).optional(),
@@ -151,6 +152,13 @@ export function dailyDeps(): { apiKey: string; promptText: string } {
     promptText = '你是一份 AI 行业日报的主编。链接必须逐字复制素材里的 URL。'
   }
   return { apiKey: getApiKey().key, promptText }
+}
+
+/** 对话的依赖：可用供应商的 key 集合 */
+export function chatDeps(): ChatDeps {
+  const keys: ChatDeps['keys'] = {}
+  for (const p of availableProviders()) keys[p.id] = p.key
+  return { keys }
 }
 
 export function initStore(dbPath: string): Store {
@@ -509,12 +517,16 @@ export function registerIpc(): void {
   ipcMain.handle('run:cancel', () => ({ ok: true, cancelled: cancelRun() }))
 
   // ── 对话 ──────────────────────────────────────────────
-  ipcMain.handle('chat:models', () => chatModels())
+  ipcMain.handle('chat:models', () => chatModels(chatDeps()))
 
   ipcMain.handle('chat:ensure', (_e, raw: unknown) => {
     const parsed = chatEnsureSchema.safeParse(raw)
     if (!parsed.success) return null
-    const thread = ensureThread(requireStore(), parsed.data)
+    const deps = chatDeps()
+    const thread = ensureThread(requireStore(), {
+      ...parsed.data,
+      model: parsed.data.model ?? defaultChatModel(deps)
+    })
     if (!thread) return null
     return { ...thread, contextTokens: previewContextTokens(requireStore(), thread.id, false) }
   })
@@ -528,7 +540,7 @@ export function registerIpc(): void {
   ipcMain.handle('chat:send', async (_e, raw: unknown) => {
     const parsed = chatSendSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
-    const res = await sendChatMessage(requireStore(), dailyDeps(), parsed.data)
+    const res = await sendChatMessage(requireStore(), chatDeps(), parsed.data)
     // 让所有窗口刷新（面板可能开在另一个窗口上，P0 只有主窗口，但不能假设）
     broadcastBriefUpdated()
     return res
@@ -583,15 +595,27 @@ export function registerIpc(): void {
     return copyFeedback(parsed.data)
   })
 
-  ipcMain.handle('key:status', () => keyStatus())
+  ipcMain.handle('key:all', () => allKeyStatuses())
 
-  ipcMain.handle('key:set', (_e, raw: unknown) => {
-    const parsed = z.string().min(1).max(200).safeParse(raw)
-    if (!parsed.success) return { ok: false, error: '参数非法' }
-    return setApiKey(parsed.data)
+  ipcMain.handle('key:status', (_e, raw: unknown) => {
+    const parsed = providerIdSchema.safeParse(raw)
+    if (!parsed.success) return keyStatus()
+    return keyStatus(parsed.data)
   })
 
-  ipcMain.handle('key:clear', () => clearApiKey())
+  ipcMain.handle('key:set', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ provider: providerIdSchema, value: z.string().min(1).max(300) })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return setApiKey(parsed.data.provider, parsed.data.value)
+  })
+
+  ipcMain.handle('key:clear', (_e, raw: unknown) => {
+    const parsed = providerIdSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return clearApiKey(parsed.data)
+  })
 
   ipcMain.handle('key:importDsh', () => importFromDsh())
 

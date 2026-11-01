@@ -21,11 +21,17 @@ export interface ChatAction {
   producesMarkdown?: boolean
 }
 
+/**
+ * P0 只放「问 + 总结」类动作。
+ *
+ * 「重新编排」的提示词见 actionPrompt('reorder')，但它会产出一版新简报，
+ * 属于 P2 的草稿态工作（diff / 应用 / 还原）——在草稿态做出来之前先不放进界面，
+ * 否则用户拿到的是一段没地方落地的 markdown。
+ */
 export const CHAT_ACTIONS: ChatAction[] = [
   { id: 'summarize5', label: '总结成 5 条', hint: '只保留事实，每条 ≤50 字，带来源' },
   { id: 'compare', label: '和昨天比', hint: '用上一期做对照，列出新增 / 延续 / 消失', needsPrevious: true },
-  { id: 'why', label: '这条为什么重要', hint: '先选中一条，再问它的影响面' },
-  { id: 'reorder', label: '重新编排', hint: '按重要性重排，输出一版可直接复制的 markdown', producesMarkdown: true }
+  { id: 'why', label: '这条为什么重要', hint: '先选中一条，再问它的影响面' }
 ]
 
 /** 系统提示词：约束语气、引用与"不知道"的处理 */
