@@ -14,6 +14,15 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renam
 import { join } from 'node:path'
 import { expiredLogFiles, logFileName, rotatedFileName, shouldRotate } from './log-files'
 
+// 没有终端时 stdout/stderr 可能随时 EPIPE；挂个空处理器，避免 uncaughtException。
+for (const stream of [process.stdout, process.stderr]) {
+  try {
+    stream?.on('error', () => {})
+  } catch {
+    /* 忽略 */
+  }
+}
+
 /** 保留最近 7 天：排查"上周三那次失败"时还在 */
 const KEEP_DAYS = 7
 
@@ -93,7 +102,15 @@ export function log(level: LogLevel, message: string): void {
   } catch {
     // 绝对不能因为写日志把应用搞崩
   }
-  if (level === 'error') console.error(message)
+  // 从 Finder / .command 启动时 stdout 可能是个已关闭的管道；console.error 会抛 EPIPE。
+  // 写日志绝不能反过来把应用搞崩，所以这里必须吞掉。
+  if (level === 'error') {
+    try {
+      console.error(message)
+    } catch {
+      /* stdout 已关闭 */
+    }
+  }
 }
 
 /**
