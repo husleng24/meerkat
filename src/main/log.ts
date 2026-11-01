@@ -56,6 +56,15 @@ function pruneOld(): void {
         /* 单个文件删不掉不影响其余 */
       }
     }
+    // 旧版本留下的 main.log：新逻辑不读它，不清理就会永远躺在那儿
+    const legacy = join(logDir, 'main.log')
+    if (existsSync(legacy) && Date.now() - statSync(legacy).mtimeMs > KEEP_DAYS * 86_400_000) {
+      try {
+        unlinkSync(legacy)
+      } catch {
+        /* 忽略 */
+      }
+    }
   } catch {
     // 清理失败不该影响写日志
   }
