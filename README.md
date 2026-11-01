@@ -1,226 +1,242 @@
-# Meerkat · 替你盯着
+# Meerkat · Watching AI for you
 
-每天一份 AI 领域简报：只留**真正变了**的事，并告诉你和昨天比什么变了。
+**English** · [简体中文](README.zh-CN.md)
 
-![两层侧栏：领域与主题](docs/assets/ui-two-level-sidebar.png)
+A daily AI brief that keeps only what actually changed — and tells you what is different from yesterday.
 
-> v0.1.0 · 389 个测试 · typecheck / build 通过 · macOS 实测，Windows 由 CI 出包
+![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
 
-## 下载
+> v0.1.0 · 389 tests · typecheck / build green · verified on macOS, Windows artifacts built by CI
 
-到 [Releases](https://github.com/husleng24/meerkat/releases) 下载安装包：
+## Download
 
-| 平台 | 文件 |
+Grab an installer from [Releases](https://github.com/husleng24/meerkat/releases):
+
+| Platform | File |
 |---|---|
-| macOS（Apple Silicon） | [Meerkat-0.1.0-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-arm64.dmg) |
-| macOS（Intel） | [Meerkat-0.1.0-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.dmg) |
-| Windows（安装版） | [Meerkat-0.1.0-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.exe) |
-| Windows（便携版） | [Meerkat-0.1.0-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-portable.exe) |
+| macOS (Apple Silicon) | [Meerkat-0.1.0-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-arm64.dmg) |
+| macOS (Intel) | [Meerkat-0.1.0-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.dmg) |
+| Windows (installer) | [Meerkat-0.1.0-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-x64.exe) |
+| Windows (portable) | [Meerkat-0.1.0-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.0/Meerkat-0.1.0-portable.exe) |
 
-两个平台都没有代码签名：macOS 首次打开需右键「打开」（或
-`xattr -dr com.apple.quarantine /Applications/Meerkat.app`）；Windows SmartScreen 选
-「更多信息 → 仍要运行」。
+Neither platform is code-signed: on macOS, right-click the app and choose **Open** (or run
+`xattr -dr com.apple.quarantine /Applications/Meerkat.app`); on Windows, SmartScreen needs
+**More info → Run anyway**.
 
-## 它是什么
+## What it is
 
-- **本地优先的桌面简报工具**：数据、密钥、简报都在你自己机器上，没有服务端
-- 面向每天只有 5 分钟、想知道"这个领域今天真正变了什么"的人
-- 按「领域 → 主题」组织：一个领域是一组主题，一个主题有自己的源、排程和简报
+- A **local-first desktop brief**: data, keys and briefs stay on your own machine; there is no server
+- For people with five minutes a day who want to know what *actually changed* in a field
+- Organized as **domain → topic**: a domain groups topics; each topic has its own sources, schedule and brief
 
-## 它不是什么
+## What it is not
 
-- 不是资讯聚合器：目标是**少而准**，一期 15–24 条，宁少勿滥
-- 不是在线服务：没有账号、没有云同步
-- 不是通用阅读器：只保留标题、一句解读和原文链接，不做全文抓取
-- 不是聊天机器人：内置对话只用来问和总结今天的简报
+- Not a news aggregator: it aims for **few and precise**, 15–24 items per issue
+- Not an online service: no account, no cloud sync
+- Not a general reader: it keeps titles, one-line interpretations and links; no full-text extraction
+- Not a chatbot: the built-in chat only asks and summarizes today's brief
 
-## 功能
+## Features
 
-### 每天一份简报
+### One brief per day
 
-48 小时窗口内抓取、打分（层级 26/18/10 + 时效衰减 + 互动量）、去重，再由模型写成
-"三句话速览 + 分板块条目 + 今日一句"。没有配置模型时自动降级为"仅聚合"版，不会空白。
+Collects over a 48-hour window, scores (tier 26/18/10 + time decay + engagement), dedupes, then has a model write
+"three-line overview + per-section items + one closing line". With no model configured it degrades to a
+titles-and-links digest instead of failing.
 
-### 领域 → 主题
+### Domain → topic
 
-侧栏顶部切领域，下面是该领域的主题；`⌘1–9` 直接切。主题是采集与简报的单位，
-领域是分组与汇总的单位。**新建主题默认只带 8 个按语料推荐的源**，不再和别的主题全量重复。
+Switch domains at the top of the sidebar; topics of that domain sit below, and `⌘1–9` jumps directly.
+A topic is the unit of collection and briefing; a domain groups topics and produces rollups.
+**New topics start with 8 recommended sources** instead of copying every source.
 
-![加源时选归属主题](docs/assets/ui-source-topic-picker.png)
+![Choosing topics when adding a source](docs/assets/ui-source-topic-picker.png)
 
-### 和昨天比
+### Compared with yesterday
 
-报头下方给出 `新增 / 有进展 / 没再提` 三个数，点开可看具体是哪几条。
+`New / Progressed / Not repeated again` three numbers under the header, expandable to the exact items.
 
-### 搜索、时间线与阅读状态
+### Search, timeline and reading state
 
-FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时间线按日期回看历史简报；
-已读/收藏/隐藏都落库，简报里的条目按 URL 反查回条目 id。
+FTS5 full-text search (with section, source, time filters, highlighting and sorting); timeline for past briefs;
+read / saved / hidden flags are persisted and mapped back to item ids by URL.
 
-### 源管理
+### Source management
 
-源是全局的（健康度按源算），归属按主题多对多。源页显示连续失败与不稳定，给出替代源建议；
-新增源时按领域分组勾选归属主题，并给一个可解释的规则推荐。设置里可以按主题搜索、勾选、
-或用「✨ 按主题推荐」补源。
+Sources are global (health is per source); membership is many-to-many per topic. The sources page shows
+consecutive failures and unstable feeds, and suggests replacements. When adding a source you pick the topics
+(grouped by domain) and get an explainable rule-based recommendation. In settings you can search, tick, or use
+**✨ recommended for this topic** to fill gaps.
 
-### 领域汇总
+### Domain rollup
 
-每天 08:45（各主题跑完后）把同一领域各主题当天的简报合成一份：一段跨主题综述 +
-分主题条目，跨主题按 URL 去重。没接模型或调用失败时出摘录兜底稿，不阻塞。
-侧栏「领域汇总」页可随时手动重新汇总。
+Every day at 08:45 (after topics finish), each domain merges its topics' briefs into one rollup: a cross-topic
+overview plus per-topic items, deduped by URL. Without a model (or when the call fails) it falls back to an
+excerpt sheet instead of blocking. The **Domain rollup** page in the sidebar lets you recompose at any time.
 
-![领域汇总](docs/assets/ui-domain-rollup.png)
+![Domain rollup](docs/assets/ui-domain-rollup.png)
 
-### AI 对话
+### AI chat
 
-右下角浮层（`⌘J`）：基于当天简报提问、总结，可切换已配置的供应商。每个主题每天一段会话，
-上下文只带简报与历史消息，不重发原始素材。重排（把简报重新编排）留到 P2。
+Bottom-right panel (`⌘J`): ask and summarize today's brief, switching between configured providers. One thread
+per topic per day; context carries the brief and history, not the raw material. Reordering the brief is
+deferred to P2.
 
-### 导出
+### Export
 
-Markdown / HTML / PDF / 复制富文本，落在 `文档/Meerkat/`。
+Markdown / HTML / PDF / rich text, written to `Documents/Meerkat/`.
 
-## 快速开始
+## Quick start
 
-### 环境
+### Requirements
 
-- Node 20+、pnpm 11
-- macOS 或 Windows；原生模块首次安装时编译（better-sqlite3）
+- Node 20+, pnpm 11
+- macOS or Windows; native modules (better-sqlite3) are compiled on first install
 
 ```bash
 pnpm install
-pnpm dev          # 开发（electron-vite）
+pnpm dev          # development (electron-vite)
 ```
 
-打包：
+Packaging:
 
 ```bash
-pnpm build        # 只构建 out/
-pnpm dist         # Windows NSIS 安装包（配置见 electron-builder.yml）
-# macOS 本机验证可用：pnpm exec electron-builder --mac --dir
+pnpm build        # builds out/ only
+pnpm dist         # Windows NSIS installer (see electron-builder.yml)
+# macOS local check: pnpm exec electron-builder --mac --dir
 ```
 
-### 首次启动
+### First launch
 
-引导页选几个领域 → 自动建领域/主题并挂上默认源 → 立即采集一次（约 1–2 分钟）。
-之后每天按排程自动跑；也可以在报头点「更新」手动触发。
+Pick a few domains in onboarding → domains/topics are created with default sources → one collection runs
+immediately (about 1–2 minutes). After that it runs on schedule; the header's **Update** button triggers a run
+manually.
 
-### 三个容易踩的环境坑
+### Three environment pitfalls
 
-1. **`ELECTRON_RUN_AS_NODE=1`** 会让 Electron 退化成纯 Node（报 `bad option: --no-sandbox`）。
-   启动前清掉：`env -u ELECTRON_RUN_AS_NODE ...`
-2. **better-sqlite3 必须按 Electron 的 ABI 重编**：`pnpm rebuild:native`（即
-   `electron-builder install-app-deps`），否则启动即崩。
-3. **国内网络**：Electron 二进制下不动时设 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`；
-   node-gyp 头文件设 `npm_config_disturl=https://npmmirror.com/mirrors/node/`。
+1. **`ELECTRON_RUN_AS_NODE=1`** turns Electron into plain Node (fails with `bad option: --no-sandbox`).
+   Unset it before launching: `env -u ELECTRON_RUN_AS_NODE ...`
+2. **better-sqlite3 must be rebuilt for Electron's ABI**: `pnpm rebuild:native`
+   (= `electron-builder install-app-deps`), otherwise it crashes on launch.
+3. **Slow networks (e.g. in China)**: set
+   `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`, and for node-gyp headers
+   `npm_config_disturl=https://npmmirror.com/mirrors/node/`.
 
-完整复现步骤见 [docs/HISTORY.md](docs/HISTORY.md)。
+Full reproduction steps: [docs/HISTORY.md](docs/HISTORY.md) (Chinese).
 
-## 使用
+## Usage
 
-### 领域、主题、源
+### Domains, topics, sources
 
-- 设置 →「领域」管理分组；「主题」按领域分组，每行有「选源」直达该主题的源列表
-- 主题的源可以搜索、勾选，或用推荐；全部选中时会提示"会和别的主题重复"
-- 源页「新增源」需要选类型/地址/层级/板块，并勾选要加入的主题
+- Settings → **Domains** manages groups; **Topics** are grouped by domain and each row has **Sources**
+  to jump to its source list
+- A topic's sources can be searched, ticked, or filled from recommendations; selecting all warns that the
+  topic will duplicate others
+- **New source** on the sources page asks for type/URL/tier/section and which topics to join
 
-### 排程与手动运行
+### Schedule and manual runs
 
-每个主题默认 08:30，领域汇总默认 08:45；错过会在 **6 小时内**补跑一次。设置页可改时间、
-关掉定时、立即采集或取消。托盘菜单显示下次运行时间，跑完弹通知。
+Each topic defaults to 08:30, domain rollups to 08:45; a missed slot is caught up within **6 hours**.
+Settings lets you change times, disable the schedule, run now or cancel. The tray menu shows the next run;
+a notification appears when it finishes.
 
-### 模型与密钥
+### Models and keys
 
-- 供应商：DeepSeek、OpenAI、Anthropic（前两家走 OpenAI 兼容协议，Anthropic 走 Messages）
-- 密钥按供应商分别加密保存在 `userData`（`secret.bin` / `secret-<provider>.bin`），
-  也可以走环境变量 `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
-- 支持从本机 DeepSeek Harness 的凭据文件一键导入
-- 成稿优先 DeepSeek → OpenAI → Anthropic；设置里可以覆盖某家的模型 id（模型下线不用改代码）
+- Providers: DeepSeek, OpenAI, Anthropic (the first two use the OpenAI-compatible protocol, Anthropic uses Messages)
+- Keys are encrypted per provider under `userData` (`secret.bin` / `secret-<provider>.bin`), or come from
+  `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+- One-click import from a local DeepSeek Harness credentials file
+- Composition prefers DeepSeek → OpenAI → Anthropic; a provider's model id can be overridden in settings
 
-### 数据在哪
+### Where the data lives
 
-| 内容 | 位置 |
+| Content | Location |
 |---|---|
-| 数据库 | `app.getPath('userData')/meerkat.db`（macOS `~/Library/Application Support/Meerkat`；Windows `%APPDATA%\Meerkat`） |
-| 密钥 | 同目录下的加密文件 |
-| 日志 | 同目录 `logs/main.log` |
-| 导出 | `文档/Meerkat/` |
+| Database | `app.getPath('userData')/meerkat.db` (macOS `~/Library/Application Support/Meerkat`; Windows `%APPDATA%\Meerkat`) |
+| Keys | encrypted files in the same directory |
+| Logs | `logs/main.log` in the same directory |
+| Exports | `Documents/Meerkat/` |
 
-## 架构
+## Architecture
 
 ```
-renderer (React)  ──IPC──▶  main（Electron 组装）
+renderer (React)  ──IPC──▶  main (Electron assembly)
                                 │
-                    app（用例：采集/成稿/对话/汇总）
-                                │ 只依赖端口
-                    core（domain / pipeline / policy / ports，纯逻辑）
+                    app (use cases: collect / compose / chat / rollup)
+                                │  depends on ports only
+                    core (domain / pipeline / policy / ports, pure)
                                 ▲
-              adapters（sqlite / sources / llm）实现端口
+              adapters (sqlite / sources / llm) implement the ports
 ```
 
-| 层 | 目录 | 职责 |
+| Layer | Path | Responsibility |
 |---|---|---|
-| core | `src/core` | 领域模型、打分与去重、提示词上下文、端口接口；不 import 任何适配器 |
-| app | `src/app` | 用例：采集、成稿、推荐、汇总、诊断；只依赖 core 的端口 |
-| adapters | `src/adapters` | SQLite 仓储、各类源抓取、OpenAI/Anthropic 协议、Composer |
-| main | `src/main` | Electron 组装、IPC、排程、托盘、导出、密钥 |
-| renderer | `src/renderer` | React 界面，只通过 `window.meerkat` 访问主进程 |
+| core | `src/core` | Domain model, scoring and dedupe, prompt context, port interfaces; imports no adapters |
+| app | `src/app` | Use cases: collection, composition, recommendations, rollups, diagnostics; depends only on core ports |
+| adapters | `src/adapters` | SQLite repositories, source fetchers, OpenAI/Anthropic protocols, composer |
+| main | `src/main` | Electron assembly, IPC, scheduler, tray, export, keystore |
+| renderer | `src/renderer` | React UI; talks to main only through `window.meerkat` |
 
-**数据模型（schema v5）**：`sources` / `topics` / `topic_sources` / `domains` / `items` /
-`briefs` / `brief_items` / `domain_briefs` / `item_flags` / `chat_threads` / `chat_messages` /
-`runs` / `settings`，迁移按 `PRAGMA user_version` 递增，只增不改。
+**Data model (schema v5)**: `sources` / `topics` / `topic_sources` / `domains` / `items` / `briefs` /
+`brief_items` / `domain_briefs` / `item_flags` / `chat_threads` / `chat_messages` / `runs` / `settings`.
+Migrations are driven by `PRAGMA user_version` and only ever add.
 
-**IPC 约定**：入参一律在边界用 zod 校验；长任务走事件推送进度；handler 返回 Result 形状，
-不把异常抛给渲染层。仓储接口全部同步（better-sqlite3 本身同步）。
+**IPC conventions**: inputs are validated with zod at the boundary; long tasks push progress via events;
+handlers return a Result shape instead of throwing into the renderer. Repository interfaces are synchronous
+(better-sqlite3 is synchronous).
 
-## 质量
+## Quality
 
-| 项 | 现状 |
+| Item | Status |
 |---|---|
-| 测试 | `pnpm test`：**389 通过**（单元 + jsdom + 本地 HTTP stub） |
-| 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
-| 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
-| 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
+| Tests | `pnpm test`: **389 passing** (unit + jsdom + local HTTP stubs) |
+| Types | `pnpm typecheck`: both node and web tsconfigs |
+| Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
+| Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
 
-常用命令：`pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `pnpm dist` /
-`pnpm run-once`（采集一次）/ `pnpm compose-once`（成稿一次）/ `pnpm prep-schedule`（造排程数据）。
+Common commands: `pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `pnpm dist` /
+`pnpm run-once` (collect once) / `pnpm compose-once` (compose once) / `pnpm prep-schedule` (seed schedule data).
 
-## 已知限制
+## Known limitations
 
-- **Windows 安装包**：`electron-builder.yml` 已就绪，但 NSIS 安装包尚未在 Windows 本机验证
-- **开发态菜单栏显示 Electron**：macOS 的应用名来自 `.app` 的 `Info.plist`，运行时改不了；
-  打包后的 `Meerkat.app` 正常（Dock 图标已在开发态用 `app.dock.setIcon` 修正）
-- **单实例**：多开只会唤起已有窗口，不支持并排
-- **AI 对话非流式**：一次返回；重排功能在 P2
-- **领域汇总的质量依赖各主题简报**：主题当天没出简报时用它最新一期，没有的话跳过
+- **Windows installer**: `electron-builder.yml` is ready, but the NSIS installer is not yet verified on a
+  physical Windows machine (CI builds it)
+- **Menu bar shows "Electron" in development**: the macOS app name comes from the bundle's `Info.plist` and
+  cannot change at runtime; the packaged `Meerkat.app` is fine (the Dock icon is fixed in dev via
+  `app.dock.setIcon`)
+- **Single instance**: launching again focuses the existing window; no side-by-side
+- **AI chat is not streaming**; reordering is P2
+- **Rollup quality depends on topic briefs**: a topic without a brief for the day falls back to its latest one
 
-## 文档
+## Docs
 
-| 文件 | 内容 |
+Most design docs are currently written in Chinese.
+
+| File | Content |
 |---|---|
-| [PRODUCT.md](PRODUCT.md) | 用户、定位、产品约束 |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 分层与接缝的完整说明 |
-| [DESIGN.md](DESIGN.md) | 功能设计与数据流 |
-| [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | 视觉规范：色值、字号、版式规则 |
-| [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI 对话的设计与实现状态 |
-| [docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md) | 领域汇总的设计与实现 |
-| [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | 领域/主题两层模型的评估 |
-| [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | 领域导航的调研与取舍 |
-| [docs/HARNESS.md](docs/HARNESS.md) | 本机 Agent harness 的调研（暂缓） |
-| [docs/TODO.md](docs/TODO.md) | 待办、已知限制与工程债 |
-| [docs/FEEDBACK.md](docs/FEEDBACK.md) | 反馈分级与修复流程 |
-| [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | 真机验收原始记录 |
-| [docs/RELEASE.md](docs/RELEASE.md) | 发版流程与产物说明 |
-| [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 开发日志与实现细节（归档） |
+| [PRODUCT.md](PRODUCT.md) | Users, positioning, constraints |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Layers and seams |
+| [DESIGN.md](DESIGN.md) | Feature design and data flow |
+| [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | Visual spec: colors, type scale, layout rules |
+| [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI chat design and status |
+| [docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md) | Domain rollup design and implementation |
+| [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | Evaluating the domain/topic model |
+| [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | Navigation research and trade-offs |
+| [docs/HARNESS.md](docs/HARNESS.md) | Local agent harness research (deferred) |
+| [docs/TODO.md](docs/TODO.md) | TODOs, limitations and engineering debt |
+| [docs/FEEDBACK.md](docs/FEEDBACK.md) | Feedback triage and fix flow |
+| [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | Raw real-device verification records |
+| [docs/RELEASE.md](docs/RELEASE.md) | Release process and artifacts |
+| [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 development log (archived) |
 
-## 开发约定
+## Development conventions
 
-- **提交信息用英文**（标题命令式，正文解释为什么），代码注释、文档、界面文案用中文
-  （由 `.githooks/commit-msg` 强制，启用：`git config core.hooksPath .githooks`）
-- 提交前必须跑 `pnpm test` 与 `pnpm typecheck`；改了 UI 要截图核对，不只信类型
-- 架构红线：`core` 不 import 适配器；`app` 只依赖 core 端口；`main` 负责组装
-- 同一份逻辑只有一份实现（桌面「立即采集」与脚本共用同一个 `runCollect`）
+- **Commit messages in English** (imperative subject, body explains why); code comments, docs and UI copy in
+  Chinese (enforced by `.githooks/commit-msg`, enable with `git config core.hooksPath .githooks`)
+- Run `pnpm test` and `pnpm typecheck` before committing; UI changes need a screenshot, not just types
+- Architecture rules: `core` imports no adapters; `app` depends only on core ports; `main` does the assembly
+- One implementation per behavior (the desktop "Run now" and scripts share the same `runCollect`)
 
-## 许可证
+## License
 
 [MIT](LICENSE) © 2026 husleng24
