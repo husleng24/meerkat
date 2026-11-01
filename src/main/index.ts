@@ -74,6 +74,16 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // 同窗口导航也要拦：setWindowOpenHandler 只管新窗口，
+  // 一个忘了 target="_blank" 的 <a> 会把整个应用导航走（而且回不来）。
+  mainWindow.webContents.on('will-navigate', (e, url) => {
+    const dev = process.env['ELECTRON_RENDERER_URL']
+    const own = url.startsWith('file://') || (dev !== undefined && url.startsWith(dev))
+    if (own) return
+    e.preventDefault()
+    void shell.openExternal(url)
+  })
+
   // 关窗 = 收进托盘，而不是退出。这是"无人值守"的前提
   mainWindow.on('close', (e) => {
     if (quitting) return

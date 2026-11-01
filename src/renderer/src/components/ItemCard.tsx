@@ -96,6 +96,8 @@ export function ItemCard({
             <a
               key={l.label}
               href={l.url}
+              target="_blank"
+              rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="text-accent/90 hover:text-accent hover:underline"
             >
