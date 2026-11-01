@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.1 · 402 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 402 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -17,10 +17,10 @@ Grab an installer from [Releases](https://github.com/husleng24/meerkat/releases)
 
 | Platform | File |
 |---|---|
-| macOS (Apple Silicon) | [Meerkat-0.1.1-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-arm64.dmg) |
-| macOS (Intel) | [Meerkat-0.1.1-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.dmg) |
-| Windows (installer) | [Meerkat-0.1.1-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.exe) |
-| Windows (portable) | [Meerkat-0.1.1-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-portable.exe) |
+| macOS (Apple Silicon) | [Meerkat-0.1.2-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-arm64.dmg) |
+| macOS (Intel) | [Meerkat-0.1.2-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.dmg) |
+| Windows (installer) | [Meerkat-0.1.2-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.exe) |
+| Windows (portable) | [Meerkat-0.1.2-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-portable.exe) |
 
 Neither platform is code-signed, and that has consequences:
 

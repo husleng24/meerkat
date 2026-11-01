@@ -8,7 +8,7 @@
 
 ![两层侧栏：领域与主题](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.1 · 402 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 402 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -16,10 +16,10 @@
 
 | 平台 | 文件 |
 |---|---|
-| macOS（Apple Silicon） | [Meerkat-0.1.1-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-arm64.dmg) |
-| macOS（Intel） | [Meerkat-0.1.1-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.dmg) |
-| Windows（安装版） | [Meerkat-0.1.1-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-x64.exe) |
-| Windows（便携版） | [Meerkat-0.1.1-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.1/Meerkat-0.1.1-portable.exe) |
+| macOS（Apple Silicon） | [Meerkat-0.1.2-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-arm64.dmg) |
+| macOS（Intel） | [Meerkat-0.1.2-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.dmg) |
+| Windows（安装版） | [Meerkat-0.1.2-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.exe) |
+| Windows（便携版） | [Meerkat-0.1.2-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-portable.exe) |
 
 两个平台都没有代码签名，后果要说清楚：
 
