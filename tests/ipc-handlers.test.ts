@@ -112,6 +112,13 @@ describe('IPC：领域与主题的两层结构', () => {
     })
   })
 
+  it('sources:recommend 非法入参返回空数组，合法入参返回候选列表', () => {
+    expect(call('sources:recommend', 'nope')).toEqual([])
+    const list = call('sources:recommend', { topicId: 'ai', limit: 3 }) as unknown[]
+    expect(Array.isArray(list)).toBe(true)
+    expect(list.length).toBeLessThanOrEqual(3)
+  })
+
   it('domainBrief:latest 非法入参返回 null，不抛异常', () => {
     expect(call('domainBrief:latest', 'nope')).toBeNull()
     expect(call('domainBrief:latest', { domainId: 'ai' })).toBeNull()

@@ -278,7 +278,10 @@ export function SettingsPage({
         <p className="mb-4 text-[12px] text-ink-3">
           只有勾选的源会参与这个领域的采集。不同领域可以各选各的，源的健康度仍然全局共享。
         </p>
-        <TopicSources topicId={topicId} />
+        <TopicSources
+          topicId={topicId}
+          topicName={topics.find((t) => t.id === topicId)?.name ?? '这个主题'}
+        />
       </section>
 
       <section className="mb-8">

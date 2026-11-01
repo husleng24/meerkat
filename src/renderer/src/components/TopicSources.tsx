@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BUCKETS, BUCKET_LABEL, type Bucket, type Source } from '../../../core/domain/types'
+import type { SourceRecommendationPayload } from '../lib/ipc-types'
 
 /**
  * 「本主题的源」。
@@ -11,11 +12,24 @@ import { BUCKETS, BUCKET_LABEL, type Bucket, type Source } from '../../../core/d
  * 每次勾选立即落库：这里没有"保存"按钮，因为漏点保存导致的"我明明勾了"
  * 是这类界面最典型的投诉。
  */
-export function TopicSources({ topicId }: { topicId: string }): React.JSX.Element {
+export function TopicSources({ topicId, topicName }: { topicId: string; topicName: string }): React.JSX.Element {
   const [sources, setSources] = useState<Source[]>([])
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [note, setNote] = useState('')
   const [available, setAvailable] = useState(true)
+  const [recs, setRecs] = useState<SourceRecommendationPayload[]>([])
+
+  // 推荐只算"还没进这个主题"的源；加进去之后从列表里移除，避免重复点
+  const loadRecs = useCallback(async (): Promise<void> => {
+    const api = window.meerkat?.sources
+    if (!api?.recommend) return
+    const list = await api.recommend({ topicId, limit: 6 })
+    setRecs(list)
+  }, [topicId])
+
+  useEffect(() => {
+    void loadRecs()
+  }, [loadRecs])
 
   useEffect(() => {
     const api = window.meerkat
@@ -66,6 +80,20 @@ export function TopicSources({ topicId }: { topicId: string }): React.JSX.Elemen
     void apply(next)
   }
 
+  const addRecommended = (id: string): void => {
+    const next = new Set(picked)
+    next.add(id)
+    setRecs((cur) => cur.filter((r) => r.id !== id))
+    void apply(next)
+  }
+
+  const addAllRecommended = (): void => {
+    const next = new Set(picked)
+    for (const r of recs) next.add(r.id)
+    setRecs([])
+    void apply(next)
+  }
+
   if (!available) {
     return <p className="text-[12px] text-ink-3">预览模式下不可用：需要在桌面应用内运行。</p>
   }
@@ -87,6 +115,31 @@ export function TopicSources({ topicId }: { topicId: string }): React.JSX.Elemen
         </button>
         {note && <span className="ml-auto text-ink-3">{note}</span>}
       </div>
+
+      {recs.length > 0 && (
+        <div className="mb-2.5 rounded-lg border border-accent/25 bg-accent-soft/40 px-3 py-2">
+          <div className="mb-1 flex items-center gap-2 text-[11px] text-ink-3">
+            <span>
+              ✨ 按「{topicName}」推荐（{recs.length} 个还没加入）
+            </span>
+            <button onClick={addAllRecommended} className="ml-auto text-accent hover:underline">
+              全部加入
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {recs.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => addRecommended(r.id)}
+                title={r.reason}
+                className="rounded-full border border-accent/30 bg-white px-2 py-0.5 text-[11px] text-accent transition-colors hover:bg-accent-soft"
+              >
+                ＋ {r.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="card max-h-[300px] overflow-y-auto px-4 py-3">
         {grouped.map(([bucket, list]) => (

@@ -16,8 +16,17 @@ export interface ProbeProgress {
   total: number
 }
 
+export interface SourceRecommendationPayload {
+  id: string
+  name: string
+  kind: string
+  score: number
+  reason: string
+}
+
 export interface SourcesBridge {
   list: () => Promise<Source[]>
+  recommend: (input: { topicId: string; limit?: number }) => Promise<SourceRecommendationPayload[]>
   toggle: (id: string, enabled: boolean) => Promise<{ ok: boolean; error?: string }>
   test: (id: string) => Promise<{ ok: boolean; n?: number; ms?: number; error?: string }>
   testAll: () => Promise<{ ok: boolean; summary: string }>

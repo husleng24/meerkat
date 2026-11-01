@@ -21,28 +21,7 @@ export interface SuggestInput {
   kind?: string
 }
 
-const STOP = new Set(['http', 'https', 'www', 'com', 'org', 'net', 'rss', 'feed', 'xml', 'html', 'news', 'blog', 'the'])
-
-function tokens(text: string): Set<string> {
-  const out = new Set<string>()
-  const lower = text.toLowerCase()
-  for (const m of lower.matchAll(/[a-z0-9]+/g)) {
-    const t = m[0]
-    if (t.length >= 3 && !STOP.has(t)) out.add(t)
-  }
-  // 中文没有空格：取相邻二字作为 token（"芯片与算力" → 芯片/片与/与算/算力）
-  const cjk = lower.match(/[\u4e00-\u9fa5]/g) ?? []
-  const seq = (lower.match(/[\u4e00-\u9fa5]+/g) ?? []).join('')
-  for (let i = 0; i + 2 <= seq.length; i++) out.add(seq.slice(i, i + 2))
-  if (cjk.length === 0) return out
-  return out
-}
-
-function overlap(a: Set<string>, b: Set<string>): number {
-  let n = 0
-  for (const t of a) if (b.has(t)) n += 1
-  return n
-}
+import { overlap, tokenize as tokens } from './text-match'
 
 /**
  * @param topics 候选主题（当前领域下的）

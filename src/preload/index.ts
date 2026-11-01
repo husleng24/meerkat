@@ -30,6 +30,9 @@ const api = {
 
   sources: {
     list: (): Promise<unknown[]> => ipcRenderer.invoke('sources:list'),
+    recommend: (input: { topicId: string; limit?: number }): Promise<
+      Array<{ id: string; name: string; kind: string; score: number; reason: string }>
+    > => ipcRenderer.invoke('sources:recommend', input),
     toggle: (id: string, enabled: boolean): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('sources:toggle', { id, enabled }),
     test: (id: string): Promise<{ ok: boolean; n?: number; ms?: number; error?: string }> =>

@@ -17,6 +17,7 @@ import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
+import { recommendSources } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
@@ -694,6 +695,16 @@ export function registerIpc(): void {
     if (!s.sources.get(parsed.data)) return { ok: false, error: '源不存在' }
     s.sources.remove(parsed.data)
     return { ok: true }
+  })
+
+  ipcMain.handle('sources:recommend', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ topicId: z.string().min(1).max(40), limit: z.number().int().min(1).max(10).optional() })
+      .safeParse(raw)
+    if (!parsed.success) return []
+    return recommendSources(requireStore(), parsed.data.topicId, {
+      ...(parsed.data.limit !== undefined ? { limit: parsed.data.limit } : {})
+    })
   })
 
   ipcMain.handle('domainBrief:latest', (_e, raw: unknown) => {
