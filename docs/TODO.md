@@ -99,6 +99,7 @@
 | 便携版不支持开机自启 | 每次运行解压到临时目录，注册表路径会失效（已正确拒绝并提示） |
 | `items` 表无清理 | 80 条/天，十年约 30 万行，可接受 |
 | 单实例 | 多开只唤起已有窗口，不支持并排 |
+| 开发态菜单栏显示 "Electron" | macOS 的菜单栏应用名来自 `.app` 的 `Info.plist`，运行时改不了；`pnpm dev` 跑的是 `node_modules` 里的 Electron.app。打包后的 `Meerkat.app` 显示正常。Dock 图标已在开发态用 `app.dock.setIcon` 修正 |
 | 本机 Agent（Codex / Claude Code / Ollama）未接入 | 已实测：claude 未登录、codex 单次约 119s；读 OAuth 凭据不合规，走 CLI 又太慢。方案存于 `docs/HARNESS.md`，暂缓 |
 
 ---
