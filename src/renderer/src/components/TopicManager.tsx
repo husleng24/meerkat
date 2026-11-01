@@ -54,7 +54,7 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
 
   const remove = async (): Promise<void> => {
     if (!active) return
-    if (!window.confirm(`删除主题「${active.name}」？它的简报与源归属会一起删掉，源本身不受影响。`)) return
+    if (!window.confirm(`删除领域「${active.name}」？它的简报与源归属会一起删掉，源本身不受影响。`)) return
     const res = await api.remove(active.id)
     setNote(res.ok ? `已删除「${active.name}」` : (res.error ?? '删除失败'))
     if (res.ok) {
@@ -66,7 +66,7 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
   return (
     <div className="card px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className="text-[12px] text-ink-2">当前主题</span>
+        <span className="text-[12px] text-ink-2">当前领域</span>
         <span className="text-[13px] font-semibold text-ink">{active?.name ?? '—'}</span>
         <span className="ml-auto text-[11px] text-ink-3">
           {active ? `${active.sourceCount} 个源 · ${active.hasBrief ? '已有简报' : '还没有简报'}` : ''}
@@ -100,7 +100,7 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
         <input
           value={draftName}
           onChange={(e) => setDraftName(e.target.value)}
-          placeholder="新主题名字，例如「芯片与算力」"
+          placeholder="新领域名字，例如「芯片与算力」"
           className="min-w-0 flex-1 rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] outline-none focus:border-accent"
         />
         <button
@@ -108,7 +108,7 @@ export function TopicManager({ topics, activeId, onPick, onChanged }: Props): Re
           disabled={!draftName.trim()}
           className="rounded-lg bg-ink px-3 py-1.5 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
         >
-          新建主题
+          新建领域
         </button>
       </div>
 

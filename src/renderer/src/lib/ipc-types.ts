@@ -175,6 +175,10 @@ export interface TopicPayload {
   minute: number
   sourceCount: number
   hasBrief: boolean
+  /** 最新一期简报的条目数；没有简报为 0，界面显示「—」 */
+  todayCount: number
+  /** 最新一期里尚未标记已读的条目数 */
+  unreadCount: number
 }
 
 export interface MeerkatBridge {

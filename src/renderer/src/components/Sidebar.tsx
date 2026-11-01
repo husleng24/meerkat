@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { TopicPayload } from '../lib/ipc-types'
 
 interface Props {
@@ -6,6 +7,8 @@ interface Props {
   activeTopic: string
   onPickTopic: (id: string) => void
   topicsAvailable: boolean
+  /** 就地新建领域；返回新领域 id 或 null */
+  onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
   onNavigate: (id: string) => void
   itemCount: number
   savedCount: number
@@ -38,6 +41,7 @@ export function Sidebar({
   activeTopic,
   onPickTopic,
   topicsAvailable,
+  onCreateTopic,
   onNavigate,
   itemCount,
   savedCount,
@@ -47,33 +51,89 @@ export function Sidebar({
   bridgeAvailable,
   dateLabel
 }: Props): React.JSX.Element {
+  const [creating, setCreating] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  const submitTopic = async (): Promise<void> => {
+    const name = draft.trim()
+    if (!name || !onCreateTopic) return
+    const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
+    setCreating(false)
+    setDraft('')
+    if (id) onPickTopic(id)
+  }
+
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
       {topicsAvailable && topics.length > 0 && (
         <div className="mb-1 px-1">
-          <label
-            htmlFor="topic-picker"
-            className="mb-1 block text-[10px] font-semibold tracking-[0.12em] text-ink-3"
-          >
-            主题
-          </label>
-          {topics.length > 1 ? (
-            <select
-              id="topic-picker"
-              value={activeTopic}
-              onChange={(e) => onPickTopic(e.target.value)}
-              className="w-full rounded-lg border border-rule bg-white px-2 py-1.5 text-[12.5px] font-medium text-ink outline-none focus:border-accent"
-            >
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="px-2 py-1 text-[12.5px] font-medium text-ink">{topics[0]!.name}</div>
-          )}
+          <div className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-ink-3">领域</div>
+          <div className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto">
+            {topics.map((t) => {
+              const isActive = t.id === activeTopic
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onPickTopic(t.id)}
+                  title={t.unreadCount > 0 ? `${t.unreadCount} 条未读` : undefined}
+                  className={[
+                    'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[6px] text-left text-[12.5px] transition-colors',
+                    isActive
+                      ? 'bg-accent-soft font-semibold text-accent'
+                      : 'text-ink-2 hover:bg-cream hover:text-ink'
+                  ].join(' ')}
+                >
+                  <span className="min-w-0 truncate">{t.name}</span>
+                  {/* 未读点紧跟在名字后面：放在数字前会被读成项目符号 */}
+                  {t.unreadCount > 0 && (
+                    <span
+                      aria-label={`${t.unreadCount} 条未读`}
+                      className={['h-1.5 w-1.5 shrink-0 rounded-full', isActive ? 'bg-accent' : 'bg-ink/35'].join(' ')}
+                    />
+                  )}
+                  <span className="flex-1" />
+                  <span
+                    className={[
+                      'shrink-0 tabular-nums text-[10.5px]',
+                      isActive ? 'text-accent/80' : 'text-ink-3'
+                    ].join(' ')}
+                  >
+                    {t.hasBrief ? t.todayCount : '—'}
+                  </span>
+                </button>
+              )
+            })}
+
+            {creating ? (
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitTopic()
+                  if (e.key === 'Escape') {
+                    setCreating(false)
+                    setDraft('')
+                  }
+                }}
+                onBlur={() => {
+                  if (!draft.trim()) setCreating(false)
+                }}
+                placeholder="领域名，回车创建"
+                className="w-full rounded-lg border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"
+              />
+            ) : (
+              onCreateTopic && (
+                <button
+                  onClick={() => setCreating(true)}
+                  className="flex w-full items-center gap-1 rounded-lg px-2.5 py-[6px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+                >
+                  ＋ 新建领域
+                </button>
+              )
+            )}
+          </div>
         </div>
       )}
 

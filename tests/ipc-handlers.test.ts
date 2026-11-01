@@ -197,21 +197,21 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('topics:update / remove 校验目标存在', () => {
     expect(call('topics:update', { id: 'nope', name: 'x' })).toEqual({
       ok: false,
-      error: '主题不存在'
+      error: '领域不存在'
     })
-    expect(call('topics:remove', 'nope')).toEqual({ ok: false, error: '主题不存在' })
+    expect(call('topics:remove', 'nope')).toEqual({ ok: false, error: '领域不存在' })
   })
 
   it('topics:remove 拒绝删掉最后一个主题', () => {
     // 现在有 ai 和 chip；先删 chip，再删 ai 必须被拦住
     expect(call('topics:remove', 'chip')).toEqual({ ok: true })
-    expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个主题' })
+    expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个领域' })
   })
 
   it('topics:setSources 拒绝不存在的主题', () => {
     expect(call('topics:setSources', { topicId: 'nope', sourceIds: [] })).toEqual({
       ok: false,
-      error: '主题不存在'
+      error: '领域不存在'
     })
   })
 
@@ -249,7 +249,7 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
     })
     expect(call('schedule:set', { topicId: 'nope', enabled: true, hour: 8, minute: 30 })).toEqual({
       ok: false,
-      error: '主题不存在'
+      error: '领域不存在'
     })
   })
 })

@@ -14,6 +14,8 @@ interface Props {
   /** 立即采集并重新生成；入口在报头右侧，不藏在设置里 */
   onRefresh?: () => void
   refreshing?: boolean
+  /** 当前领域名：显示在标题上方，说明这一页属于哪个作用域 */
+  topicName?: string
 }
 
 /** 从简报的元信息行里抠数字：覆盖最近 48 小时 · 34 个信息源 · 精选 24 条 */
@@ -50,7 +52,8 @@ export function BriefView({
   comparison,
   previousDate,
   onRefresh,
-  refreshing = false
+  refreshing = false,
+  topicName
 }: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
   const [cursor, setCursor] = useState(0)
@@ -126,6 +129,11 @@ export function BriefView({
     <div ref={listRef} className="mx-auto max-w-[780px] px-9 pb-24 pt-8">
       <header className="mb-5 flex items-start justify-between gap-4">
         <div>
+          {topicName && (
+            <span className="mb-1.5 inline-flex rounded-full bg-accent-soft px-2.5 py-0.5 text-[10.5px] font-medium text-accent">
+              {topicName}
+            </span>
+          )}
           <h1 className="text-[22px] font-bold leading-tight tracking-[-0.03em] text-ink">今日简报</h1>
           <p className="mt-1.5 text-[11.5px] text-ink-3">
             {dateLine(brief.title)}

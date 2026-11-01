@@ -16,6 +16,7 @@ import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
+import { topicStats } from '../app/topic-stats'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
@@ -382,7 +383,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const { topicId, ...cfg } = parsed.data
     if (!isValidSchedule(cfg)) return { ok: false, error: '时间超出范围' }
-    if (!requireStore().topics.get(topicId)) return { ok: false, error: '主题不存在' }
+    if (!requireStore().topics.get(topicId)) return { ok: false, error: '领域不存在' }
     writeSchedule(requireStore(), topicId, cfg)
     return { ok: true }
   })
@@ -390,11 +391,16 @@ export function registerIpc(): void {
   // ── 主题 ──────────────────────────────────────────────
   ipcMain.handle('topics:list', () => {
     const s = requireStore()
-    return s.topics.list().map((t) => ({
-      ...t,
-      sourceCount: s.topics.sourceIds(t.id).length,
-      hasBrief: s.briefs.latest(t.id) !== undefined
-    }))
+    return s.topics.list().map((t) => {
+      const stats = topicStats(s, t.id)
+      return {
+        ...t,
+        sourceCount: s.topics.sourceIds(t.id).length,
+        hasBrief: stats.date !== undefined,
+        todayCount: stats.todayCount,
+        unreadCount: stats.unreadCount
+      }
+    })
   })
 
   ipcMain.handle('topics:create', (_e, raw: unknown) => {
@@ -422,7 +428,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
     const topic = s.topics.get(parsed.data.id)
-    if (!topic) return { ok: false, error: '主题不存在' }
+    if (!topic) return { ok: false, error: '领域不存在' }
     s.topics.upsert({
       ...topic,
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
@@ -436,8 +442,8 @@ export function registerIpc(): void {
     const parsed = topicIdSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
-    if (s.topics.list().length <= 1) return { ok: false, error: '至少要保留一个主题' }
-    if (!s.topics.get(parsed.data)) return { ok: false, error: '主题不存在' }
+    if (s.topics.list().length <= 1) return { ok: false, error: '至少要保留一个领域' }
+    if (!s.topics.get(parsed.data)) return { ok: false, error: '领域不存在' }
     s.topics.remove(parsed.data)
     return { ok: true }
   })
@@ -448,7 +454,7 @@ export function registerIpc(): void {
       .safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
-    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '主题不存在' }
+    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '领域不存在' }
     s.topics.setSources(parsed.data.topicId, parsed.data.sourceIds)
     return { ok: true }
   })

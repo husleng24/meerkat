@@ -174,9 +174,9 @@ export function SettingsPage({
   return (
     <div className="mx-auto max-w-[680px] px-10 pb-24 pt-8">
       <section className="mb-8">
-        <h2 className="mb-1 text-[14px] font-semibold text-ink">主题</h2>
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">领域</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          一个主题有自己的一组源、一套排程和一条简报。切到哪个主题，今日与时间线就显示哪一个。
+          一个领域有自己的一组源、一套排程和一条简报。切到哪个领域，今日与时间线就显示哪一个。
         </p>
         <TopicManager
           topics={topics}
@@ -248,9 +248,9 @@ export function SettingsPage({
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的源</h2>
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">本领域的源</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          只有勾选的源会参与这个主题的采集。不同主题可以各选各的，源的健康度仍然全局共享。
+          只有勾选的源会参与这个领域的采集。不同领域可以各选各的，源的健康度仍然全局共享。
         </p>
         <TopicSources topicId={topicId} />
       </section>
@@ -258,7 +258,7 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">手动运行</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          立即采集：抓取本主题的源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
+          立即采集：抓取本领域的源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
           （换了提示词或想换个说法时用）。导出文件落在「文档/Meerkat/」。
         </p>
         <div className="flex flex-wrap items-start gap-x-8 gap-y-3">

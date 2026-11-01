@@ -42,7 +42,9 @@ export function useTopics(): TopicsState {
         hour: 8,
         minute: 30,
         sourceCount: 0,
-        hasBrief: false
+        hasBrief: false,
+        todayCount: 0,
+        unreadCount: 0
       }
       setTopics([fallback])
       setActiveIdState((cur) => cur || fallback.id)

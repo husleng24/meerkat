@@ -71,6 +71,21 @@ export default function App(): React.JSX.Element {
   const itemCount = brief ? brief.sections.reduce((n, s) => n + s.items.length, 0) : 0
   const dateLabel = brief?.title.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? ''
 
+  // ⌘1–9 直接切领域：领域是"作用域"，切换频率比页面还高
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      const n = Number(e.key)
+      if (!Number.isInteger(n) || n < 1 || n > 9) return
+      const t = topics[n - 1]
+      if (!t) return
+      e.preventDefault()
+      setActiveId(t.id)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [topics, setActiveId])
+
   // Ctrl/Cmd+K 跳到搜索：这是阅读器里最常用的一个动作
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -97,6 +112,7 @@ export default function App(): React.JSX.Element {
         activeTopic={activeId}
         onPickTopic={setActiveId}
         topicsAvailable={topicsAvailable}
+        onCreateTopic={createTopic}
         onNavigate={go}
         itemCount={itemCount}
         savedCount={flags.counts.saved}
@@ -133,7 +149,18 @@ export default function App(): React.JSX.Element {
           {loading && <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>}
 
           {!loading && nav === 'today' && !brief && (
-            <div className="px-10 py-16 text-[13px] text-ink-3">还没有简报</div>
+            <div className="px-10 py-16">
+              <div className="text-[13px] text-ink-3">
+                「{topics.find((t) => t.id === activeId)?.name ?? '这个领域'}」还没有简报
+              </div>
+              <button
+                onClick={() => void refresh()}
+                disabled={refreshing}
+                className="mt-3 rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+              >
+                {refreshing ? '运行中…' : '立即采集'}
+              </button>
+            </div>
           )}
 
           {!loading && brief && nav === 'today' && (
@@ -144,6 +171,7 @@ export default function App(): React.JSX.Element {
               previousDate={previousDate}
               onRefresh={() => void refresh()}
               refreshing={refreshing}
+              topicName={topics.find((t) => t.id === activeId)?.name}
             />
           )}
 

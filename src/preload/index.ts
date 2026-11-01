@@ -163,6 +163,8 @@ const api = {
         minute: number
         sourceCount: number
         hasBrief: boolean
+        todayCount: number
+        unreadCount: number
       }>
     > => ipcRenderer.invoke('topics:list'),
     create: (input: { id: string; name: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; error?: string }> =>

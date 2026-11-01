@@ -54,7 +54,7 @@ export function TopicSources({ topicId }: { topicId: string }): React.JSX.Elemen
       const api = window.meerkat?.topics
       if (!api) return
       const res = await api.setSources({ topicId, sourceIds: [...next] })
-      setNote(res.ok ? `已更新：本主题 ${next.size} 个源` : (res.error ?? '保存失败'))
+      setNote(res.ok ? `已更新：本领域 ${next.size} 个源` : (res.error ?? '保存失败'))
     },
     [topicId]
   )
