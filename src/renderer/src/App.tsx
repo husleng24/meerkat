@@ -79,6 +79,17 @@ export default function App(): React.JSX.Element {
     if (typeof location !== 'undefined') history.replaceState(null, '', '#' + id)
   }
 
+  /**
+   * 选主题。
+   *
+   * 领域汇总是按领域生成的，停在汇总页换主题什么都不会变——那不是 bug，
+   * 是这一页不属于某个主题。所以从汇总页选主题时直接回到该主题的今日。
+   */
+  const pickTopic = (id: string): void => {
+    setActiveId(id)
+    if (nav === 'rollup') go('today')
+  }
+
   /** 报头右侧的"更新"：和设置页走同一个 run:now，跑完靠 brief:updated 广播刷新界面 */
   const refresh = async (): Promise<void> => {
     const api = window.meerkat?.runNow
@@ -133,7 +144,7 @@ export default function App(): React.JSX.Element {
         active={nav}
         topics={domainTopics}
         activeTopic={activeId}
-        onPickTopic={setActiveId}
+        onPickTopic={pickTopic}
         domains={domains}
         activeDomain={activeDomain}
         onPickDomain={setActiveDomain}

@@ -232,3 +232,7 @@ CREATE TABLE domain_briefs (
 ![领域汇总](assets/ui-domain-rollup.png)
 
 已实测：无 key 的 profile 下走兜底稿（4 个主题、24 条、去重 20 条）；模型路径由假 provider 单测覆盖。
+
+补充（同日）：汇总属于**领域**，不属于某个主题。原来在汇总页点侧栏主题只会改 activeTopic、
+页面内容不动，看起来像坏了；现在从汇总页选主题会直接回到该主题的「今日」简报，
+汇总页的 meta 也写明「N 个主题 · M 条」，说明它是跨主题合成的。

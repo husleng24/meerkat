@@ -140,8 +140,8 @@ export function DomainRollupView({ domainId, domainName }: Props): React.JSX.Ele
             今天这个领域在发生什么
           </h1>
           <p className="mt-1 text-[11.5px] tabular-nums text-ink-3">
-            {brief
-              ? `${brief.date} · ${brief.model === 'fallback' ? '摘录兜底' : '由各主题简报合成'} · ${brief.markdown.length} 字`
+            {brief && parsed
+              ? `${brief.date} · ${parsed.sections.length} 个主题 · ${parsed.sections.reduce((n, x) => n + x.items.length, 0)} 条 · ${brief.model === 'fallback' ? '摘录兜底' : '模型合成'}`
               : '还没有汇总'}
           </p>
         </div>
