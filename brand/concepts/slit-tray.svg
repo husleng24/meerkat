@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Meerkat">
+  <title>Meerkat 托盘</title>
+  <defs>
+    <mask id="hole">
+      <rect width="512" height="512" rx="115" fill="#fff"/>
+      <path d="M91 252C158 188 354 188 421 252C354 316 158 316 91 252Z" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="#000" mask="url(#hole)"/>
+</svg>

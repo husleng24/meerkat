@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --paper:#F7F8FB; --panel:#fff; --ink:#0B1220; --ink2:#5A6472; --ink3:#6D7889;
+    --rule:#E6EAF2; --accent:#4F46E5; --accent-soft:#EEF0FF;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{
+    width:1080px; padding:34px 40px 30px; background:var(--paper); color:var(--ink);
+    font:14px/1.55 'PingFang SC','Helvetica Neue',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:20px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--ink2);font-size:12.5px;margin-top:5px}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+  .tag{font-size:11px;color:var(--ink3);text-align:right;line-height:1.7}
+  .block{background:var(--panel);border:1px solid var(--rule);border-radius:16px;padding:16px 18px;margin-bottom:12px}
+  .block.rec{border-color:#C9D0FF;box-shadow:0 14px 34px -26px rgba(79,70,229,.8)}
+  .row{display:flex;align-items:center;gap:22px}
+  .name{font-size:13.5px;font-weight:700}
+  .desc{font-size:11.5px;color:var(--ink2);margin-top:4px;line-height:1.5;max-width:300px}
+  .badge{display:inline-block;margin-top:8px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+    background:var(--accent-soft);color:var(--accent)}
+  .badge.dim{background:#F1F3F7;color:var(--ink3)}
+  .lock{display:flex;align-items:center;gap:12px;padding-left:6px}
+  .lock .wm{font-size:26px;font-weight:650;letter-spacing:-.6px;line-height:1}
+  .lock .slogan{font-size:11px;color:var(--ink3);letter-spacing:3px;margin-top:7px}
+  .sizes{display:flex;align-items:center;gap:14px;margin-left:auto}
+  .sizes img{display:block}
+  .px{image-rendering:pixelated}
+  .cap{font-size:9.5px;color:var(--ink3);text-align:center;margin-top:4px}
+  .divider{height:1px;background:var(--rule);margin:14px 0}
+  .ctx{display:flex;gap:26px;align-items:stretch}
+  .sidebar{width:238px;background:#FBFCFE;border:1px solid var(--rule);border-radius:12px;padding:16px 14px;flex:none}
+  .brandline{display:flex;align-items:center;gap:9px}
+  .brandline .wm{font-size:14.5px;font-weight:700;letter-spacing:-.3px}
+  .brandline .sl{font-size:9.5px;color:var(--ink3);letter-spacing:2px;margin-top:2px}
+  .nav{margin-top:18px;font-size:12.5px;color:var(--ink2);line-height:2.1}
+  .nav .on{color:var(--ink);font-weight:600;background:var(--accent-soft);border-radius:7px;padding:3px 8px;margin-left:-8px}
+  .note{font-size:11.5px;color:var(--ink2);margin-top:2px}
+  .note b{color:var(--ink)}
+  .quote{font-size:11.5px;color:var(--ink3);margin-top:10px;padding-left:10px;border-left:2px solid var(--rule)}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>不画动物之后：两条能收住的方向</h1>
+      <div class="sub">同一把尺子 · 512 / 64 / 32 / 16px 真像素 · 字标用界面同一套字（PingFang SC）</div>
+    </div>
+    <div class="tag">托盘 16–22px　侧栏 32px　图标 256–512px<br>下图所有图标均为矢量渲染，非位图缩放</div>
+  </div>
+
+  <div class="block rec">
+    <div class="row">
+      <div style="width:300px">
+        <div class="name">方向一 ·「一条缝」</div>
+        <div class="desc">一个形，两色，没有第二笔。读作：一道门缝里的光 / 一只半阖的眼 / 一条地平线。</div>
+        <span class="badge">推荐：最克制，也最像"做减法"</span>
+      </div>
+      <div class="lock">
+        <img src="renders/slit-mark-512.png" width="88" height="88">
+        <div>
+          <div class="wm">Meerkat</div>
+          <div class="slogan">替你盯着</div>
+        </div>
+      </div>
+      <div class="sizes">
+        <div><img src="renders/slit-mark-64.png" width="64" height="64"><div class="cap">64</div></div>
+        <div><img class="px" src="renders/slit-mark-32.png" width="32" height="32"><div class="cap">32</div></div>
+        <div><img class="px" src="renders/slit-mark-16.png" width="16" height="16"><div class="cap">16</div></div>
+        <div><img class="px" src="renders/slit-mark-16.png" width="96" height="96" style="border-radius:12px"><div class="cap">16 放大</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="row">
+      <div style="width:300px">
+        <div class="name">方向二 ·「m」</div>
+        <div class="desc">名字的首字母，自己画的几何 m。不解释就有名字，但也就只有名字。</div>
+        <span class="badge dim">最省事，记忆点靠字</span>
+      </div>
+      <div class="lock">
+        <img src="renders/m-mark-512.png" width="88" height="88">
+        <div>
+          <div class="wm">Meerkat</div>
+          <div class="slogan">替你盯着</div>
+        </div>
+      </div>
+      <div class="sizes">
+        <div><img src="renders/m-mark-64.png" width="64" height="64"><div class="cap">64</div></div>
+        <div><img class="px" src="renders/m-mark-32.png" width="32" height="32"><div class="cap">32</div></div>
+        <div><img class="px" src="renders/m-mark-16.png" width="16" height="16"><div class="cap">16</div></div>
+        <div><img class="px" src="renders/m-mark-16.png" width="96" height="96" style="border-radius:12px"><div class="cap">16 放大</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="row">
+      <div style="width:300px">
+        <div class="name">参照 · 上一轮的狐獴头</div>
+        <div class="desc">信息量最大，也最"有东西"。和上面两条比，它更像贴纸，不像标志。</div>
+        <span class="badge dim">不是更差，是另一种用途</span>
+      </div>
+      <div class="lock">
+        <img src="renders/meerkat-mark-512.png" width="88" height="88">
+        <div>
+          <div class="wm">Meerkat</div>
+          <div class="slogan">替你盯着</div>
+        </div>
+      </div>
+      <div class="sizes">
+        <div><img src="renders/meerkat-mark-64.png" width="64" height="64"><div class="cap">64</div></div>
+        <div><img class="px" src="renders/meerkat-mark-32.png" width="32" height="32"><div class="cap">32</div></div>
+        <div><img class="px" src="renders/meerkat-mark-16.png" width="16" height="16"><div class="cap">16</div></div>
+        <div><img class="px" src="renders/meerkat-mark-16.png" width="96" height="96" style="border-radius:12px"><div class="cap">16 放大</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="note" style="margin-bottom:8px"><b>托盘（菜单栏，2× 放大看像素）</b>　左：缝的镂空版　右：m。缝在小尺寸做了光学补偿——缝高从画布的 22.7% 提到 25%，否则 16px 会退化成一条实心胶囊。</div>
+  <img src="renders/tray-strip-2x.png" width="720" height="72" style="border-radius:10px;display:block;margin-bottom:14px">
+
+  <div class="ctx">
+    <div class="sidebar">
+      <div class="brandline">
+        <img src="renders/slit-mark-32.png" width="26" height="26" style="border-radius:7px">
+        <div><div class="wm">Meerkat</div><div class="sl">替你盯着</div></div>
+      </div>
+      <div class="nav">
+        <div class="on">今日</div>
+        <div>搜索</div><div>时间线</div><div>源</div><div>设置</div>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div class="note"><b>侧栏里的样子（真实 26px）。</b>缝在这个尺寸仍然是一条干净的横线；狐獴头在这里是一张小照片，
+      信息量大，但在一个已经有 24 条标题的界面里，它抢注意力。</div>
+      <div class="quote">"克制"在这里的具体含义：图标不再承担讲故事的任务。故事交给字标和界面，图标只负责"是它"。</div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:12px">
+    <b>16px 的真相：</b>两条都能活——缝缩成一道横线，m 缩成一个小写字母的剪影。
+    上一轮的狐獴头在这一档已经糊了。这是"简洁"换来的唯一硬收益。
+  </div>
+</body>
+</html>

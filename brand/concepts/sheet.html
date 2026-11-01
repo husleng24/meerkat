@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root{
+    --paper:#F7F8FB; --panel:#fff; --ink:#0B1220; --ink2:#5A6472; --ink3:#6D7889;
+    --rule:#E6EAF2; --accent:#4F46E5; --accent-soft:#EEF0FF; --lumen:#06B6D4;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{
+    width:1080px; padding:36px 40px 28px; background:var(--paper); color:var(--ink);
+    font:14px/1.5 -apple-system,"PingFang SC","Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1{font-size:21px;font-weight:800;letter-spacing:-.2px}
+  .sub{color:var(--ink2);font-size:12.5px;margin-top:5px}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px}
+  .tag{font-size:11px;color:var(--ink3);text-align:right;line-height:1.7}
+  .row{
+    display:grid;grid-template-columns:236px 168px 92px 60px 44px 150px;
+    align-items:center;gap:10px;padding:12px 14px;margin-bottom:10px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:14px;
+  }
+  .row.rec{border-color:#C9D0FF;box-shadow:0 12px 30px -24px rgba(79,70,229,.7)}
+  .name{font-size:13.5px;font-weight:700}
+  .desc{font-size:11.5px;color:var(--ink2);margin-top:3px;line-height:1.45}
+  .verdict{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;
+    padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+  .verdict.bad{background:#FDECEC;color:#B42318}
+  .verdict.ok{background:#ECFDF5;color:#047857}
+  .cell{display:flex;align-items:center;justify-content:center}
+  .colhead{font-size:10.5px;color:var(--ink3);text-align:center;letter-spacing:.3px}
+  img{display:block}
+  .px{image-rendering:pixelated}
+  .zoom{background:#fff;border:1px solid var(--rule);border-radius:8px}
+  .note{margin-top:6px;font-size:11.5px;color:var(--ink2);display:flex;gap:18px}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <h1>Meerkat 标志：四种切法，同一把尺子</h1>
+      <div class="sub">512 / 64 / 32 / 16px 全部按真实像素渲染 · 2026-11-01</div>
+    </div>
+    <div class="tag">托盘 16–22px　侧栏 32px　应用图标 256–512px<br>左三是缩小，最右是 16px 放大 8 倍的真值</div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="name">现状：插画全身 · 纸白底</div>
+      <div class="desc">暖棕三色、内部有大量结构。品牌文档已注明 32px 要换头肩版。</div>
+      <span class="verdict bad">32px 以下失效</span>
+    </div>
+    <div class="cell"><img src="renders/cur-512.png" width="150" height="150"></div>
+    <div class="cell"><img src="renders/cur-64.png" width="64" height="64"></div>
+    <div class="cell"><img class="px" src="renders/cur-32.png" width="32" height="32"></div>
+    <div class="cell"><img class="px" src="renders/cur-16.png" width="16" height="16"></div>
+    <div class="cell"><img class="px zoom" src="renders/cur-16.png" width="128" height="128"></div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="name">只换容器：插画 + 靛蓝底</div>
+      <div class="desc">不动画风，只把纸白换成 Lumen 的靛蓝。对比够了，但小尺寸仍是糊的。</div>
+      <span class="verdict">512 成立 / 32 不行</span>
+    </div>
+    <div class="cell"><img src="renders/warm-full-512.png" width="150" height="150"></div>
+    <div class="cell"><img src="renders/warm-full-64.png" width="64" height="64"></div>
+    <div class="cell"><img class="px" src="renders/warm-full-32.png" width="32" height="32"></div>
+    <div class="cell"><img class="px" src="renders/warm-full-16.png" width="16" height="16"></div>
+    <div class="cell"><img class="px zoom" src="renders/warm-full-16.png" width="128" height="128"></div>
+  </div>
+
+  <div class="row rec">
+    <div>
+      <div class="name">双色几何头 · 冷（建议）</div>
+      <div class="desc">把插画压成「奶油头 + 墨色眼罩」两色，轮廓从原图矢量描出，不是重画。</div>
+      <span class="verdict ok">512–32 成立</span>
+    </div>
+    <div class="cell"><img src="renders/meerkat-mark-512.png" width="150" height="150"></div>
+    <div class="cell"><img src="renders/meerkat-mark-64.png" width="64" height="64"></div>
+    <div class="cell"><img class="px" src="renders/meerkat-mark-32.png" width="32" height="32"></div>
+    <div class="cell"><img class="px" src="renders/meerkat-mark-16.png" width="16" height="16"></div>
+    <div class="cell"><img class="px zoom" src="renders/meerkat-mark-16.png" width="128" height="128"></div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="name">双色几何头 · 暖（备选）</div>
+      <div class="desc">同一张图，毛色换回品牌暖奶油。保住插画的温度，眼罩与底色的分离弱一档。</div>
+      <span class="verdict">512–64 成立</span>
+    </div>
+    <div class="cell"><img src="renders/meerkat-mark-warm-512.png" width="150" height="150"></div>
+    <div class="cell"><img src="renders/meerkat-mark-warm-64.png" width="64" height="64"></div>
+    <div class="cell"><img class="px" src="renders/meerkat-mark-warm-32.png" width="32" height="32"></div>
+    <div class="cell"><img class="px" src="renders/meerkat-mark-warm-16.png" width="16" height="16"></div>
+    <div class="cell"><img class="px zoom" src="renders/meerkat-mark-warm-16.png" width="128" height="128"></div>
+  </div>
+
+  <div class="note">
+    <div><b>结论：</b>16px 不能靠缩同一张图，必须单独画一版（两条眼缝 + 两个耳朵，三个形状封顶）。</div>
+    <div><b>托盘：</b>另需单色版，与彩色版分开维护。</div>
+  </div>
+</body>
+</html>
