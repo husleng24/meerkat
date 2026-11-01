@@ -214,6 +214,7 @@ export interface UpdateCheckPayload {
   hasUpdate: boolean
   url?: string
   publishedAt?: string
+  notes?: string
   error?: string
 }
 

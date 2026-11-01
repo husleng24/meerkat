@@ -22,6 +22,8 @@ export interface UpdateCheckResult {
   hasUpdate: boolean
   url?: string
   publishedAt?: string
+  /** Release 说明（changelog），在横幅与设置里展开查看 */
+  notes?: string
   /** 失败原因，只在手动检查时展示 */
   error?: string
 }
@@ -97,6 +99,7 @@ export async function checkForUpdate(
     latest: r.release.tag,
     hasUpdate,
     url: r.release.url,
-    ...(r.release.publishedAt ? { publishedAt: r.release.publishedAt } : {})
+    ...(r.release.publishedAt ? { publishedAt: r.release.publishedAt } : {}),
+    ...(r.release.notes ? { notes: r.release.notes } : {})
   }
 }

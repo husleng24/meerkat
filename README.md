@@ -84,9 +84,10 @@ deferred to P2.
 
 ### Update notice
 
-On launch it asks GitHub for the latest release (cached for 24 hours) and shows a slim banner plus a
-notification when a newer version exists, linking to the download. Check manually under Settings → About.
-It never downloads or replaces the app itself — both platforms are unsigned.
+On launch it asks GitHub for the latest release (cached for 24 hours) and, when a newer version exists,
+shows a slim banner (`v0.1.1 → v0.1.2`) plus one notification. The banner can expand the release notes
+(changelog) inline, and both it and Settings → About link to the download. It never downloads or replaces the
+app itself — both platforms are unsigned.
 
 ### Export
 

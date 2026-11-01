@@ -18,10 +18,14 @@ const release = (tag: string) => ({
 })
 
 describe('检查 GitHub Release', () => {
-  it('有更新版本时给出下载地址', async () => {
-    const r = await checkForUpdate(respond(release('v0.2.0')), { current: '0.1.0' })
+  it('有更新版本时给出下载地址与 changelog', async () => {
+    const r = await checkForUpdate(
+      respond({ ...release('v0.2.0'), body: '## 新增\n- 升级提醒' }),
+      { current: '0.1.0' }
+    )
     expect(r).toMatchObject({ ok: true, latest: 'v0.2.0', hasUpdate: true })
     expect(r.url).toContain('/releases/tag/v0.2.0')
+    expect(r.notes).toContain('升级提醒')
   })
 
   it('同版本或更旧的版本不算更新', async () => {

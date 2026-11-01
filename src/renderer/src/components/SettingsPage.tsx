@@ -5,6 +5,7 @@ import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
 import { TopicManager } from './TopicManager'
+import { ChatMarkdown } from './ChatMarkdown'
 import { DomainManager } from './DomainManager'
 import type { DomainPayload, TopicPayload, UpdateCheckPayload } from '../lib/ipc-types'
 import type { SchedulePayload } from '../lib/ipc-types'
@@ -878,12 +879,20 @@ function AboutCard(): React.JSX.Element {
       {!error && result?.ok && (
         <p className="mt-2 text-[11.5px] text-ink-3">
           {result.hasUpdate
-            ? `发现新版本 ${result.latest}，当前 v${result.current}`
+            ? `发现新版本 ${result.latest}（当前 v${result.current}）`
             : `已是最新版本（v${result.current}）`}
         </p>
       )}
       {!error && !result && (
         <p className="mt-2 text-[11.5px] text-ink-3">启动时会自动检查一次（24 小时内不重复）。</p>
+      )}
+      {!error && result?.ok && result.hasUpdate && result.notes && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-[11.5px] text-accent">更新内容</summary>
+          <div className="mt-2 max-h-64 overflow-y-auto rounded-lg bg-cream/50 p-3 text-[11.5px] text-ink-2">
+            <ChatMarkdown text={result.notes} />
+          </div>
+        </details>
       )}
     </div>
   )
