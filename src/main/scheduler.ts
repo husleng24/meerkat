@@ -44,9 +44,12 @@ export function lastRunKey(topicId: string): string {
   return `${LAST_RUN_KEY}.${topicId}`
 }
 
-/** 托盘图标：≤32px 必须用头部剪影，全身图在这个尺寸下认不出（见 BRAND.md） */
+/**
+ * 托盘图标：优先取 16px 专用字形，而不是把 32px 缩下来。
+ * 主标在 16px 会糊成一块，`icon-meerkat-head-16.png` 是为这一档单独画的（见 BRAND.md）。
+ */
 function trayImage(): Electron.NativeImage {
-  const candidates = ['icon-meerkat-head-32.png', 'icon-meerkat-head-16.png', 'icon-meerkat-32.png']
+  const candidates = ['icon-meerkat-head-16.png', 'icon-meerkat-head-32.png', 'icon-meerkat-32.png']
   for (const name of candidates) {
     const p = brandPath(name)
     if (existsSync(p)) {

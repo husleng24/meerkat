@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Meerkat">
+  <!-- ≤32px 专用：头 + 一道眼罩。不要用 512 主标缩到这个尺寸。 -->
+  <title>Meerkat 小尺寸字形</title>
+  <rect width="32" height="32" rx="7.2" fill="#4C46D8"/>
+  <g fill="#F7F8FB">
+    <circle cx="9.4" cy="11.2" r="2.9"/>
+    <circle cx="22.6" cy="11.2" r="2.9"/>
+    <path d="M16 4.8c3.6 0 5.9 2.5 5.9 6 0 3.4-1.9 6.4-4.6 8.7-.8.7-1.8.7-2.6 0-2.7-2.3-4.6-5.3-4.6-8.7 0-3.5 2.3-6 5.9-6Z"/>
+  </g>
+  <rect x="10.1" y="11.9" width="11.8" height="3.1" rx="1.55" fill="#0B1220"/>
+</svg>
