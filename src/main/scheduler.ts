@@ -12,6 +12,7 @@ import { decideDue, describeNext, describeSchedule, type ScheduleConfig } from '
 import { brandPath } from './paths'
 import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
+import { beginRun, cancelRun, endRun, isRunning } from './run-control'
 import type { DailyOutcome } from './daily'
 
 const CHECK_INTERVAL_MS = 60_000
@@ -20,7 +21,7 @@ const LAST_RUN_KEY = 'schedule.lastRunAt'
 export interface SchedulerDeps {
   store: Store
   /** 跑一个主题的采集 + 简报；返回值用于日志与通知文案 */
-  runOnce: (topicId: string) => Promise<DailyOutcome>
+  runOnce: (topicId: string, signal?: AbortSignal) => Promise<DailyOutcome>
   getWindow: () => BrowserWindow | null
   showWindow: () => void
 }
@@ -59,7 +60,6 @@ function trayImage(): Electron.NativeImage {
 export class Scheduler {
   private timer: NodeJS.Timeout | null = null
   private tray: Tray | null = null
-  private running = false
   private lastSummary = '尚未运行'
 
   constructor(private deps: SchedulerDeps) {}
@@ -92,26 +92,28 @@ export class Scheduler {
   }
 
   private async tick(): Promise<void> {
-    if (this.running) return
+    if (isRunning()) return
     const due = this.dueTopics(Date.now())
     this.refreshTray(due.length > 0 ? '准备运行…' : this.lastSummary)
     if (due.length === 0) return
 
-    this.running = true
+    const handle = beginRun()
+    if (!handle) return
     try {
       for (const { topic, reason } of due) {
+        if (handle.controller.signal.aborted) break
         log('info', `定时触发（${topic.name} · ${reason}）`)
-        await this.runTopic(topic)
+        await this.runTopic(topic, handle.controller.signal)
       }
     } finally {
-      this.running = false
+      endRun(handle)
       this.refreshTray(this.lastSummary)
     }
   }
 
-  private async runTopic(topic: Topic): Promise<void> {
+  private async runTopic(topic: Topic, signal?: AbortSignal): Promise<void> {
     try {
-      const out = await this.deps.runOnce(topic.id)
+      const out = await this.deps.runOnce(topic.id, signal)
       this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
       this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
       this.lastSummary = `${topic.name} · ${out.degraded ? '已降级' : '已完成'} · ${out.collect.nKept} 条`
@@ -125,6 +127,11 @@ export class Scheduler {
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      if (e instanceof Error && e.name === 'RunCancelledError') {
+        this.lastSummary = `${topic.name} · 已取消`
+        log('info', `已取消（${topic.name}）`)
+        return
+      }
       this.lastSummary = `${topic.name} 失败：${msg}`
       log('error', `定时任务失败（${topic.name}）: ${msg}`)
       this.notify('采集失败', false, `${msg}。可在「源」页查看详情。`)
@@ -185,7 +192,9 @@ export class Scheduler {
         ...(scheduleLines.length > 0 ? scheduleLines : [{ label: '排程：未启用任何主题', enabled: false }]),
         { type: 'separator' },
         { label: '打开简报', click: () => this.deps.showWindow() },
-        { label: '立即采集', click: () => void this.runNow() },
+        isRunning()
+          ? { label: '取消当前运行', click: () => this.cancelCurrent() }
+          : { label: '立即采集', click: () => void this.runNow() },
         { type: 'separator' },
         { label: '导出今日简报', click: () => this.exportLatest() },
         { type: 'separator' },
@@ -222,24 +231,38 @@ export class Scheduler {
 
   /** 托盘"立即采集"：不带主题就跑全部启用的主题 */
   async runNow(topicId?: string): Promise<void> {
-    if (this.running) return
-    this.running = true
+    if (isRunning()) return
+    const handle = beginRun()
+    if (!handle) return
     try {
       const topics = topicId
         ? [this.deps.store.topics.get(topicId)].filter((t): t is Topic => t !== undefined)
         : this.deps.store.topics.list().filter((t) => t.enabled)
       for (const topic of topics) {
-        const out = await this.deps.runOnce(topic.id)
+        if (handle.controller.signal.aborted) break
+        const out = await this.deps.runOnce(topic.id, handle.controller.signal)
         this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
         this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
         this.lastSummary = `${topic.name} · 手动 · ${out.collect.nKept} 条`
         this.notify(out.title, out.degraded)
       }
       this.deps.getWindow()?.webContents.send('brief:updated')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      this.lastSummary = e instanceof Error && e.name === 'RunCancelledError' ? '手动 · 已取消' : `手动失败：${msg}`
+      if (e instanceof Error && e.name !== 'RunCancelledError') log('error', `手动运行失败: ${msg}`)
     } finally {
-      this.running = false
+      endRun(handle)
       this.refreshTray(this.lastSummary)
     }
+  }
+
+  /** 托盘/界面共用：取消正在进行的那一轮 */
+  cancelCurrent(): boolean {
+    const cancelled = cancelRun()
+    if (cancelled) this.lastSummary = '取消中…'
+    this.refreshTray(this.lastSummary)
+    return cancelled
   }
 }
 

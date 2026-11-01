@@ -127,6 +127,14 @@ const api = {
   ): Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }> =>
     ipcRenderer.invoke('run:now', topicId),
 
+  /** 不重新抓取，用库里已有的素材重新成稿 */
+  composeNow: (
+    topicId?: string
+  ): Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }> =>
+    ipcRenderer.invoke('run:compose', topicId),
+
+  cancelRun: (): Promise<{ ok: boolean; cancelled: boolean }> => ipcRenderer.invoke('run:cancel'),
+
   exportHtml: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
     ipcRenderer.invoke('export:html', input),
 

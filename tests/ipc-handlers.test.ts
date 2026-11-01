@@ -215,6 +215,16 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
     })
   })
 
+  it('run:cancel 在空闲时返回 cancelled:false', () => {
+    expect(call('run:cancel')).toEqual({ ok: true, cancelled: false })
+  })
+
+  it('run:compose 校验主题与运行状态', async () => {
+    // handler 是 async 的，必须 await 才能拿到结构化结果
+    expect(await call('run:compose', { topicId: '' })).toEqual({ ok: false, error: '参数非法' })
+    expect(await call('run:compose', 123)).toEqual({ ok: false, error: '参数非法' })
+  })
+
   it('schedule:set 必须带 topicId', () => {
     expect(call('schedule:set', { enabled: true, hour: 8, minute: 30 })).toEqual({
       ok: false,

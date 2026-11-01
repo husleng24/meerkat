@@ -257,6 +257,21 @@ class SqliteItemStore implements ItemStore {
     return new Set(rows.map((r) => r.item_id))
   }
 
+  briefedIdsBefore(sinceTs: number, beforeTs: number, topicId?: string): Set<string> {
+    const rows = (
+      topicId
+        ? this.db
+            .prepare(
+              'SELECT item_id FROM brief_items WHERE topic_id = ? AND briefed_at >= ? AND briefed_at < ?'
+            )
+            .all(topicId, sinceTs, beforeTs)
+        : this.db
+            .prepare('SELECT item_id FROM brief_items WHERE briefed_at >= ? AND briefed_at < ?')
+            .all(sinceTs, beforeTs)
+    ) as { item_id: string }[]
+    return new Set(rows.map((r) => r.item_id))
+  }
+
   markBriefed(ids: string[], ts: number, topicId = 'ai'): void {
     if (ids.length === 0) return
     const stmt = this.db.prepare(`
@@ -331,7 +346,10 @@ class SqliteBriefStore implements BriefStore {
          VALUES (@id,@date,@topic_id,@markdown,@ir_json,@model,@tokens_in,@tokens_out,@link_check,@created_at)
          ON CONFLICT(id) DO UPDATE SET topic_id=excluded.topic_id, markdown=excluded.markdown,
            ir_json=excluded.ir_json, model=excluded.model, tokens_in=excluded.tokens_in,
-           tokens_out=excluded.tokens_out, link_check=excluded.link_check`
+           tokens_out=excluded.tokens_out, link_check=excluded.link_check,
+           -- createdAt 记的是"这一版内容什么时候写的"：重新成稿后必须跟着更新，
+           -- 否则界面和时间线会拿旧时间描述新内容
+           created_at=excluded.created_at`
       )
       .run({
         id: b.id, date: b.date, topic_id: b.topicId, markdown: b.markdown,

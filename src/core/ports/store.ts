@@ -34,6 +34,8 @@ export interface ItemStore {
   since(ts: number, limit?: number): Item[]
   /** 已写过简报的条目 id；按主题过滤，不同主题互不吞并 */
   briefedIds(sinceTs: number, topicId?: string): Set<string>
+  /** 在 beforeTs 之前推送过的条目（重新成稿时用来排除"以前推过"的旧闻） */
+  briefedIdsBefore(sinceTs: number, beforeTs: number, topicId?: string): Set<string>
   markBriefed(ids: string[], ts: number, topicId?: string): void
   /** 全文检索；空查询返回空数组 */
   search(query: string, opts?: SearchOptions): Item[]

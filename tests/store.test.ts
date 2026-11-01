@@ -290,6 +290,27 @@ describe('briefs', () => {
     expect(s.briefs.byDate('2026-01-01')).toBeUndefined()
     expect(s.briefs.list()).toHaveLength(1)
   })
+
+  it('同一天重写会更新内容与生成时间，而不是留下旧时间戳', () => {
+    const s = createMemoryStore()
+    const base = {
+      id: '2026-11-01-ai',
+      date: '2026-11-01',
+      topicId: 'ai',
+      markdown: '# 第一版',
+      model: 'deepseek-flash',
+      tokensIn: 0,
+      tokensOut: 0,
+      createdAt: T
+    }
+    s.briefs.save(base)
+    s.briefs.save({ ...base, markdown: '# 第二版', createdAt: T + 60_000 })
+
+    const b = s.briefs.byDate('2026-11-01', 'ai')!
+    expect(b.markdown).toBe('# 第二版')
+    // 重新成稿之后，createdAt 必须描述的是当前这一版内容
+    expect(b.createdAt).toBe(T + 60_000)
+  })
 })
 
 describe('runs 与 settings', () => {

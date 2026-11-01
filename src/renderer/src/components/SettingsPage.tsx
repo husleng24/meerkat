@@ -71,6 +71,11 @@ export function SettingsPage({
     setMessage('正在采集并生成简报，可能需要 1–2 分钟…')
     try {
       const r = await api(topicId || undefined)
+      if (!r.ok) {
+        setPhase('error')
+        setMessage(r.error ?? '运行失败')
+        return
+      }
       setPhase('done')
       setMessage(`完成：${r.nOk}/${r.nSources} 源成功，入库 ${r.nKept} 条${r.degraded ? '（简报已降级）' : ''}`)
       setCfg((prev) => ({ ...prev, lastRunAt: Date.now() }))
@@ -78,6 +83,37 @@ export function SettingsPage({
       setPhase('error')
       setMessage(`失败：${e instanceof Error ? e.message : String(e)}`)
     }
+  }, [])
+
+  /** 不抓取，直接用库里最近 48 小时的素材重写一版 */
+  const composeAgain = useCallback(async () => {
+    const api = window.meerkat?.composeNow
+    if (!api) {
+      setMessage('预览模式下不可用：需要在桌面应用内运行')
+      return
+    }
+    setPhase('running')
+    setMessage('正在用已有素材重新成稿，不重新抓取…')
+    try {
+      const r = await api(topicId || undefined)
+      if (!r.ok) {
+        setPhase('error')
+        setMessage(r.error ?? '重新成稿失败')
+        return
+      }
+      setPhase('done')
+      setMessage(`完成：复用 ${r.nKept} 条素材${r.degraded ? '（简报已降级）' : ''}`)
+    } catch (e) {
+      setPhase('error')
+      setMessage(`失败：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [topicId])
+
+  const cancel = useCallback(async () => {
+    const api = window.meerkat?.cancelRun
+    if (!api) return
+    const r = await api()
+    setMessage(r.cancelled ? '已请求取消，正在收尾…' : '当前没有在跑的任务')
   }, [])
 
   const doExport = useCallback(async () => {
@@ -219,16 +255,41 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">手动运行</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          立即抓取全部启用的源并重新生成简报。导出文件落在「文档/Meerkat/」。
+          立即采集：抓取本主题的源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
+          （换了提示词或想换个说法时用）。导出文件落在「文档/Meerkat/」。
         </p>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void runNow()}
-            disabled={phase === 'running'}
-            className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
-            {phase === 'running' ? '运行中…' : '立即采集'}
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {phase === 'running' ? (
+            <>
+              <button
+                disabled
+                className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper opacity-40"
+              >
+                运行中…
+              </button>
+              <button
+                onClick={() => void cancel()}
+                className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink-2 transition-colors hover:border-alert hover:text-alert"
+              >
+                取消
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => void runNow()}
+                className="rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90"
+              >
+                立即采集
+              </button>
+              <button
+                onClick={() => void composeAgain()}
+                className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
+              >
+                重新成稿
+              </button>
+            </>
+          )}
           <button
             onClick={() => void doExport()}
             className="rounded-lg border border-cream px-4 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"

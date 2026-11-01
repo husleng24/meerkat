@@ -6,7 +6,7 @@
  *  - 长任务（全量自检）走事件推送进度，不用轮询
  *  - 所有 handler 都返回 Result 形状，尽量不把异常抛给渲染层
  */
-import { app, ipcMain } from 'electron'
+import { BrowserWindow, app, ipcMain } from 'electron'
 import { existsSync, readFileSync } from 'node:fs'
 import { z } from 'zod'
 import { createStore } from '../adapters/store-sqlite/store'
@@ -20,8 +20,11 @@ import { getApiKey } from './keystore'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
-import { runDaily } from './daily'
+import { recomposeDaily, runDaily } from './daily'
+import { beginRun, cancelRun, endRun } from './run-control'
+import { RunCancelledError } from '../app/run-cancel'
 import { resourcePath } from './paths'
+import { log } from './log'
 import { exportDiagnostic } from './diagnostic'
 import { composeFeedback, copyFeedback, saveFeedback } from './feedback'
 import { clearApiKey, importFromDsh, keyStatus, setApiKey } from './keystore'
@@ -29,6 +32,13 @@ import type { Store } from '../core/ports/store'
 import type { Source } from '../core/domain/types'
 
 let store: Store | null = null
+
+/** 跑完之后让所有窗口刷新：不依赖窗口是否可见 */
+function broadcastBriefUpdated(): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('brief:updated')
+  }
+}
 
 function requireStore(): Store {
   if (!store) throw new Error('store 尚未初始化')
@@ -415,22 +425,74 @@ export function registerIpc(): void {
   })
 
   /** 手动"立即采集"：走与定时任务完全相同的实现 */
+  const resolveTopic = (raw: string | undefined): string | undefined => {
+    const s = requireStore()
+    return raw ?? s.topics.list()[0]?.id
+  }
+
   ipcMain.handle('run:now', async (_e, raw: unknown) => {
     const parsed = briefTopicSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
-    const s = requireStore()
-    const topicId = parsed.data ?? s.topics.list()[0]?.id
+    const topicId = resolveTopic(parsed.data)
     if (!topicId) return { ok: false, error: '还没有主题' }
-    const out = await runDaily(s, dailyDeps(), { topicId })
-    s.settings.set('schedule.lastRunAt', Date.now())
-    return {
-      ok: true,
-      nKept: out.collect.nKept,
-      nOk: out.collect.nOk,
-      nSources: out.collect.nSources,
-      degraded: out.degraded
+    const handle = beginRun()
+    if (!handle) return { ok: false, error: '正在运行中，先取消或等它跑完' }
+    const s = requireStore()
+    try {
+      const out = await runDaily(s, dailyDeps(), { topicId, signal: handle.controller.signal })
+      // 两个 key 都写：主题自己的用于排程，全局的用于诊断包/反馈材料
+      s.settings.set(lastRunKey(topicId), Date.now())
+      s.settings.set('schedule.lastRunAt', Date.now())
+      broadcastBriefUpdated()
+      return {
+        ok: true,
+        nKept: out.collect.nKept,
+        nOk: out.collect.nOk,
+        nSources: out.collect.nSources,
+        degraded: out.degraded
+      }
+    } catch (e) {
+      if (e instanceof RunCancelledError) {
+        log('info', '手动采集已取消')
+        return { ok: false, error: '已取消' }
+      }
+      log('error', `手动采集失败：${e instanceof Error ? e.message : String(e)}`)
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    } finally {
+      endRun(handle)
     }
   })
+
+  /** 不下网络：用库里最近 48 小时的素材重新成稿 */
+  ipcMain.handle('run:compose', async (_e, raw: unknown) => {
+    const parsed = briefTopicSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const topicId = resolveTopic(parsed.data)
+    if (!topicId) return { ok: false, error: '还没有主题' }
+    const handle = beginRun()
+    if (!handle) return { ok: false, error: '正在运行中，先取消或等它跑完' }
+    try {
+      const out = await recomposeDaily(requireStore(), dailyDeps(), {
+        topicId,
+        signal: handle.controller.signal
+      })
+      broadcastBriefUpdated()
+      return {
+        ok: true,
+        nKept: out.collect.nKept,
+        nOk: out.collect.nOk,
+        nSources: out.collect.nSources,
+        degraded: out.degraded
+      }
+    } catch (e) {
+      if (e instanceof RunCancelledError) return { ok: false, error: '已取消' }
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    } finally {
+      endRun(handle)
+    }
+  })
+
+  ipcMain.handle('run:cancel', () => ({ ok: true, cancelled: cancelRun() }))
 
   ipcMain.handle('sources:add', (_e, raw: unknown) => {
     const parsed = newSourceSchema.safeParse(raw)

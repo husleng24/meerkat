@@ -10,6 +10,7 @@ import type { FetchContext, FetchResult } from '../core/ports/fetcher'
 import { buildCandidates, type SourceBatch } from '../core/pipeline/run'
 import type { DedupedItem } from '../core/pipeline/dedupe'
 import type { BriefSourceStats } from './compose-brief'
+import { RunCancelledError } from './run-cancel'
 
 export interface CollectDeps {
   store: Store
@@ -20,6 +21,8 @@ export interface CollectOptions {
   now: number
   /** 只采这些源（按主题收录）；不传就是全部启用的源 */
   sourceIds?: string[]
+  /** 取消信号：中断后不再取新源，已拿到的结果作废（由调用方决定要不要成稿） */
+  signal?: AbortSignal
   windowHours: number
   maxItems: number
   arxivKeep: number
@@ -57,6 +60,8 @@ export async function runCollect(deps: CollectDeps, opts: CollectOptions): Promi
 
   const worker = async (): Promise<void> => {
     for (;;) {
+      // 取消后不再领新源：正在飞的请求会各自 abort，这里只负责不再扩大战场
+      if (opts.signal?.aborted) return
       const i = cursor++
       if (i >= sources.length) return
       const source = sources[i]!
@@ -64,9 +69,13 @@ export async function runCollect(deps: CollectDeps, opts: CollectOptions): Promi
       try {
         res = await fetchSource(source, {
           now: opts.now,
-          windowHours: source.windowHours ?? opts.windowHours
+          windowHours: source.windowHours ?? opts.windowHours,
+          ...(opts.signal ? { signal: opts.signal } : {})
         })
       } catch (e) {
+        // 取消导致的 abort 不是源的错：不能写进源健康度，否则用户点一次取消
+        // 就会让几个正在飞的源"凭空失败"
+        if (opts.signal?.aborted) return
         res = { ok: false, error: e instanceof Error ? e.message : String(e), ms: 0 }
       }
 
@@ -85,6 +94,18 @@ export async function runCollect(deps: CollectDeps, opts: CollectOptions): Promi
   }
 
   await Promise.all(Array.from({ length: Math.min(opts.concurrency, sources.length) }, worker))
+
+  // 取消时不要把半份数据当成一次完整采集：写库会污染"已推送"的判定。
+  // 但 run 记录要收尾——留着 finished_at 为空会让人以为进程崩了。
+  if (opts.signal?.aborted) {
+    store.runs.finish(runId, {
+      finishedAt: Date.now(),
+      nRaw: 0,
+      nKept: 0,
+      errorsJson: JSON.stringify(['cancelled'])
+    })
+    throw new RunCancelledError('collect')
+  }
 
   const built = buildCandidates(batches, {
     now: opts.now,

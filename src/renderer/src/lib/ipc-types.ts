@@ -163,6 +163,10 @@ export interface MeerkatBridge {
   runNow?: (
     topicId?: string
   ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
+  composeNow?: (
+    topicId?: string
+  ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
+  cancelRun?: () => Promise<{ ok: boolean; cancelled: boolean }>
   exportBrief?: () => Promise<{ ok: boolean; path?: string; error?: string }>
   exportDiagnostic?: () => Promise<{ ok: boolean; path?: string; summary?: string; error?: string }>
   exportHtml?: (input: { html: string; date: string }) => Promise<{ ok: boolean; path?: string; error?: string }>
