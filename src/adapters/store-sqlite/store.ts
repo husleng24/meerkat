@@ -1,9 +1,12 @@
 import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
-  Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore
+  Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
+  ChatStore
 } from '../../core/ports/store'
-import type { Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic } from '../../core/domain/types'
+import type {
+  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole
+} from '../../core/domain/types'
 
 const now = (): number => Date.now()
 const bool = (v: unknown): boolean => v === 1 || v === true
@@ -35,6 +38,14 @@ interface FlagRow {
   briefed_at: number | null; noted_at: number | null
 }
 interface SettingRow { key: string; value: string }
+interface ChatThreadRow {
+  id: string; title: string; topic_id: string; brief_date: string | null
+  model: string; created_at: number; updated_at: number; archived: number
+}
+interface ChatMessageRow {
+  id: string; thread_id: string; role: string; content: string; model: string | null
+  tokens_in: number | null; tokens_out: number | null; context_json: string | null; created_at: number
+}
 interface TopicRow {
   id: string; name: string; enabled: number; hour: number; minute: number
   created_at: number; updated_at: number
@@ -87,6 +98,29 @@ const toTopic = (r: TopicRow): Topic => ({
   minute: r.minute,
   createdAt: r.created_at,
   updatedAt: r.updated_at
+})
+
+const toChatThread = (r: ChatThreadRow): ChatThread => ({
+  id: r.id,
+  title: r.title,
+  topicId: r.topic_id,
+  ...(r.brief_date !== null ? { briefDate: r.brief_date } : {}),
+  model: r.model,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at,
+  archived: bool(r.archived)
+})
+
+const toChatMessage = (r: ChatMessageRow): ChatStoredMessage => ({
+  id: r.id,
+  threadId: r.thread_id,
+  role: r.role as ChatRole,
+  content: r.content,
+  ...(r.model !== null ? { model: r.model } : {}),
+  ...(r.tokens_in !== null ? { tokensIn: r.tokens_in } : {}),
+  ...(r.tokens_out !== null ? { tokensOut: r.tokens_out } : {}),
+  ...(r.context_json !== null ? { contextJson: r.context_json } : {}),
+  createdAt: r.created_at
 })
 
 const toBrief = (r: BriefRow): Brief => ({
@@ -527,11 +561,87 @@ class SqliteSettingsStore implements SettingsStore {
   }
 }
 
+class SqliteChatStore implements ChatStore {
+  constructor(private db: DB) {}
+  threads(topicId?: string): ChatThread[] {
+    const rows = (
+      topicId
+        ? this.db
+            .prepare('SELECT * FROM chat_threads WHERE topic_id = ? ORDER BY updated_at DESC')
+            .all(topicId)
+        : this.db.prepare('SELECT * FROM chat_threads ORDER BY updated_at DESC').all()
+    ) as ChatThreadRow[]
+    return rows.map(toChatThread)
+  }
+  get(id: string): ChatThread | undefined {
+    const r = this.db.prepare('SELECT * FROM chat_threads WHERE id = ?').get(id) as ChatThreadRow | undefined
+    return r ? toChatThread(r) : undefined
+  }
+  findByDate(topicId: string, briefDate: string): ChatThread | undefined {
+    const r = this.db
+      .prepare('SELECT * FROM chat_threads WHERE topic_id = ? AND brief_date = ? ORDER BY updated_at DESC LIMIT 1')
+      .get(topicId, briefDate) as ChatThreadRow | undefined
+    return r ? toChatThread(r) : undefined
+  }
+  create(t: ChatThread): void {
+    this.db
+      .prepare(
+        `INSERT INTO chat_threads (id,title,topic_id,brief_date,model,created_at,updated_at,archived)
+         VALUES (@id,@title,@topic_id,@brief_date,@model,@created_at,@updated_at,@archived)`
+      )
+      .run({
+        id: t.id,
+        title: t.title,
+        topic_id: t.topicId,
+        brief_date: t.briefDate ?? null,
+        model: t.model,
+        created_at: t.createdAt,
+        updated_at: t.updatedAt,
+        archived: t.archived ? 1 : 0
+      })
+  }
+  update(id: string, patch: { title?: string; model?: string; updatedAt?: number }): void {
+    const cur = this.get(id)
+    if (!cur) return
+    this.db
+      .prepare('UPDATE chat_threads SET title = ?, model = ?, updated_at = ? WHERE id = ?')
+      .run(patch.title ?? cur.title, patch.model ?? cur.model, patch.updatedAt ?? Date.now(), id)
+  }
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM chat_threads WHERE id = ?').run(id)
+  }
+  messages(threadId: string): ChatStoredMessage[] {
+    const rows = this.db
+      .prepare('SELECT * FROM chat_messages WHERE thread_id = ? ORDER BY created_at ASC')
+      .all(threadId) as ChatMessageRow[]
+    return rows.map(toChatMessage)
+  }
+  addMessage(m: ChatStoredMessage): void {
+    this.db
+      .prepare(
+        `INSERT INTO chat_messages (id,thread_id,role,content,model,tokens_in,tokens_out,context_json,created_at)
+         VALUES (@id,@thread_id,@role,@content,@model,@tokens_in,@tokens_out,@context_json,@created_at)`
+      )
+      .run({
+        id: m.id,
+        thread_id: m.threadId,
+        role: m.role,
+        content: m.content,
+        model: m.model ?? null,
+        tokens_in: m.tokensIn ?? null,
+        tokens_out: m.tokensOut ?? null,
+        context_json: m.contextJson ?? null,
+        created_at: m.createdAt
+      })
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly topics: TopicStore
   readonly items: ItemStore
   readonly briefs: BriefStore
+  readonly chat: ChatStore
   readonly runs: RunStore
   readonly flags: FlagStore
   readonly settings: SettingsStore
@@ -541,6 +651,7 @@ class SqliteStore implements Store {
     this.topics = new SqliteTopicStore(db)
     this.items = new SqliteItemStore(db)
     this.briefs = new SqliteBriefStore(db)
+    this.chat = new SqliteChatStore(db)
     this.runs = new SqliteRunStore(db)
     this.flags = new SqliteFlagStore(db)
     this.settings = new SqliteSettingsStore(db)

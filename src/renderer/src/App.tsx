@@ -11,6 +11,7 @@ import { useSortedSources, useSources } from './lib/useSources'
 import { useFlags } from './lib/useFlags'
 import { useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
+import { ChatWidget } from './components/ChatWidget'
 import { useTopics } from './lib/useTopics'
 
 const TITLES: Record<string, string> = {
@@ -179,6 +180,10 @@ export default function App(): React.JSX.Element {
       </main>
 
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {activeId && (
+        <ChatWidget topicId={activeId} briefDate={dateLabel} hasPrevious={previousDate.length > 0} />
+      )}
     </div>
   )
 }

@@ -225,6 +225,23 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
     expect(await call('run:compose', 123)).toEqual({ ok: false, error: '参数非法' })
   })
 
+  it('chat:ensure 拒绝非法入参', () => {
+    expect(call('chat:ensure', {})).toBeNull()
+    expect(call('chat:ensure', { topicId: '' })).toBeNull()
+  })
+
+  it('chat:send 拒绝非法入参', async () => {
+    expect(await call('chat:send', {})).toEqual({ ok: false, error: '参数非法' })
+    expect(await call('chat:send', { threadId: 'x', text: 'hi', actionId: 'nope' })).toEqual({
+      ok: false,
+      error: '参数非法'
+    })
+  })
+
+  it('chat:cancel 空闲时返回 cancelled:false', async () => {
+    expect(await call('chat:cancel')).toEqual({ cancelled: false })
+  })
+
   it('schedule:set 必须带 topicId', () => {
     expect(call('schedule:set', { enabled: true, hour: 8, minute: 30 })).toEqual({
       ok: false,

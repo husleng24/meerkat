@@ -95,6 +95,58 @@ export interface AutoLaunchState {
   reason?: string
 }
 
+export interface ChatThreadPayload {
+  id: string
+  title: string
+  topicId: string
+  briefDate?: string
+  model: string
+  createdAt: number
+  updatedAt: number
+  archived: boolean
+  contextTokens: number
+}
+
+export interface ChatMessagePayload {
+  id: string
+  threadId: string
+  role: 'user' | 'assistant'
+  content: string
+  model?: string
+  tokensIn?: number
+  tokensOut?: number
+  createdAt: number
+}
+
+export interface ChatModelPayload {
+  id: string
+  label: string
+  provider: string
+  contextWindow: number
+  tier: 'fast' | 'deep'
+}
+
+export interface ChatBridge {
+  models: () => Promise<ChatModelPayload[]>
+  ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
+  messages: (threadId: string) => Promise<ChatMessagePayload[]>
+  send: (input: {
+    threadId: string
+    text: string
+    actionId?: 'ask' | 'summarize5' | 'compare' | 'why' | 'reorder'
+    model?: string
+    includePrevious?: boolean
+  }) => Promise<{
+    ok: boolean
+    user?: ChatMessagePayload
+    assistant?: ChatMessagePayload
+    error?: string
+    estimatedTokens?: number
+    model?: string
+  }>
+  cancel: () => Promise<{ cancelled: boolean }>
+}
+
 export interface TopicPayload {
   id: string
   name: string
@@ -106,6 +158,7 @@ export interface TopicPayload {
 }
 
 export interface MeerkatBridge {
+  chat?: ChatBridge
   topics?: {
     list: () => Promise<TopicPayload[]>
     create: (input: { id: string; name: string; sourceIds?: string[] }) => Promise<{ ok: boolean; id?: string; error?: string }>

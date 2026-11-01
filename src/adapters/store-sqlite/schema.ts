@@ -169,6 +169,40 @@ export const MIGRATIONS: Migration[] = [
       INSERT INTO brief_items (topic_id, item_id, briefed_at)
       SELECT 'ai', item_id, briefed_at FROM item_flags WHERE briefed_at IS NOT NULL;
     `
+  },
+  {
+    version: 3,
+    name: 'chat',
+    up: `
+      -- 对话线程：每个主题每天一段（P0 的简化），标题取第一条消息前 16 字
+      CREATE TABLE chat_threads (
+        id         TEXT PRIMARY KEY,
+        title      TEXT    NOT NULL,
+        topic_id   TEXT    NOT NULL,
+        brief_date TEXT,
+        model      TEXT    NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        archived   INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_chat_threads_slot ON chat_threads(topic_id, brief_date);
+
+      CREATE TABLE chat_messages (
+        id           TEXT PRIMARY KEY,
+        thread_id    TEXT NOT NULL,
+        role         TEXT NOT NULL,
+        content      TEXT NOT NULL,
+        model        TEXT,
+        tokens_in    INTEGER,
+        tokens_out   INTEGER,
+        -- 只存引用（简报日期、条目 id），不存上下文正文
+        context_json TEXT,
+        created_at   INTEGER NOT NULL,
+        FOREIGN KEY (thread_id) REFERENCES chat_threads(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_chat_messages_thread ON chat_messages(thread_id, created_at);
+    `
   }
 ]
 

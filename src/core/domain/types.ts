@@ -138,6 +138,33 @@ export interface Topic {
   updatedAt: number
 }
 
+export interface ChatThread {
+  id: string
+  title: string
+  topicId: string
+  /** 创建时对应的简报日期；作为默认上下文 */
+  briefDate?: string
+  model: string
+  createdAt: number
+  updatedAt: number
+  archived: boolean
+}
+
+export type ChatRole = 'user' | 'assistant'
+
+export interface ChatStoredMessage {
+  id: string
+  threadId: string
+  role: ChatRole
+  content: string
+  model?: string
+  tokensIn?: number
+  tokensOut?: number
+  /** 引用来源的引用信息（JSON）：{ brief: date, previous: date } */
+  contextJson?: string
+  createdAt: number
+}
+
 /** 单次运行的统计，用于健康度与诊断包 */
 export interface RunRecord {
   id: string

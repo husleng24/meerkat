@@ -88,6 +88,56 @@ const api = {
     }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('schedule:set', cfg)
   },
 
+  chat: {
+    models: (): Promise<Array<{ id: string; label: string; provider: string; contextWindow: number; tier: 'fast' | 'deep' }>> =>
+      ipcRenderer.invoke('chat:models'),
+    ensure: (input: {
+      topicId: string
+      briefDate?: string
+      model?: string
+    }): Promise<{
+      id: string
+      title: string
+      topicId: string
+      briefDate?: string
+      model: string
+      createdAt: number
+      updatedAt: number
+      archived: boolean
+      contextTokens: number
+    } | null> => ipcRenderer.invoke('chat:ensure', input),
+    messages: (
+      threadId: string
+    ): Promise<
+      Array<{
+        id: string
+        threadId: string
+        role: 'user' | 'assistant'
+        content: string
+        model?: string
+        tokensIn?: number
+        tokensOut?: number
+        contextJson?: string
+        createdAt: number
+      }>
+    > => ipcRenderer.invoke('chat:messages', threadId),
+    send: (input: {
+      threadId: string
+      text: string
+      actionId?: 'ask' | 'summarize5' | 'compare' | 'why' | 'reorder'
+      model?: string
+      includePrevious?: boolean
+    }): Promise<{
+      ok: boolean
+      user?: { id: string; role: 'user'; content: string; createdAt: number }
+      assistant?: { id: string; role: 'assistant'; content: string; model?: string; createdAt: number }
+      error?: string
+      estimatedTokens?: number
+      model?: string
+    }> => ipcRenderer.invoke('chat:send', input),
+    cancel: (): Promise<{ cancelled: boolean }> => ipcRenderer.invoke('chat:cancel')
+  },
+
   topics: {
     list: (): Promise<
       Array<{

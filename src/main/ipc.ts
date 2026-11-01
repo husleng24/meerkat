@@ -21,6 +21,8 @@ import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolau
 import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
 import { recomposeDaily, runDaily } from './daily'
+import { chatModels, ensureThread, previewContextTokens, sendChatMessage } from './chat'
+import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
 import { RunCancelledError } from '../app/run-cancel'
 import { resourcePath } from './paths'
@@ -86,6 +88,18 @@ const feedbackTextSchema = z.object({
   body: z.string().min(1).max(20_000)
 })
 const topicIdSchema = z.string().min(1).max(40)
+const chatEnsureSchema = z.object({
+  topicId: topicIdSchema,
+  briefDate: z.string().max(20).optional(),
+  model: z.string().max(40).optional()
+})
+const chatSendSchema = z.object({
+  threadId: z.string().min(1).max(60),
+  text: z.string().max(4_000),
+  actionId: z.enum(['ask', 'summarize5', 'compare', 'why', 'reorder']).optional(),
+  model: z.string().max(40).optional(),
+  includePrevious: z.boolean().optional()
+})
 const topicCreateSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(30),
@@ -493,6 +507,34 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('run:cancel', () => ({ ok: true, cancelled: cancelRun() }))
+
+  // ── 对话 ──────────────────────────────────────────────
+  ipcMain.handle('chat:models', () => chatModels())
+
+  ipcMain.handle('chat:ensure', (_e, raw: unknown) => {
+    const parsed = chatEnsureSchema.safeParse(raw)
+    if (!parsed.success) return null
+    const thread = ensureThread(requireStore(), parsed.data)
+    if (!thread) return null
+    return { ...thread, contextTokens: previewContextTokens(requireStore(), thread.id, false) }
+  })
+
+  ipcMain.handle('chat:messages', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(60).safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore().chat.messages(parsed.data)
+  })
+
+  ipcMain.handle('chat:send', async (_e, raw: unknown) => {
+    const parsed = chatSendSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const res = await sendChatMessage(requireStore(), dailyDeps(), parsed.data)
+    // 让所有窗口刷新（面板可能开在另一个窗口上，P0 只有主窗口，但不能假设）
+    broadcastBriefUpdated()
+    return res
+  })
+
+  ipcMain.handle('chat:cancel', () => ({ cancelled: chatLatch.cancel() }))
 
   ipcMain.handle('sources:add', (_e, raw: unknown) => {
     const parsed = newSourceSchema.safeParse(raw)

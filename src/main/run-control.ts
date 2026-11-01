@@ -6,40 +6,77 @@
  * 这里做成一个模块级状态，所有入口共用。
  */
 
-let active: AbortController | null = null
-
 export interface RunHandle {
   controller: AbortController
 }
 
-/** 拿到一轮运行权；已有运行在进行时返回 null（调用方应当据此拒绝新请求） */
+export interface Latch {
+  begin(): RunHandle | null
+  end(handle: RunHandle): void
+  cancel(): boolean
+  isRunning(): boolean
+  signal(): AbortSignal | undefined
+  reset(): void
+}
+
+/**
+ * 一把"同一时刻只允许一件事"的闩。
+ *
+ * 采集与对话各有一把：聊天不该把正在跑的采集取消掉，反之亦然。
+ * 但两把闩的语义完全相同，所以只写一份实现。
+ */
+export function createLatch(): Latch {
+  let active: AbortController | null = null
+  return {
+    begin() {
+      if (active) return null
+      active = new AbortController()
+      return { controller: active }
+    },
+    end(handle) {
+      // 只清理自己那一轮：取消后立刻开始的新一轮不该被旧的 finally 清掉
+      if (active === handle.controller) active = null
+    },
+    cancel() {
+      if (!active) return false
+      active.abort()
+      return true
+    },
+    isRunning: () => active !== null,
+    signal: () => active?.signal,
+    reset() {
+      active = null
+    }
+  }
+}
+
+/** 采集用的闩（保持原有的函数式 API，测试与调用方都在用） */
+const collectLatch = createLatch()
+
 export function beginRun(): RunHandle | null {
-  if (active) return null
-  active = new AbortController()
-  return { controller: active }
+  return collectLatch.begin()
 }
 
 export function endRun(handle: RunHandle): void {
-  // 只清理自己那一轮：取消后立刻开始的新一轮不该被旧的 finally 清掉
-  if (active === handle.controller) active = null
+  collectLatch.end(handle)
 }
 
-/** 取消当前运行；没有在跑就返回 false */
 export function cancelRun(): boolean {
-  if (!active) return false
-  active.abort()
-  return true
+  return collectLatch.cancel()
 }
 
 export function isRunning(): boolean {
-  return active !== null
+  return collectLatch.isRunning()
 }
 
 export function currentSignal(): AbortSignal | undefined {
-  return active?.signal
+  return collectLatch.signal()
 }
 
 /** 测试用：把状态清干净 */
 export function resetRunControl(): void {
-  active = null
+  collectLatch.reset()
 }
+
+/** 对话用的闩：与采集互不影响 */
+export const chatLatch = createLatch()
