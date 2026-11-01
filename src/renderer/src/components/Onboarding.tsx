@@ -39,7 +39,7 @@ export function Onboarding({ sourceCount, createTopic, onDone }: Props): React.J
           <img src="./icon-meerkat-64.png" alt="" className="h-10 w-10 rounded-xl" />
           <div>
             <div className="text-[17px] font-bold text-ink">Meerkat</div>
-            <div className="text-[12px] text-ink-3">替你盯着，只看变了的那几条</div>
+            <div className="text-[12px] text-ink-3">只看真正变了的那几条</div>
           </div>
         </div>
 

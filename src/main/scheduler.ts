@@ -211,7 +211,7 @@ export class Scheduler {
     if (this.tray) return
     const img = trayImage()
     this.tray = new Tray(img)
-    this.tray.setToolTip('Meerkat · 替你盯着')
+    this.tray.setToolTip('Meerkat')
     // 记下托盘图标的实际位置：非零说明它真的进了通知区，而不只是对象创建成功
     try {
       const b = this.tray.getBounds()

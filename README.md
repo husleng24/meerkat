@@ -1,4 +1,4 @@
-# Meerkat · Watching change for you
+# Meerkat
 
 **English** · [简体中文](README.zh-CN.md)
 

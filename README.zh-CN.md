@@ -1,4 +1,4 @@
-# Meerkat · 替你盯着
+# Meerkat
 
 [English](README.md) · **简体中文**
 
