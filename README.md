@@ -249,8 +249,8 @@ TypeScript 报 TS2717 "Subsequent property declarations must have the same type"
 
 **导出**：写到 `文档/Meerkat/AI简报-YYYY-MM-DD.md`，并在资源管理器里定位文件。
 
-**盘中/托盘图标**：≤32px 用头部剪影（`icon-meerkat-head-32.png`），
-全身图在这个尺寸下认不出（见 `brand/BRAND.md`）。
+**盘中/托盘图标**：≤24px 用单独画的字形（`icon-meerkat-head-16.png`：头 + 一道眼罩），
+不要把 512 主标缩到这一档——缩下去会糊成一块（见 `brand/BRAND.md`）。
 
 ---
 
@@ -665,6 +665,10 @@ TODO 里挂了很久的一条：「今天有什么」已经有了，「和昨天
 **成稿也优先走同一套供应商**（DeepSeek → OpenAI → Anthropic），模型 id 可在设置里覆盖（模型下线时不用改代码）。
 
 ![模型与密钥](docs/assets/ui-providers.png)
+
+**模型接入方式**：目前只有 API Key（DeepSeek / OpenAI / Anthropic 各配一把，或走环境变量）。
+本机已安装的 Agent（Codex / Claude Code / Ollama）已调研，但延迟与授权成本不划算，暂不接入——
+调研数据与方案见 [docs/HARNESS.md](docs/HARNESS.md)。
 
 **P0 的边界**：非流式、每个主题每天一段会话、重排尚未开放（与草稿态一起在 P2）。
 设计稿与后续阶段见 [docs/AI-CHAT.md](docs/AI-CHAT.md)。
