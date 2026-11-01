@@ -6,6 +6,7 @@ directories:
   output: release
   buildResources: build
 
+
 # asar 打包，但原生模块必须解包：better-sqlite3 的 .node 文件
 # 在 asar 里无法 dlopen（经典坑，表现为启动即崩）
 asar: true
@@ -49,6 +50,12 @@ nsis:
   deleteAppDataOnUninstall: false
 
 mac:
+  # 没有证书，用 "-" 做 ad-hoc 签名；必须配合 entitlements 关闭库校验，
+  # 否则 Frameworks 里的 ad-hoc dylib 会被 AMFI 拒绝，双击无法启动
+  identity: "-"
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
   target:
     - target: dmg
       arch: [arm64, x64]

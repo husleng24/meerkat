@@ -59,3 +59,15 @@ macos-14 与 windows-latest，测试通过后打包并附加到一个 **draft** 
 - 未认证请求限流 60 次/小时；应用 24 小时内最多查一次
 - 国内访问 api.github.com 可能失败，应用会静默跳过，不影响使用
 
+## macOS 签名（重要）
+
+没有证书时 `electron-builder` 默认**不签名**，产物只剩 linker 签名，在 macOS 15+ 上
+从 Finder 双击启动会被 AMFI 拒绝（`Unrecoverable CT signature issue`），进程直接退出。
+
+现在配置为 **ad-hoc 签名**（`mac.identity: "-"`）+ 关闭库校验的 entitlements
+（`build/entitlements.mac.plist`），构建更接近可用状态；但在本机 macOS 15.7.9 上
+LaunchServices 启动仍会被 AMFI 拒绝，只有直接执行二进制才能启动。
+
+**结论：macOS 要分发给普通用户，必须用 Apple Developer ID 证书签名并公证**
+（需要 Apple Developer 账号）。在那之前，macOS 包只适合开发者本机使用。
+
