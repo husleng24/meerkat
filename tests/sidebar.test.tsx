@@ -44,7 +44,11 @@ afterEach(async () => {
 function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): React.ComponentProps<typeof Sidebar> {
   return {
     active: 'today',
-    topics: [topic(), topic({ id: 'b', name: '芯片与算力', todayCount: 12, unreadCount: 3 })],
+    topics: [
+      topic(),
+      topic({ id: 'b', name: '芯片与算力', todayCount: 12, unreadCount: 3 }),
+      topic({ id: 'c', name: '具身智能', todayCount: 9 })
+    ],
     activeTopic: 'a',
     onPickTopic: vi.fn(),
     onCreateTopic: vi.fn().mockResolvedValue(null),
@@ -61,77 +65,81 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
   }
 }
 
-describe('侧栏领域列表', () => {
-  it('列出全部领域与各自条数，没有简报显示「—」', async () => {
+const switcher = (el: HTMLElement): HTMLButtonElement => el.querySelector('button[aria-haspopup="listbox"]')!
+
+describe('侧栏领域切换器', () => {
+  it('常驻显示当前领域与未读点，列表默认收起', async () => {
     const el = await render(
-      <Sidebar
-        {...baseProps({
-          topics: [
-            topic(),
-            topic({ id: 'b', name: '芯片与算力', todayCount: 12, unreadCount: 3 }),
-            topic({ id: 'c', name: '具身智能', hasBrief: false, todayCount: 0 })
-          ]
-        })}
-      />
+      <Sidebar {...baseProps({ topics: [topic({ unreadCount: 23 }), topic({ id: 'b', name: '芯片与算力' })] })} />
     )
-    expect(el.textContent).toContain('AI 综合')
-    expect(el.textContent).toContain('芯片与算力')
-    expect(el.textContent).toContain('具身智能')
-    expect(el.textContent).toContain('—')
+    expect(switcher(el).textContent).toContain('AI 综合')
+    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
+    expect(switcher(el).querySelector('span[aria-label="23 条未读"]')).not.toBeNull()
+    // 未展开时看不到其他领域
+    expect(el.textContent).not.toContain('芯片与算力')
   })
 
-  it('当前领域高亮，未读用圆点表示（不带数字噪音）', async () => {
+  it('点开列出全部领域、条数与快捷键', async () => {
     const el = await render(<Sidebar {...baseProps()} />)
-    const active = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('AI 综合'))!
-    expect(active.className).toContain('bg-accent-soft')
-
-    // b 不是当前领域，但有 3 条未读：圆点带 aria-label，且行内没有把 3 写成数字
-    const unreadRow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('芯片与算力'))!
-    expect(unreadRow.querySelector('span[aria-label="3 条未读"]')).not.toBeNull()
-    expect(unreadRow.textContent).not.toContain('3 条未读')
+    await act(async () => switcher(el).click())
+    expect(switcher(el).getAttribute('aria-expanded')).toBe('true')
+    const options = [...el.querySelectorAll('[role="option"]')]
+    expect(options).toHaveLength(3)
+    expect(options[1]!.textContent).toContain('芯片与算力')
+    expect(options[1]!.textContent).toContain('12')
+    expect(options[1]!.textContent).toContain('⌘2')
+    expect(options[0]!.getAttribute('aria-selected')).toBe('true')
   })
 
-  it('点击领域切换', async () => {
+  it('选中一个领域后切过去并收起', async () => {
     const onPick = vi.fn()
     const el = await render(<Sidebar {...baseProps({ onPickTopic: onPick })} />)
-    const btn = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('芯片与算力'))!
-    await act(async () => btn.click())
+    await act(async () => switcher(el).click())
+    const option = el.querySelectorAll('[role="option"]')[1] as HTMLButtonElement
+    await act(async () => option.click())
+    expect(onPick).toHaveBeenCalledWith('b')
+    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('键盘：↓ 移动，Enter 选中', async () => {
+    const onPick = vi.fn()
+    const el = await render(<Sidebar {...baseProps({ onPickTopic: onPick })} />)
+    await act(async () => switcher(el).click())
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    })
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
     expect(onPick).toHaveBeenCalledWith('b')
   })
 
-  it('只有一个领域时仍然给「新建领域」入口', async () => {
+  it('Esc 与点击外部都会关闭', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
+    await act(async () => switcher(el).click())
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
+
+    await act(async () => switcher(el).click())
+    await act(async () => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    })
+    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('只有一个领域时仍然能新建', async () => {
     const el = await render(<Sidebar {...baseProps({ topics: [topic()] })} />)
+    await act(async () => switcher(el).click())
     expect(el.textContent).toContain('＋ 新建领域')
   })
 
-  it('领域可以收起：收起后行隐藏，标题行显示当前领域', async () => {
-    localStorage.removeItem('meerkat.sidebar.topicsOpen')
-    const el = await render(<Sidebar {...baseProps()} />)
-    const toggle = el.querySelector('button[aria-expanded]') as HTMLButtonElement
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(el.textContent).toContain('芯片与算力')
-
-    await act(async () => toggle.click())
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    // 列表行消失，但当前领域仍要可见（否则不知道自己在哪个领域）
-    expect(el.textContent).not.toContain('芯片与算力')
-    expect(toggle.textContent).toContain('AI 综合')
-    expect(localStorage.getItem('meerkat.sidebar.topicsOpen')).toBe('0')
-  })
-
-  it('收起状态会被记住', async () => {
-    localStorage.setItem('meerkat.sidebar.topicsOpen', '0')
-    const el = await render(<Sidebar {...baseProps()} />)
-    expect(el.querySelector('button[aria-expanded]')!.getAttribute('aria-expanded')).toBe('false')
-    expect(el.textContent).not.toContain('芯片与算力')
-    localStorage.removeItem('meerkat.sidebar.topicsOpen')
-  })
-
-  it('就地新建：回车创建并切过去，Esc 取消', async () => {
+  it('就地新建：回车创建、收起并切过去', async () => {
     const created = vi.fn().mockResolvedValue('t-new')
     const onPick = vi.fn()
     const el = await render(<Sidebar {...baseProps({ onCreateTopic: created, onPickTopic: onPick })} />)
-
+    await act(async () => switcher(el).click())
     const add = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('新建领域'))!
     await act(async () => add.click())
 
@@ -147,5 +155,14 @@ describe('侧栏领域列表', () => {
 
     expect(created).toHaveBeenCalledWith(expect.objectContaining({ name: '机器人' }))
     expect(onPick).toHaveBeenCalledWith('t-new')
+  })
+
+  it('「管理领域…」跳到设置页', async () => {
+    const onNavigate = vi.fn()
+    const el = await render(<Sidebar {...baseProps({ onNavigate })} />)
+    await act(async () => switcher(el).click())
+    const manage = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('管理领域'))!
+    await act(async () => manage.click())
+    expect(onNavigate).toHaveBeenCalledWith('settings')
   })
 })

@@ -1,24 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { TopicPayload } from '../lib/ipc-types'
-
-const TOPICS_OPEN_KEY = 'meerkat.sidebar.topicsOpen'
-
-function readOpenState(): boolean {
-  try {
-    const v = localStorage.getItem(TOPICS_OPEN_KEY)
-    return v === null ? true : v === '1'
-  } catch {
-    return true
-  }
-}
-
-function writeOpenState(open: boolean): void {
-  try {
-    localStorage.setItem(TOPICS_OPEN_KEY, open ? '1' : '0')
-  } catch {
-    /* 隐私模式忽略 */
-  }
-}
 
 interface Props {
   active: string
@@ -50,9 +31,9 @@ const NAV = [
 /**
  * 左侧导航。
  *
- * 从前是米色底板 + 白色药丸 + 阴影；现在退成近白 + 一条细线，
- * 选中态用靛蓝浅底与靛蓝字，不再需要阴影来"抬起来"。
- * 橙色（现在是红色）只留给"失效源"——全站唯一的警报位。
+ * 领域是**作用域**（决定今日/时间线看哪一份数据），和导航不是同一层：
+ * 所以它是一行切换器（常驻显示当前值），点开才是列表——而不是第二排导航。
+ * 位置遵循 Slack / Multica 的习惯：左上角。
  */
 export function Sidebar({
   active,
@@ -70,127 +51,192 @@ export function Sidebar({
   bridgeAvailable,
   dateLabel
 }: Props): React.JSX.Element {
+  const [open, setOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState('')
-  // 折叠状态记在本机：领域多的人会长期收起来，不该每次启动都重新展开
-  const [topicsOpen, setTopicsOpen] = useState(() => readOpenState())
+  const [cursor, setCursor] = useState(0)
+  const wrapRef = useRef<HTMLDivElement>(null)
 
-  const toggleTopics = (): void => {
-    setTopicsOpen((v) => {
-      writeOpenState(!v)
-      return !v
-    })
+  const activeInfo = topics.find((t) => t.id === activeTopic)
+  const activeIndex = topics.findIndex((t) => t.id === activeTopic)
+
+  const close = (): void => {
+    setOpen(false)
+    setCreating(false)
+    setDraft('')
   }
 
-  const activeTopicInfo = topics.find((t) => t.id === activeTopic)
+  const toggleSwitcher = (): void => {
+    if (!open) setCursor(activeIndex >= 0 ? activeIndex : 0)
+    setOpen((v) => !v)
+  }
 
   const submitTopic = async (): Promise<void> => {
     const name = draft.trim()
     if (!name || !onCreateTopic) return
     const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
-    setCreating(false)
-    setDraft('')
+    close()
     if (id) onPickTopic(id)
   }
+
+  // 领域被换掉时（弹层里选、⌘1–9、或别处触发）收起弹层，避免它停在旧状态
+  useEffect(() => {
+    setOpen(false)
+    setCreating(false)
+    setDraft('')
+  }, [activeTopic])
+
+  // 弹层打开时：点外部关闭、Esc 关闭、上下键移动、回车选中
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (e: MouseEvent): void => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) close()
+    }
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close()
+        return
+      }
+      if (creating) return // 输入框自己处理按键
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setCursor((c) => Math.min(c + 1, topics.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setCursor((c) => Math.max(c - 1, 0))
+      } else if (e.key === 'Enter') {
+        const t = topics[cursor]
+        if (!t) return
+        e.preventDefault()
+        onPickTopic(t.id)
+        close()
+      }
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open, creating, topics, cursor, onPickTopic])
 
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
       {topicsAvailable && topics.length > 0 && (
-        <div className="mb-1">
+        <div ref={wrapRef} className="relative mb-1">
           <button
-            onClick={toggleTopics}
-            aria-expanded={topicsOpen}
-            title={topicsOpen ? '收起领域' : '展开领域'}
-            className="flex w-full items-center gap-1.5 rounded-lg px-2.5 py-1 text-left transition-colors hover:bg-cream"
+            onClick={toggleSwitcher}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            title="切换领域"
+            className="flex w-full items-center gap-1.5 rounded-lg border border-rule px-2.5 py-[6px] text-left transition-colors hover:border-accent/40 hover:bg-cream"
           >
             <span className="shrink-0 text-[13px] font-semibold text-ink-3">领域</span>
-            {/* 收起时把当前领域放到标题行：否则用户不知道现在在看哪个领域 */}
-            {!topicsOpen && activeTopicInfo && (
-              <span className="min-w-0 truncate text-[13px] font-medium text-ink">{activeTopicInfo.name}</span>
+            <span className="min-w-0 truncate text-[13px] font-semibold text-ink">
+              {activeInfo?.name ?? '—'}
+            </span>
+            {activeInfo && activeInfo.unreadCount > 0 && (
+              <span
+                aria-label={`${activeInfo.unreadCount} 条未读`}
+                className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+              />
             )}
-            {!topicsOpen && activeTopicInfo && activeTopicInfo.unreadCount > 0 && (
-              <span aria-label={`${activeTopicInfo.unreadCount} 条未读`} className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink/40" />
-            )}
-            <span className="ml-auto shrink-0 text-ink-3">
-              <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                aria-hidden="true"
-                className={topicsOpen ? '' : '-rotate-90'}
-              >
-                <path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            <span
+              className={['ml-auto shrink-0 text-ink-3 transition-transform', open ? 'rotate-180' : ''].join(' ')}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path
+                  d="M2 3.5 5 6.5 8 3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </span>
           </button>
 
-          {topicsOpen && (
-          <div className="flex max-h-[200px] flex-col gap-0.5 overflow-y-auto">
-            {topics.map((t) => {
-              const isActive = t.id === activeTopic
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => onPickTopic(t.id)}
-                  title={t.unreadCount > 0 ? `${t.unreadCount} 条未读` : undefined}
-                  className={[
-                    'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
-                    isActive
-                      ? 'bg-accent-soft font-semibold text-accent'
-                      : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
-                  ].join(' ')}
-                >
-                  <span className="min-w-0 truncate">{t.name}</span>
-                  {/* 未读点紧跟在名字后面：放在数字前会被读成项目符号 */}
-                  {t.unreadCount > 0 && (
-                    <span
-                      aria-label={`${t.unreadCount} 条未读`}
-                      className={['h-1.5 w-1.5 shrink-0 rounded-full', isActive ? 'bg-accent' : 'bg-ink/35'].join(' ')}
-                    />
-                  )}
-                  <span className="flex-1" />
-                  <span
+          {open && (
+            <div
+              role="listbox"
+              aria-label="切换领域"
+              className="absolute left-0 top-full z-50 mt-1 w-full rounded-xl border border-rule bg-white p-1.5"
+              style={{ boxShadow: '0 18px 40px -24px rgba(11,18,32,.45), 0 2px 6px rgba(11,18,32,.06)' }}
+            >
+              <div className="px-2 pb-1 pt-0.5 text-[10px] tracking-[0.08em] text-ink-3">切换领域</div>
+              {topics.map((t, i) => {
+                const isActive = t.id === activeTopic
+                return (
+                  <button
+                    key={t.id}
+                    role="option"
+                    aria-selected={isActive}
+                    onMouseEnter={() => setCursor(i)}
+                    onClick={() => {
+                      onPickTopic(t.id)
+                      close()
+                    }}
                     className={[
-                      'shrink-0 tabular-nums text-[11px]',
-                      isActive ? 'text-accent/80' : 'text-ink-3'
+                      'flex w-full items-center gap-1.5 rounded-md px-2 py-[5px] text-left text-[13px] transition-colors',
+                      cursor === i ? 'bg-cream' : '',
+                      isActive ? 'font-semibold text-accent' : 'text-ink-2'
                     ].join(' ')}
                   >
-                    {t.hasBrief ? t.todayCount : '—'}
-                  </span>
-                </button>
-              )
-            })}
+                    <span className="min-w-0 truncate">{t.name}</span>
+                    {t.unreadCount > 0 && (
+                      <span
+                        aria-label={`${t.unreadCount} 条未读`}
+                        className={['h-1.5 w-1.5 shrink-0 rounded-full', isActive ? 'bg-accent' : 'bg-ink/35'].join(' ')}
+                      />
+                    )}
+                    <span className="ml-auto shrink-0 tabular-nums text-[11px] text-ink-3">
+                      {t.hasBrief ? t.todayCount : '—'}
+                    </span>
+                    <span className="w-[18px] shrink-0 text-right text-[10px] tabular-nums text-ink-3/70">
+                      {i < 9 ? `⌘${i + 1}` : ''}
+                    </span>
+                  </button>
+                )
+              })}
 
-            {creating ? (
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void submitTopic()
-                  if (e.key === 'Escape') {
-                    setCreating(false)
-                    setDraft('')
-                  }
-                }}
-                onBlur={() => {
-                  if (!draft.trim()) setCreating(false)
-                }}
-                placeholder="领域名，回车创建"
-                className="w-full rounded-lg border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"
-              />
-            ) : (
-              onCreateTopic && (
+              <div className="my-1 h-px bg-rule" />
+
+              {creating ? (
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void submitTopic()
+                    if (e.key === 'Escape') {
+                      setCreating(false)
+                      setDraft('')
+                    }
+                  }}
+                  placeholder="领域名，回车创建"
+                  className="w-full rounded-md border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"
+                />
+              ) : (
                 <button
                   onClick={() => setCreating(true)}
-                  className="flex w-full items-center gap-1 rounded-lg px-2.5 py-[6px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+                  className="flex w-full items-center rounded-md px-2 py-[5px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
                 >
                   ＋ 新建领域
                 </button>
-              )
-            )}
-          </div>
+              )}
+              <button
+                onClick={() => {
+                  onNavigate('settings')
+                  close()
+                }}
+                className="flex w-full items-center rounded-md px-2 py-[5px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+              >
+                管理领域…
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -215,7 +261,9 @@ export function Sidebar({
                   {attentionSources}
                 </span>
               )}
-              {n.id === 'timeline' && <span className="text-[11px] font-normal tabular-nums text-ink-3">{dateLabel}</span>}
+              {n.id === 'timeline' && (
+                <span className="text-[11px] font-normal tabular-nums text-ink-3">{dateLabel}</span>
+              )}
             </button>
           )
         })}
