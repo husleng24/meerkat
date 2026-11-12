@@ -114,5 +114,7 @@ export interface Store {
   settings: SettingsStore
   /** 当前 schema 版本，便于诊断包记录 */
   schemaVersion(): number
+  /** 在单个事务里执行；导入配置这类多步写入必须原子完成 */
+  transaction<T>(fn: () => T): T
   close(): void
 }

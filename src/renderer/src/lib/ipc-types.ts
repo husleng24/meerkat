@@ -24,6 +24,28 @@ export interface SourceRecommendationPayload {
   reason: string
 }
 
+import type { ImportPlan, SourcePack } from '../../../app/source-pack'
+
+export type { ImportPlan, SourcePack }
+
+export interface SourcePackExportResult {
+  ok: boolean
+  path?: string
+  canceled?: boolean
+  error?: string
+}
+
+export interface SourcePackImportResult extends SourcePackExportResult {
+  pack?: SourcePack
+  plan?: ImportPlan
+}
+
+export interface SourcePackApplyResult {
+  ok: boolean
+  plan?: ImportPlan
+  error?: string
+}
+
 export interface SourcesBridge {
   list: () => Promise<Source[]>
   recommend: (input: { topicId: string; limit?: number }) => Promise<SourceRecommendationPayload[]>
@@ -46,6 +68,9 @@ export interface SourcesBridge {
     bucketHint: string
   }) => Promise<{ ok: boolean; error?: string }>
   onProgress: (cb: (p: ProbeProgress) => void) => () => void
+  exportPack: (input: { scope: 'all' | 'topic'; topicId?: string }) => Promise<SourcePackExportResult>
+  importPack: () => Promise<SourcePackImportResult>
+  applyPack: (pack: SourcePack) => Promise<SourcePackApplyResult>
 }
 
 export interface SearchHit {

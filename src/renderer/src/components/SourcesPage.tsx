@@ -4,6 +4,7 @@ import { BUCKET_LABEL, type Bucket, type Source } from '../../../core/domain/typ
 import type { SourcesState } from '../lib/useSources'
 import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
 import { suggestTopic } from '../../../app/suggest-topic'
+import { SourcePackPanel } from './SourcePackPanel'
 
 const KIND_LABEL: Record<string, string> = {
   rss: 'RSS',
@@ -118,6 +119,13 @@ export function SourcesPage({
         </div>
       </div>
 
+      <SourcePackPanel
+        activeTopic={activeTopic}
+        onApplied={() => {
+          void state.reload()
+          onTopicsChanged?.()
+        }}
+      />
 
       {adding && (
         <AddSourceForm

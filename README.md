@@ -1,4 +1,4 @@
-# Meerkat
+﻿# Meerkat
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 402 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 412 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -83,7 +83,8 @@ read / saved / hidden flags are persisted and mapped back to item ids by URL.
 Sources are global (health is per source); membership is many-to-many per topic. The sources page shows
 consecutive failures and unstable feeds, and suggests replacements. When adding a source you pick the topics
 (grouped by domain) and get an explainable rule-based recommendation. In settings you can search, tick, or use
-**✨ recommended for this topic** to fill gaps.
+**✨ recommended for this topic** to fill gaps. Sources can be exported as a JSON pack (with topic membership)
+and imported on another machine or for a new topic; see [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md).
 
 ### AI chat
 
@@ -207,7 +208,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **402 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **412 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
@@ -238,6 +239,7 @@ Most design docs are currently written in Chinese.
 | [DESIGN.md](DESIGN.md) | Feature design and data flow |
 | [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | Visual spec: colors, type scale, layout rules |
 | [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI chat design and status |
+| [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md) | Source pack export/import format and rules |
 | [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | Evaluating the domain/topic model |
 | [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | Navigation research and trade-offs |
 | [docs/HARNESS.md](docs/HARNESS.md) | Local agent harness research (deferred) |

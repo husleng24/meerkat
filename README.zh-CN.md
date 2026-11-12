@@ -1,4 +1,4 @@
-# Meerkat
+﻿# Meerkat
 
 [English](README.md) · **简体中文**
 
@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 402 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 412 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -78,7 +78,8 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时
 
 源是全局的（健康度按源算），归属按主题多对多。源页显示连续失败与不稳定，给出替代源建议；
 新增源时按领域分组勾选归属主题，并给一个可解释的规则推荐。设置里可以按主题搜索、勾选、
-或用「✨ 按主题推荐」补源。
+或用「✨ 按主题推荐」补源。源配置可以导出为 JSON，连主题归属一起带走；换机或新建主题时
+导入即可（见 [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md)）。
 
 ### AI 对话
 
@@ -194,7 +195,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**402 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**412 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
@@ -221,6 +222,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | [DESIGN.md](DESIGN.md) | 功能设计与数据流 |
 | [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | 视觉规范：色值、字号、版式规则 |
 | [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI 对话的设计与实现状态 |
+| [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md) | 源配置的导出/导入格式与规则 |
 | [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | 领域/主题两层模型的评估 |
 | [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | 领域导航的调研与取舍 |
 | [docs/HARNESS.md](docs/HARNESS.md) | 本机 Agent harness 的调研（暂缓） |

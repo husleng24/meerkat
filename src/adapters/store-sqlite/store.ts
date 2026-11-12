@@ -695,6 +695,10 @@ class SqliteStore implements Store {
   schemaVersion(): number {
     return schemaVersion(this.db)
   }
+
+  transaction<T>(fn: () => T): T {
+    return this.db.transaction(fn)()
+  }
   close(): void {
     this.db.close()
   }

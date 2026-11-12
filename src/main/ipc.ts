@@ -6,14 +6,16 @@
  *  - 长任务（全量自检）走事件推送进度，不用轮询
  *  - 所有 handler 都返回 Result 形状，尽量不把异常抛给渲染层
  */
-import { BrowserWindow, Notification, app, ipcMain, net, shell } from 'electron'
-import { existsSync, readFileSync } from 'node:fs'
+import { BrowserWindow, Notification, app, dialog, ipcMain, net, shell } from 'electron'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { z } from 'zod'
 import { createStore } from '../adapters/store-sqlite/store'
 import { fetchSource } from '../adapters/sources'
 import { summarizeProbe, type ProbeResult } from '../app/source-health'
 import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
+import { applyImport, buildPack, parsePack, planImport } from '../app/source-pack'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
@@ -342,6 +344,75 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('sources:list', () => requireStore().sources.list())
+
+  ipcMain.handle('sources:exportPack', async (_e, raw: unknown) => {
+    const parsed = z
+      .object({ scope: z.enum(['all', 'topic']), topicId: z.string().min(1).max(40).optional() })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    if (parsed.data.scope === 'topic' && !parsed.data.topicId) return { ok: false, error: '缺少主题 id' }
+
+    let pack
+    try {
+      pack = buildPack(
+        requireStore(),
+        parsed.data.scope === 'all'
+          ? { kind: 'all' }
+          : { kind: 'topic', topicId: parsed.data.topicId! }
+      )
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+
+    const scopeName = parsed.data.scope === 'all' ? 'all' : parsed.data.topicId!
+    const day = new Date().toLocaleDateString('sv-SE')
+    const picked = await dialog.showSaveDialog({
+      title: '导出源配置',
+      defaultPath: join(app.getPath('documents'), 'Meerkat', `meerkat-sources-${scopeName}-${day}.json`),
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (picked.canceled || !picked.filePath) return { ok: false, canceled: true }
+    try {
+      mkdirSync(dirname(picked.filePath), { recursive: true })
+      writeFileSync(picked.filePath, `${JSON.stringify(pack, null, 2)}\n`, 'utf8')
+      log('info', `源配置已导出：${picked.filePath}`)
+      return { ok: true, path: picked.filePath }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('sources:importPack', async () => {
+    const picked = await dialog.showOpenDialog({
+      title: '导入源配置',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    })
+    if (picked.canceled || picked.filePaths.length === 0) return { ok: false, canceled: true }
+    const file = picked.filePaths[0]!
+    try {
+      if (statSync(file).size > 2 * 1024 * 1024) return { ok: false, error: '文件超过 2 MB' }
+      const pack = parsePack(JSON.parse(readFileSync(file, 'utf8')))
+      const plan = planImport(requireStore(), pack)
+      return { ok: true, path: file, pack, plan }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('sources:applyPack', (_e, raw: unknown) => {
+    try {
+      const pack = parsePack(raw)
+      const plan = applyImport(requireStore(), pack)
+      log(
+        'info',
+        `源配置已导入：源 +${plan.counts.sources.create}/~${plan.counts.sources.update} · 主题 +${plan.counts.topics.create}/~${plan.counts.topics.update}`
+      )
+      return { ok: true, plan }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
 
   /** 设置页「数据概览」：全局计数，只读；不是当前简报的局部统计 */
   ipcMain.handle('stats:overview', () => {

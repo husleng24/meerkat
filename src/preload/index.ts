@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BriefPayload, StatsOverviewPayload } from '../renderer/src/lib/ipc-types'
+import type {
+  BriefPayload,
+  SourcePackApplyResult,
+  SourcePackExportResult,
+  SourcePackImportResult,
+  SourcePack,
+  StatsOverviewPayload
+} from '../renderer/src/lib/ipc-types'
 
 /**
  * 暴露给渲染进程的窄接口。
@@ -57,6 +64,11 @@ const api = {
       tier: number
       bucketHint: string
     }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('sources:update', input),
+    exportPack: (input: { scope: 'all' | 'topic'; topicId?: string }): Promise<SourcePackExportResult> =>
+      ipcRenderer.invoke('sources:exportPack', input),
+    importPack: (): Promise<SourcePackImportResult> => ipcRenderer.invoke('sources:importPack'),
+    applyPack: (pack: SourcePack): Promise<SourcePackApplyResult> =>
+      ipcRenderer.invoke('sources:applyPack', pack),
     /** 订阅全量自检进度；返回取消订阅函数 */
     onProgress: (
       cb: (p: { id: string; ok: boolean; n: number; ms: number; error?: string; done: number; total: number }) => void

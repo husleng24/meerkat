@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { dialog } from 'electron'
 
 /**
  * IPC 边界测试。
@@ -66,7 +67,10 @@ vi.mock('electron', () => {
       fetch: async () => ({ ok: false, status: 404, json: async () => ({}) })
     },
     clipboard: { writeText: () => {} },
-    dialog: { showSaveDialog: async () => ({ canceled: true }) },
+    dialog: {
+      showSaveDialog: async () => ({ canceled: true }),
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] })
+    },
     screen: { getPrimaryDisplay: () => ({ workAreaSize: { width: 1280, height: 800 } }) },
     safeStorage: { isEncryptionAvailable: () => false }
   }
@@ -149,6 +153,84 @@ describe('IPC：领域与主题的两层结构', () => {
     expect(r.schemaVersion).toBe(6)
   })
 
+  it('sources:exportPack 取消保存时不写文件', async () => {
+    const r = (await call('sources:exportPack', { scope: 'all' })) as { ok: boolean; canceled?: boolean }
+    expect(r).toEqual({ ok: false, canceled: true })
+  })
+
+  it('sources:importPack 取消打开时安全返回', async () => {
+    expect(await call('sources:importPack')).toEqual({ ok: false, canceled: true })
+  })
+
+  it('sources:exportPack 写出可再解析的 JSON', async () => {
+    const file = join(dir, 'export.json')
+    const d = dialog as unknown as {
+      showSaveDialog: () => Promise<{ canceled: boolean; filePath?: string }>
+    }
+    const original = d.showSaveDialog
+    d.showSaveDialog = async () => ({ canceled: false, filePath: file })
+    try {
+      const r = (await call('sources:exportPack', { scope: 'all' })) as { ok: boolean; path?: string }
+      expect(r.ok).toBe(true)
+      expect(r.path).toBe(file)
+      const raw = JSON.parse(readFileSync(file, 'utf8')) as { format: string; sources: unknown[] }
+      expect(raw.format).toBe('meerkat/source-pack')
+      expect(Array.isArray(raw.sources)).toBe(true)
+    } finally {
+      d.showSaveDialog = original
+    }
+  })
+
+  it('sources:importPack 读取合法包并给出计划', async () => {
+    const file = join(dir, 'import.json')
+    writeFileSync(
+      file,
+      JSON.stringify({
+        format: 'meerkat/source-pack',
+        version: 1,
+        exportedAt: new Date(0).toISOString(),
+        domains: [{ id: 'ai', name: 'AI' }],
+        topics: [{ id: 'import-test', name: '导入测试', domainId: 'ai', sources: ['import-src'] }],
+        sources: [
+          {
+            id: 'import-src',
+            name: 'Import Source',
+            kind: 'rss',
+            url: 'https://example.com/import',
+            tier: 2,
+            bucketHint: 'research'
+          }
+        ]
+      }),
+      'utf8'
+    )
+    const d = dialog as unknown as {
+      showOpenDialog: () => Promise<{ canceled: boolean; filePaths: string[] }>
+    }
+    const original = d.showOpenDialog
+    d.showOpenDialog = async () => ({ canceled: false, filePaths: [file] })
+    try {
+      const r = (await call('sources:importPack')) as {
+        ok: boolean
+        pack?: { format: string }
+        plan?: { counts: { sources: { create: number } } }
+      }
+      expect(r.ok).toBe(true)
+      expect(r.pack?.format).toBe('meerkat/source-pack')
+      expect(r.plan?.counts.sources.create).toBe(1)
+    } finally {
+      d.showOpenDialog = original
+    }
+  })
+
+  it('sources:applyPack 拒绝非法包且不写库', () => {
+    const before = (call('sources:list') as unknown[]).length
+    const r = call('sources:applyPack', { format: 'nope', version: 1 }) as { ok: boolean; error?: string }
+    expect(r.ok).toBe(false)
+    expect(r.error).toContain('不是 Meerkat source pack')
+    expect((call('sources:list') as unknown[]).length).toBe(before)
+  })
+
   it('领域下还有主题时不能删领域', () => {
     const r = call('domains:remove', 'ai')
     expect(r.ok).toBe(false)
@@ -158,7 +240,7 @@ describe('IPC：领域与主题的两层结构', () => {
 
 describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('注册了预期的 handler 集合', () => {
-    for (const name of ['brief:latest', 'flags:set', 'sources:add', 'schedule:set', 'items:search', 'stats:overview']) {
+    for (const name of ['brief:latest', 'flags:set', 'sources:add', 'schedule:set', 'items:search', 'stats:overview', 'sources:applyPack']) {
       expect(handlers.has(name), name).toBe(true)
     }
   })
