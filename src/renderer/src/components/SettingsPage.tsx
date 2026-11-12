@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { describeNext, describeSchedule, type ScheduleConfig } from '../../../app/schedule'
-import type { AutoLaunchState, ChatProviderPayload, KeyStatusPayload } from '../lib/ipc-types'
+import type { AutoLaunchState, ChatProviderPayload, KeyStatusPayload, StatsOverviewPayload } from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
@@ -53,6 +53,23 @@ export function SettingsPage({
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
   const [phase, setPhase] = useState<Phase>('idle')
   const [message, setMessage] = useState('')
+  const [overview, setOverview] = useState<StatsOverviewPayload | null>(null)
+
+  // 设置页打开时取一次全局计数；只读，不参与每日流程
+  useEffect(() => {
+    const api = window.meerkat?.stats
+    if (!api) return
+    let cancelled = false
+    void api
+      .overview()
+      .then((r) => {
+        if (!cancelled) setOverview(r)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     const api = window.meerkat?.schedule
@@ -407,6 +424,25 @@ export function SettingsPage({
         >
           导出诊断包
         </button>
+
+        <div className="mt-5 rounded-xl border border-rule bg-white px-4 py-3">
+          <div className="text-[11px] font-semibold tracking-[0.06em] text-ink-3">数据概览</div>
+          {overview ? (
+            <>
+              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11.5px]">
+                <Stat label="条目" value={overview.items} />
+                <Stat label="简报期数" value={overview.briefs} />
+                <Stat label="已读" value={overview.read} />
+                <Stat label="已收藏" value={overview.saved} />
+                <Stat label="源" value={overview.totalSources} />
+                <Stat label="失效源" value={overview.failingSources} warn={overview.failingSources > 0} />
+              </div>
+              <div className="mt-2 text-[11px] text-ink-3">数据库 schema v{overview.schemaVersion}</div>
+            </>
+          ) : (
+            <p className="mt-2 text-[11px] text-ink-3">读取中…</p>
+          )}
+        </div>
       </section>
 
       {origin === 'preview' && (
@@ -898,6 +934,17 @@ function AboutCard(): React.JSX.Element {
           </div>
         </details>
       )}
+    </div>
+  )
+}
+
+function Stat({ label, value, warn }: { label: string; value: number; warn?: boolean }): React.JSX.Element {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-ink-3">{label}</span>
+      <span className={warn ? 'font-semibold tabular-nums text-alert' : 'tabular-nums text-ink-2'}>
+        {value.toLocaleString('zh-CN')}
+      </span>
     </div>
   )
 }

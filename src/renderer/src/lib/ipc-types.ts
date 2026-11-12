@@ -198,6 +198,16 @@ export interface TopicPayload {
   unreadCount: number
 }
 
+export interface StatsOverviewPayload {
+  items: number
+  briefs: number
+  read: number
+  saved: number
+  failingSources: number
+  totalSources: number
+  schemaVersion: number
+}
+
 export interface UpdateCheckPayload {
   ok: boolean
   current: string
@@ -210,6 +220,9 @@ export interface UpdateCheckPayload {
 }
 
 export interface MeerkatBridge {
+  stats?: {
+    overview: () => Promise<StatsOverviewPayload>
+  }
   update?: {
     current: () => Promise<string>
     latest: () => Promise<UpdateCheckPayload | null>

@@ -343,6 +343,21 @@ export function registerIpc(): void {
 
   ipcMain.handle('sources:list', () => requireStore().sources.list())
 
+  /** 设置页「数据概览」：全局计数，只读；不是当前简报的局部统计 */
+  ipcMain.handle('stats:overview', () => {
+    const s = requireStore()
+    const sources = s.sources.list()
+    return {
+      items: s.items.count(),
+      briefs: s.briefs.count(),
+      read: s.flags.byFlag('isRead', true).length,
+      saved: s.flags.byFlag('isSaved', true).length,
+      failingSources: sources.filter((x) => x.failStreak >= 3).length,
+      totalSources: sources.length,
+      schemaVersion: s.schemaVersion()
+    }
+  })
+
   ipcMain.handle('sources:toggle', (_e, raw: unknown) => {
     const parsed = toggleSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }

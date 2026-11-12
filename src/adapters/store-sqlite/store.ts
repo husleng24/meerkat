@@ -428,6 +428,9 @@ class SqliteBriefStore implements BriefStore {
     ) as BriefRow[]
     return rows.map(toBrief)
   }
+  count(): number {
+    return int((this.db.prepare('SELECT COUNT(*) c FROM briefs').get() as { c: number }).c)
+  }
 }
 
 class SqliteTopicStore implements TopicStore {

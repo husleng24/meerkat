@@ -141,6 +141,14 @@ describe('IPC：领域与主题的两层结构', () => {
     })
   })
 
+  it('stats:overview 返回全局计数与 schema 版本', () => {
+    const r = call('stats:overview') as Record<string, number>
+    for (const key of ['items', 'briefs', 'read', 'saved', 'failingSources', 'totalSources', 'schemaVersion']) {
+      expect(typeof r[key], key).toBe('number')
+    }
+    expect(r.schemaVersion).toBe(6)
+  })
+
   it('领域下还有主题时不能删领域', () => {
     const r = call('domains:remove', 'ai')
     expect(r.ok).toBe(false)
@@ -150,7 +158,7 @@ describe('IPC：领域与主题的两层结构', () => {
 
 describe('IPC 边界：非法入参必须返回结构化失败', () => {
   it('注册了预期的 handler 集合', () => {
-    for (const name of ['brief:latest', 'flags:set', 'sources:add', 'schedule:set', 'items:search']) {
+    for (const name of ['brief:latest', 'flags:set', 'sources:add', 'schedule:set', 'items:search', 'stats:overview']) {
       expect(handlers.has(name), name).toBe(true)
     }
   })

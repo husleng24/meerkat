@@ -67,6 +67,8 @@ export interface BriefStore {
   latest(topicId?: string): Brief | undefined
   byDate(date: string, topicId?: string): Brief | undefined
   list(limit?: number, topicId?: string): Brief[]
+  /** 全部简报期数，用于设置页的数据概览 */
+  count(): number
 }
 
 export interface ChatStore {

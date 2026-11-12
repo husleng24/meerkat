@@ -12,9 +12,6 @@ interface Props {
   /** 就地新建主题；返回新主题 id 或 null */
   onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
   onNavigate: (id: string) => void
-  itemCount: number
-  savedCount: number
-  readCount: number
   /** 需关注的源（连续失败 + 不稳定），与源页同一个口径 */
   attentionSources: number
   origin: 'ipc' | 'sample'
@@ -44,9 +41,6 @@ export function Sidebar({
   topicsAvailable,
   onCreateTopic,
   onNavigate,
-  itemCount,
-  savedCount,
-  readCount,
   attentionSources,
   origin,
   bridgeAvailable,
@@ -159,15 +153,6 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className="mx-2 my-4 h-px bg-rule" />
-
-      <div className="space-y-2 px-2.5 text-[11px] text-ink-3">
-        <Row label="今日条目" value={String(itemCount)} />
-        <Row label="已读" value={String(readCount)} />
-        <Row label="已收藏" value={String(savedCount)} />
-        <Row label="需关注" value={String(attentionSources)} warn={attentionSources > 0} />
-      </div>
-
       <div className="mt-auto">
         <UpdateNotice />
         <div className="px-2.5 text-[11px] leading-relaxed text-ink-3">
@@ -179,14 +164,5 @@ export function Sidebar({
         </div>
       </div>
     </aside>
-  )
-}
-
-function Row({ label, value, warn }: { label: string; value: string; warn?: boolean }): React.JSX.Element {
-  return (
-    <div className="flex items-center justify-between">
-      <span>{label}</span>
-      <span className={warn ? 'font-bold tabular-nums text-alert' : 'tabular-nums text-ink-2'}>{value}</span>
-    </div>
   )
 }

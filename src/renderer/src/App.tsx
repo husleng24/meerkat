@@ -96,7 +96,6 @@ export default function App(): React.JSX.Element {
     }
   }
 
-  const itemCount = brief ? brief.sections.reduce((n, s) => n + s.items.length, 0) : 0
   const dateLabel = brief?.title.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? ''
 
   // ⌘1–9 直接切主题：侧栏是扁平列表，序号就是列表顺序（跨领域也成立）
@@ -142,9 +141,6 @@ export default function App(): React.JSX.Element {
         topicsAvailable={topicsAvailable}
         onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
         onNavigate={go}
-        itemCount={itemCount}
-        savedCount={flags.counts.saved}
-        readCount={flags.counts.read}
         attentionSources={summary.attention}
         origin={origin}
         bridgeAvailable={bridgeAvailable}

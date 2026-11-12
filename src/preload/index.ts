@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BriefPayload } from '../renderer/src/lib/ipc-types'
+import type { BriefPayload, StatsOverviewPayload } from '../renderer/src/lib/ipc-types'
 
 /**
  * 暴露给渲染进程的窄接口。
@@ -8,6 +8,10 @@ import type { BriefPayload } from '../renderer/src/lib/ipc-types'
  */
 const api = {
   ping: (): Promise<{ ok: boolean; version: string; ts: number }> => ipcRenderer.invoke('app:ping'),
+
+  stats: {
+    overview: (): Promise<StatsOverviewPayload> => ipcRenderer.invoke('stats:overview')
+  },
 
   briefLatest: (topicId?: string): Promise<BriefPayload | null> => ipcRenderer.invoke('brief:latest', topicId),
 
