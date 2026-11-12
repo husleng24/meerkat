@@ -18,6 +18,7 @@ function stubProvider(result: ChatResult, spy?: (req: ChatRequest) => void): Cha
 const input: ComposeInput = {
   dateLabel: '2026-11-01',
   weekday: '周日',
+  topicName: 'AI 综合',
   windowHours: 48,
   bucketLabels: BUCKET_LABEL,
   items: [
@@ -33,10 +34,10 @@ const input: ComposeInput = {
   ]
 }
 
-const systemPrompt = '你是主编。日期 {date}，星期 {weekday}。'
+const systemPrompt = '你是主编。主题 {topic}，日期 {date}，星期 {weekday}。'
 
 describe('用对话供应商成稿', () => {
-  it('把素材拼成用户提示词，并替换系统模板里的日期占位', async () => {
+  it('把素材拼成用户提示词，并替换系统模板里的主题/日期占位', async () => {
     let seen: ChatRequest | null = null
     const composer = createChatComposer({
       provider: stubProvider({ ok: true, text: '# 简报', model: 'm', usage: { input: 1, output: 2 } }, (r) => (seen = r)),
@@ -45,7 +46,10 @@ describe('用对话供应商成稿', () => {
     })
     const out = await composer.compose(input)
     expect(out.ok).toBe(true)
-    expect(seen!.messages[0]).toEqual({ role: 'system', content: '你是主编。日期 2026-11-01，星期 周日。' })
+    expect(seen!.messages[0]).toEqual({
+      role: 'system',
+      content: '你是主编。主题 AI 综合，日期 2026-11-01，星期 周日。'
+    })
     expect(seen!.messages[1]!.content).toContain('Gemini 4 Carbon 发布')
     expect(seen!.messages[1]!.content).toContain('https://example.com/a')
   })

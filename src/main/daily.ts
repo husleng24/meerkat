@@ -16,6 +16,7 @@ import { fetchSource } from '../adapters/sources'
 import { createChatComposer, createNoopComposer } from '../adapters/llm/chat-composer'
 import { createProviderInstance, type ComposeTarget } from './providers'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../app/compose-brief'
+import { briefTitle } from '../app/brief-identity'
 import { runCollect, COLLECT_DEFAULTS, type CollectResult } from '../app/run-collect'
 import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
 import { decideSave, type SaveDecision } from '../app/brief-save'
@@ -216,6 +217,7 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
         windowHours: input.windowHours,
         dateLabel,
         weekday: weekdayOf(now),
+        topicName: topic.name,
         sourceStats: input.sourceStats,
         elapsedMs: input.elapsedMs
       },
@@ -227,7 +229,8 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
   }
   if (input.signal?.aborted) throw new RunCancelledError('compose')
 
-  const title = `AI 简报 · ${dateLabel}（${weekdayOf(now)}）`
+  // 通知标题与简报 H1 用同一个函数：多主题同一天各跑一次时，用户要能分清是哪一份
+  const title = briefTitle(topic.name, dateLabel, weekdayOf(now))
   log(
     'info',
     `简报生成：${out.degraded ? '降级（未接模型）' : out.model} · ${out.markdown.length} 字符 · ` +

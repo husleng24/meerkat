@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 从库里取条目 → 调 DeepSeek 成稿 → 落库 + 写文件。
  * 用途：P1-3 的集成验收。
  *
@@ -9,10 +9,12 @@ import { join } from 'node:path'
 import { createStore } from '../src/adapters/store-sqlite/store'
 import { createDeepSeekComposer, resolveApiKey } from '../src/adapters/llm/deepseek'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../src/app/compose-brief'
+import { briefFileName } from '../src/app/brief-identity'
 import type { Brief } from '../src/core/domain/types'
 
 const ROOT = join(__dirname, '..')
 const WINDOW_HOURS = 48
+const TOPIC_NAME = 'AI 综合'
 
 async function main(): Promise<void> {
   const now = Date.now()
@@ -55,6 +57,7 @@ async function main(): Promise<void> {
     windowHours: WINDOW_HOURS,
     dateLabel,
     weekday: weekdayOf(now),
+    topicName: TOPIC_NAME,
     sourceStats
   })
   const elapsed = Date.now() - t0
@@ -76,7 +79,7 @@ async function main(): Promise<void> {
 
   const outDir = join(ROOT, 'out')
   mkdirSync(outDir, { recursive: true })
-  const mdPath = join(outDir, `AI简报-${dateLabel}.md`)
+  const mdPath = join(outDir, briefFileName(TOPIC_NAME, dateLabel, 'md'))
   writeFileSync(mdPath, out.markdown, 'utf8')
   console.log(`[compose] 写入 ${mdPath}（${out.markdown.length} 字符）`)
 

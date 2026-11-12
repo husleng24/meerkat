@@ -38,6 +38,7 @@ function ctx(over: Partial<ComposeBriefContext> = {}): ComposeBriefContext {
     windowHours: 48,
     dateLabel: '2026-10-30',
     weekday: '周四',
+    topicName: 'AI 综合',
     sourceStats: [
       { name: 'OpenAI', ok: true, n: 5, note: '' },
       { name: 'Reddit', ok: false, n: 0, note: 'HTTP 429' }
@@ -90,6 +91,7 @@ describe('降级：仅聚合简报', () => {
       item({ id: 'i2', url: 'https://example.com/b', bucket: 'research', title: 'A paper', sourceName: 'arXiv' })
     ]
     const md = renderAggregationBrief(items, ctx())
+    expect(md).toContain('# AI 综合 简报 · 2026-10-30（周四）')
     expect(md).toContain('## ① 模型与产品发布')
     expect(md).toContain('## ③ 研究与论文')
     expect(md).toContain('[DeepMind](https://example.com/a)')
@@ -119,12 +121,24 @@ describe('编辑说明由程序生成（数字不交给模型）', () => {
   })
 })
 
-describe('版式归一', () => {
-  it('在一级标题后插入元信息行', () => {
+describe('版式归一：标题由程序生成', () => {
+  it('覆盖模型沿用的「AI 简报」标题，改为「主题 简报 · 日期（星期）」', () => {
     const md = '# AI 简报 · 2026-10-30（周四）\n\n## 三句话速览\n\n1. a\n'
     const out = normalizeMarkdown(md, ctx())
-    expect(out).toMatch(/^# AI 简报/)
+    expect(out.split('\n')[0]).toBe('# AI 综合 简报 · 2026-10-30（周四）')
     expect(out).toContain('> 覆盖最近 48 小时')
+  })
+
+  it('丢掉标题前的寒暄，从规范标题开始', () => {
+    const out = normalizeMarkdown('好的，以下是简报。\n\n# 旧标题\n\n## 三句话速览\n\n1. a\n', ctx())
+    expect(out.split('\n')[0]).toBe('# AI 综合 简报 · 2026-10-30（周四）')
+    expect(out).not.toContain('好的')
+  })
+
+  it('模型没写 H1 时补上规范标题', () => {
+    const out = normalizeMarkdown('## 三句话速览\n\n1. a\n', ctx())
+    expect(out.split('\n')[0]).toBe('# AI 综合 简报 · 2026-10-30（周四）')
+    expect(out).toContain('## 三句话速览')
   })
 
   it('把 **今日一句：** 修正为二级标题', () => {
@@ -155,6 +169,7 @@ describe('用户提示词构建', () => {
     const prompt = buildUserPrompt({
       dateLabel: '2026-10-30',
       weekday: '周四',
+      topicName: 'AI 综合',
       windowHours: 48,
       bucketLabels: { product: '① 模型与产品', agent: '②', business: '③', research: '④', infra: '⑤', policy: '⑥', opinion: '⑦', video: '⑧', community: '⑨' },
       items: [
@@ -182,3 +197,4 @@ describe('weekdayOf', () => {
     expect(weekdayOf(Date.parse('2026-10-30T04:00:00Z'))).toBe('周五')
   })
 })
+

@@ -19,8 +19,8 @@ import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
-import { exportBrief, lastRunKey, readSchedule, writeSchedule } from './scheduler'
-import { copyBriefRichText, exportBriefHtml, exportBriefPdf } from './export'
+import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
+import { copyBriefRichText, exportBrief } from './export'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { composeDomainRollup, type DomainDeps } from './domain-daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
@@ -141,10 +141,25 @@ const scheduleSetSchema = z.object({
   hour: z.number().int().min(0).max(23),
   minute: z.number().int().min(0).max(59)
 })
-const exportDocSchema = z.object({
-  html: z.string().min(1).max(2_000_000),
-  date: z.string().min(1).max(40)
-})
+const exportRequestSchema = z.discriminatedUnion('format', [
+  z.object({
+    format: z.literal('md'),
+    topicId: topicIdSchema,
+    date: z.string().min(1).max(20)
+  }),
+  z.object({
+    format: z.literal('html'),
+    topicId: topicIdSchema,
+    date: z.string().min(1).max(20),
+    html: z.string().min(1).max(2_000_000)
+  }),
+  z.object({
+    format: z.literal('pdf'),
+    topicId: topicIdSchema,
+    date: z.string().min(1).max(20),
+    html: z.string().min(1).max(2_000_000)
+  })
+])
 const searchSchema = z.object({
   q: z.string().max(200),
   bucket: z.string().max(30).optional(),
@@ -868,26 +883,6 @@ export function registerIpc(): void {
 
   ipcMain.handle('diag:export', () => exportDiagnostic(requireStore()))
 
-  ipcMain.handle('export:html', (_e, raw: unknown) => {
-    const parsed = exportDocSchema.safeParse(raw)
-    if (!parsed.success) return { ok: false, error: '参数非法' }
-    try {
-      return { ok: true, path: exportBriefHtml(parsed.data.html, parsed.data.date) }
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
-  ipcMain.handle('export:pdf', async (_e, raw: unknown) => {
-    const parsed = exportDocSchema.safeParse(raw)
-    if (!parsed.success) return { ok: false, error: '参数非法' }
-    try {
-      return { ok: true, path: await exportBriefPdf(parsed.data.html, parsed.data.date) }
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : String(e) }
-    }
-  })
-
   ipcMain.handle('export:richtext', (_e, raw: unknown) => {
     const parsed = z
       .object({ html: z.string().min(1).max(2_000_000), text: z.string().max(2_000_000) })
@@ -897,11 +892,17 @@ export function registerIpc(): void {
     return { ok: true }
   })
 
-  ipcMain.handle('brief:export', () => {
-    const b = requireStore().briefs.latest()
-    if (!b) return { ok: false, error: '还没有简报' }
+  /**
+   * 导出某一期简报（md/html/pdf）。
+   *
+   * 入参必须带 topicId + date：文件名与归属都由这两个字段决定。
+   * 只传日期会让两个主题在同一天悄悄覆盖彼此的文件——这正是要修的那类 bug。
+   */
+  ipcMain.handle('brief:export', async (_e, raw: unknown) => {
+    const parsed = exportRequestSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
     try {
-      return { ok: true, path: exportBrief(b.markdown, b.date) }
+      return { ok: true, path: await exportBrief(requireStore(), parsed.data) }
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }
     }

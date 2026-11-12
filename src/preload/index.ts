@@ -216,16 +216,20 @@ const api = {
 
   cancelRun: (): Promise<{ ok: boolean; cancelled: boolean }> => ipcRenderer.invoke('run:cancel'),
 
-  exportHtml: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
-    ipcRenderer.invoke('export:html', input),
-
-  exportPdf: (input: { html: string; date: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
-    ipcRenderer.invoke('export:pdf', input),
+  /**
+   * 导出某一期简报。
+   *
+   * md 由主进程从库里取；html/pdf 由渲染层先渲染好再传（markdown 解析器只有渲染层一份）。
+   * 两种入参都必须带 topicId + date——文件名与归属由它们决定。
+   */
+  exportBrief: (
+    input:
+      | { format: 'md'; topicId: string; date: string }
+      | { format: 'html' | 'pdf'; topicId: string; date: string; html: string }
+  ): Promise<{ ok: boolean; path?: string; error?: string }> => ipcRenderer.invoke('brief:export', input),
 
   copyRich: (input: { html: string; text: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('export:richtext', input),
-
-  exportBrief: (): Promise<{ ok: boolean; path?: string; error?: string }> => ipcRenderer.invoke('brief:export'),
 
   exportDiagnostic: (): Promise<{ ok: boolean; path?: string; summary?: string; error?: string }> =>
     ipcRenderer.invoke('diag:export'),

@@ -138,43 +138,47 @@ export function SettingsPage({
     setMessage(r.cancelled ? '已请求取消，正在收尾…' : '当前没有在跑的任务')
   }, [])
 
-  const doExport = useCallback(async () => {
-    const api = window.meerkat?.exportBrief
-    if (!api) {
-      setMessage('预览模式下不可用：需要在桌面应用内运行')
-      return
-    }
-    const r = await api()
-    setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
-  }, [])
-
   /**
-   * 三种格式共用一条链路：取最新简报 → 解析 → 同一份 HTML。
-   * 只有渲染层会解析 markdown，主进程只负责落地（见 src/main/export.ts）。
+   * 导出/复制当前主题的最新一期。
+   *
+   * 身份（topicId + date）必须一起传下去：主进程用它们查简报、拼文件名。
+   * markdown 由主进程读；HTML/PDF 用渲染层同一份解析器渲染后回传。
    */
-  const doExportAs = useCallback(async (kind: 'html' | 'pdf' | 'richtext') => {
-    const api = window.meerkat
-    if (!api?.briefLatest || !api.exportHtml) {
-      setMessage('预览模式下不可用：需要在桌面应用内运行')
-      return
-    }
-    const res = await api.briefLatest()
-    if (!res) {
-      setMessage('还没有简报可导出')
-      return
-    }
-    const doc = renderBriefDocument(parseBrief(res.markdown), res.date)
-    if (kind === 'richtext') {
-      const r = (await api.copyRich?.({ html: doc.html, text: doc.text })) ?? { ok: false }
-      setMessage(r.ok ? '已复制为富文本，可直接粘到邮件或文档里' : '复制失败')
-      return
-    }
-    const r =
-      kind === 'html'
-        ? await api.exportHtml({ html: doc.html, date: res.date })
-        : ((await api.exportPdf?.({ html: doc.html, date: res.date })) ?? { ok: false, error: '不支持' })
-    setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
-  }, [])
+  const exportAs = useCallback(
+    async (format: 'md' | 'html' | 'pdf' | 'richtext') => {
+      const api = window.meerkat
+      if (!api?.briefLatest || !api.exportBrief) {
+        setMessage('预览模式下不可用：需要在桌面应用内运行')
+        return
+      }
+      if (!topicId) {
+        setMessage('先选择一个主题再导出')
+        return
+      }
+      const res = await api.briefLatest(topicId || undefined)
+      if (!res) {
+        setMessage('还没有简报可导出')
+        return
+      }
+      if (format === 'richtext') {
+        const doc = renderBriefDocument(parseBrief(res.markdown), res.date)
+        const r = (await api.copyRich?.({ html: doc.html, text: doc.text })) ?? { ok: false }
+        setMessage(r.ok ? '已复制为富文本，可直接粘到邮件或文档里' : '复制失败')
+        return
+      }
+      const r =
+        format === 'md'
+          ? await api.exportBrief({ format: 'md', topicId, date: res.date })
+          : await api.exportBrief({
+              format,
+              topicId,
+              date: res.date,
+              html: renderBriefDocument(parseBrief(res.markdown), res.date).html
+            })
+      setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
+    },
+    [topicId]
+  )
 
   const doDiagnostic = useCallback(async () => {
     const api = window.meerkat?.exportDiagnostic
@@ -334,16 +338,16 @@ export function SettingsPage({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-7 shrink-0 text-[11px] text-ink-3">导出</span>
-            <button onClick={() => void doExport()} className={SECONDARY_BTN}>
+            <button onClick={() => void exportAs('md')} className={SECONDARY_BTN}>
               导出 Markdown
             </button>
-            <button onClick={() => void doExportAs('richtext')} className={SECONDARY_BTN}>
+            <button onClick={() => void exportAs('richtext')} className={SECONDARY_BTN}>
               复制富文本
             </button>
-            <button onClick={() => void doExportAs('html')} className={SECONDARY_BTN}>
+            <button onClick={() => void exportAs('html')} className={SECONDARY_BTN}>
               导出 HTML
             </button>
-            <button onClick={() => void doExportAs('pdf')} className={SECONDARY_BTN}>
+            <button onClick={() => void exportAs('pdf')} className={SECONDARY_BTN}>
               导出 PDF
             </button>
           </div>

@@ -1,15 +1,15 @@
-﻿/**
+/**
  * 托盘常驻 + 定时采集 + 完成通知。
  *
  * 这是"不用管它"的核心：窗口关掉不等于退出，应用留在托盘里，
  * 每天到点自己跑一遍，跑完弹一条通知。
  */
-import { BrowserWindow, Menu, Notification, Tray, app, nativeImage, shell } from 'electron'
+import { BrowserWindow, Menu, Notification, Tray, app, nativeImage } from 'electron'
 import { log } from './log'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
 import { decideDue, describeNext, describeSchedule, type ScheduleConfig } from '../app/schedule'
 import { brandPath } from './paths'
+import { exportBrief } from './export'
 import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 import { beginRun, cancelRun, endRun, isRunning } from './run-control'
@@ -254,7 +254,7 @@ export class Scheduler {
           ? { label: '取消当前运行', click: () => this.cancelCurrent() }
           : { label: '立即采集', click: () => void this.runNow() },
         { type: 'separator' },
-        { label: '导出今日简报', click: () => this.exportLatest() },
+        { label: '导出今日简报', click: () => void this.exportLatest() },
         { type: 'separator' },
         { label: '退出', click: () => app.quit() }
       ])
@@ -267,7 +267,7 @@ export class Scheduler {
    * 早期实现是往渲染层发事件，但渲染层从没监听那个事件——一个点了没反应的死按钮。
    * 现在直接在主进程执行：不依赖窗口是否打开、是否可见。
    */
-  private exportLatest(): void {
+  private async exportLatest(): Promise<void> {
     const b = this.deps.store.briefs.latest()
     if (!b) {
       this.lastSummary = '还没有简报可导出'
@@ -276,7 +276,7 @@ export class Scheduler {
       return
     }
     try {
-      const p = exportBrief(b.markdown, b.date)
+      const p = await exportBrief(this.deps.store, { format: 'md', topicId: b.topicId, date: b.date })
       this.lastSummary = `已导出 ${b.date}`
       this.refreshTray(this.lastSummary)
       this.notify('已导出今日简报', false, p)
@@ -322,15 +322,4 @@ export class Scheduler {
     this.refreshTray(this.lastSummary)
     return cancelled
   }
-}
-
-/** 导出：写到 用户文档/Meerkat/，并在系统文件管理器里定位 */
-export function exportBrief(markdown: string, dateLabel: string): string {
-  const dir = join(app.getPath('documents'), 'Meerkat')
-  const { mkdirSync, writeFileSync } = require('node:fs') as typeof import('node:fs')
-  mkdirSync(dir, { recursive: true })
-  const file = join(dir, `AI简报-${dateLabel}.md`)
-  writeFileSync(file, markdown, 'utf8')
-  shell.showItemInFolder(file)
-  return file
 }

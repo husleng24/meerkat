@@ -313,10 +313,12 @@ export interface MeerkatBridge {
     topicId?: string
   ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
   cancelRun?: () => Promise<{ ok: boolean; cancelled: boolean }>
-  exportBrief?: () => Promise<{ ok: boolean; path?: string; error?: string }>
+  exportBrief?: (
+    input:
+      | { format: 'md'; topicId: string; date: string }
+      | { format: 'html' | 'pdf'; topicId: string; date: string; html: string }
+  ) => Promise<{ ok: boolean; path?: string; error?: string }>
   exportDiagnostic?: () => Promise<{ ok: boolean; path?: string; summary?: string; error?: string }>
-  exportHtml?: (input: { html: string; date: string }) => Promise<{ ok: boolean; path?: string; error?: string }>
-  exportPdf?: (input: { html: string; date: string }) => Promise<{ ok: boolean; path?: string; error?: string }>
   copyRich?: (input: { html: string; text: string }) => Promise<{ ok: boolean; error?: string }>
   onBriefUpdated?: (cb: () => void) => () => void
 }

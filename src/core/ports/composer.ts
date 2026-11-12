@@ -24,6 +24,12 @@ export interface ComposeInput {
   dateLabel: string
   /** 例如 "周四" */
   weekday: string
+  /**
+   * 主题名（例如「芯片与算力」）。
+   *
+   * 简报标题必须带上它：同一台机器上可以并行多个主题，「AI 简报」只对默认主题成立。
+   */
+  topicName: string
   windowHours: number
   items: ComposeItem[]
   /** 传给适配器做模板替换，例如板块名映射 */

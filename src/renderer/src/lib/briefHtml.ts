@@ -74,12 +74,13 @@ export function renderBriefDocument(brief: ParsedBrief, dateLabel: string): Brie
     ? `<section class="punch"><div class="k">今日一句</div><p>${esc(brief.punchline)}</p></section>`
     : ''
 
+  const title = brief.title || `简报 · ${dateLabel}`
   const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
-<title>${esc(brief.title || `AI 简报 · ${dateLabel}`)}</title>
+<title>${esc(title)}</title>
 <style>${CSS}</style></head>
 <body><main>
-  <h1>${esc(brief.title || `AI 简报 · ${dateLabel}`)}</h1>
+  <h1>${esc(title)}</h1>
   <p class="meta">${esc(brief.meta || dateLabel)}</p>
   ${highlights ? `<section class="hl">${highlights}</section>` : ''}
   ${sections}

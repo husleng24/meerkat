@@ -11,6 +11,7 @@
 import type { Bucket, Item } from '../core/domain/types'
 import { BUCKETS, BUCKET_LABEL } from '../core/domain/types'
 import type { ComposeInput, Composer, TokenUsage } from '../core/ports/composer'
+import { briefTitle } from './brief-identity'
 
 /** 给模型看的板块名（比内部 label 短，减少 token 且更接近简报里的实际写法） */
 export const PROMPT_BUCKET_LABEL: Record<Bucket, string> = {
@@ -37,6 +38,8 @@ export interface ComposeBriefContext {
   windowHours: number
   dateLabel: string
   weekday: string
+  /** 主题名：决定标题与降级稿归属（多主题下不能写死「AI 简报」） */
+  topicName: string
   sourceStats: BriefSourceStats[]
   /** 本次消耗的 wall time，由调用方传 */
   elapsedMs?: number
@@ -102,7 +105,7 @@ export function renderAggregationBrief(items: BriefItem[], ctx: ComposeBriefCont
     grouped.set(it.bucket, list)
   }
 
-  const lines: string[] = [`# AI 简报 · ${ctx.dateLabel}（${ctx.weekday}）`, '']
+  const lines: string[] = [`# ${briefTitle(ctx.topicName, ctx.dateLabel, ctx.weekday)}`, '']
   lines.push(`> 覆盖最近 ${ctx.windowHours} 小时 · 仅聚合模式（未调用模型）`, '')
   lines.push('---', '')
 
@@ -156,6 +159,7 @@ function toComposeInput(items: BriefItem[], ctx: ComposeBriefContext): ComposeIn
   return {
     dateLabel: ctx.dateLabel,
     weekday: ctx.weekday,
+    topicName: ctx.topicName,
     windowHours: ctx.windowHours,
     bucketLabels: PROMPT_BUCKET_LABEL,
     items: items.map((it) => ({
@@ -218,28 +222,26 @@ export async function composeBrief(
   }
 }
 
-/** 统一版式：补元信息行、修正"今日一句"的标题层级 */
+/** 统一版式：标题由程序生成、补元信息行、修正「今日一句」的标题层级 */
 export function normalizeMarkdown(md: string, ctx: ComposeBriefContext): string {
   const lines = md.split('\n')
-  const out: string[] = []
-  let inserted = false
+  const title = `# ${briefTitle(ctx.topicName, ctx.dateLabel, ctx.weekday)}`
   const picked = (md.split('<details>')[0]!.match(/^- \*\*/gm) ?? []).length
 
-  for (const line of lines) {
-    out.push(line)
-    if (!inserted && line.startsWith('# ')) {
-      const d = new Date(ctx.now)
-      const hh = String(d.getHours()).padStart(2, '0')
-      const mm = String(d.getMinutes()).padStart(2, '0')
-      out.push('')
-      out.push(
-        `> 覆盖最近 ${ctx.windowHours} 小时 · ${ctx.sourceStats.filter((s) => s.ok).length} 个信息源 · 精选 ${picked} 条 · ${ctx.dateLabel} ${hh}:${mm}`
-      )
-      inserted = true
-    }
-  }
+  // 模型偶尔会在正文前寒暄一句；有 H1 时把 H1 之前的内容整段丢掉，没有 H1 时补一个。
+  // 两种情况下都必须满足同一个不变量：第一行是规范标题。
+  const h1 = lines.findIndex((line) => line.startsWith('# '))
+  const body = h1 >= 0 ? lines.slice(h1 + 1) : lines
 
-  let text = out.join('\n')
+  const d = new Date(ctx.now)
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  const meta =
+    `> 覆盖最近 ${ctx.windowHours} 小时 · ` +
+    `${ctx.sourceStats.filter((s) => s.ok).length} 个信息源 · ` +
+    `精选 ${picked} 条 · ${ctx.dateLabel} ${hh}:${mm}`
+
+  let text = [title, '', meta, ...body].join('\n')
   text = text.replace(/^\s*\*\*今日一句[：:]\*\*\s*/gm, '## 今日一句\n\n')
   text = text.replace(/\n{3,}/g, '\n\n')
   return text.trim()

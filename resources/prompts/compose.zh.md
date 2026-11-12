@@ -17,7 +17,7 @@
 
 【输出格式】严格遵守，不要用代码块包裹：
 
-# AI 简报 · {date}（{weekday}）
+# {topic} 简报 · {date}（{weekday}）
 
 ## 三句话速览
 

@@ -27,6 +27,7 @@ export function createChatComposer(opts: ChatComposerOptions): Composer {
     async compose(input: ComposeInput, signal?: AbortSignal): Promise<ComposeResult> {
       const user = buildUserPrompt(input)
       const system = opts.systemPrompt
+        .replace(/\{topic\}/g, input.topicName)
         .replace(/\{date\}/g, input.dateLabel)
         .replace(/\{weekday\}/g, input.weekday)
 
