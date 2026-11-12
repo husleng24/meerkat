@@ -51,94 +51,75 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
     active: 'today',
     topics: [
       topic({ id: 'a', name: '模型与产品', todayCount: 23, unreadCount: 2 }),
-      topic({ id: 'b', name: '芯片与算力', todayCount: 12 })
+      topic({ id: 'b', name: '芯片与算力', todayCount: 12 }),
+      topic({ id: 'c', name: '具身智能', domainId: 'robot', todayCount: 4 })
     ],
     activeTopic: 'a',
     onPickTopic: vi.fn(),
-    domains: [domain(), domain({ id: 'robot', name: '机器人', topicCount: 2 })],
-    activeDomain: 'ai',
-    onPickDomain: vi.fn(),
-    onCreateDomain: vi.fn().mockResolvedValue(null),
-    onCreateTopic: vi.fn().mockResolvedValue(null),
+    domains: [domain(), domain({ id: 'robot', name: '机器人', topicCount: 1 })],
     topicsAvailable: true,
+    onCreateTopic: vi.fn().mockResolvedValue(null),
     onNavigate: vi.fn(),
-    itemCount: 23,
+    itemCount: 39,
     savedCount: 0,
     readCount: 0,
     attentionSources: 15,
     origin: 'ipc',
     bridgeAvailable: true,
-    dateLabel: '2026-11-01',
+    dateLabel: '2026-11-12',
     ...over
   }
 }
 
-const switcher = (el: HTMLElement): HTMLButtonElement => el.querySelector('button[aria-haspopup="listbox"]')!
+const topicButton = (el: HTMLElement, name: string): HTMLButtonElement =>
+  [...el.querySelectorAll('button')].find((b) => b.textContent?.includes(name)) as HTMLButtonElement
 
-describe('侧栏：领域切换器 + 主题列表', () => {
-  it('常驻显示当前领域，下面列出该领域的主题', async () => {
+describe('侧栏：扁平主题列表 + 领域分组标签', () => {
+  it('多领域时按领域分组显示小标题，全部主题都在一屏里', async () => {
     const el = await render(<Sidebar {...baseProps()} />)
-    expect(switcher(el).textContent).toContain('AI')
+    expect(el.textContent).toContain('AI')
+    expect(el.textContent).toContain('机器人')
     expect(el.textContent).toContain('模型与产品')
     expect(el.textContent).toContain('芯片与算力')
-    // 另一个领域的主题不出现
-    expect(el.textContent).not.toContain('人形机器人')
+    expect(el.textContent).toContain('具身智能')
   })
 
-  it('点开列出全部领域与主题数', async () => {
-    const el = await render(<Sidebar {...baseProps()} />)
-    await act(async () => switcher(el).click())
-    const options = [...el.querySelectorAll('[role="option"]')]
-    expect(options.map((o) => o.textContent)).toEqual(['AI3', '机器人2'])
-    expect(options[0]!.getAttribute('aria-selected')).toBe('true')
+  it('单领域时不显示领域小标题，也不再有领域切换器', async () => {
+    const el = await render(
+      <Sidebar
+        {...baseProps({
+          domains: [domain({ id: 'research', name: '研究组', topicCount: 2 })],
+          topics: [topic({ id: 'a', domainId: 'research', name: '模型与产品' })]
+        })}
+      />
+    )
+    expect(el.textContent).not.toContain('研究组')
+    expect(el.querySelector('button[aria-haspopup="listbox"]')).toBeNull()
   })
 
-  it('切换领域交给上层，并收起弹层', async () => {
-    const onPickDomain = vi.fn()
-    const el = await render(<Sidebar {...baseProps({ onPickDomain })} />)
-    await act(async () => switcher(el).click())
-    const robot = [...el.querySelectorAll('[role="option"]')][1] as HTMLButtonElement
-    await act(async () => robot.click())
-    expect(onPickDomain).toHaveBeenCalledWith('robot')
-    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
-  })
-
-  it('点主题切换', async () => {
+  it('点主题直接切换（跨领域也是一次点击）', async () => {
     const onPick = vi.fn()
     const el = await render(<Sidebar {...baseProps({ onPickTopic: onPick })} />)
-    const chip = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('芯片与算力'))!
-    await act(async () => chip.click())
-    expect(onPick).toHaveBeenCalledWith('b')
+    await act(async () => topicButton(el, '具身智能').click())
+    expect(onPick).toHaveBeenCalledWith('c')
+  })
+
+  it('当前主题高亮，其余不高亮', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
+    expect(topicButton(el, '模型与产品').getAttribute('aria-current')).toBe('true')
+    expect(topicButton(el, '芯片与算力').getAttribute('aria-current')).toBeNull()
   })
 
   it('未读点只出现在有未读的主题上', async () => {
     const el = await render(<Sidebar {...baseProps()} />)
-    const withUnread = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('模型与产品'))!
-    expect(withUnread.querySelector('span[aria-label="2 条未读"]')).not.toBeNull()
-    const noUnread = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('芯片与算力'))!
-    expect(noUnread.querySelector('span[aria-label]')).toBeNull()
+    expect(topicButton(el, '模型与产品').querySelector('span[aria-label="2 条未读"]')).not.toBeNull()
+    expect(topicButton(el, '芯片与算力').querySelector('span[aria-label]')).toBeNull()
   })
 
-  it('Esc 与点击外部都会关闭弹层', async () => {
+  it('没有「新建领域 / 管理领域」入口（领域管理已收进设置页）', async () => {
     const el = await render(<Sidebar {...baseProps()} />)
-    await act(async () => switcher(el).click())
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    })
-    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
-
-    await act(async () => switcher(el).click())
-    await act(async () => {
-      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-    })
-    expect(switcher(el).getAttribute('aria-expanded')).toBe('false')
-  })
-
-  it('存在「新建领域」与「新建主题」入口', async () => {
-    const el = await render(<Sidebar {...baseProps()} />)
-    expect(el.textContent).toContain('＋ 新建主题')
-    await act(async () => switcher(el).click())
-    expect(el.textContent).toContain('＋ 新建领域')
+    expect(el.textContent).not.toContain('新建领域')
+    expect(el.textContent).not.toContain('管理领域')
   })
 
   it('就地新建主题：回车创建并切过去', async () => {
@@ -162,12 +143,11 @@ describe('侧栏：领域切换器 + 主题列表', () => {
     expect(onPick).toHaveBeenCalledWith('t-new')
   })
 
-  it('「管理领域…」跳到设置页', async () => {
+  it('「领域汇总」进入汇总页', async () => {
     const onNavigate = vi.fn()
     const el = await render(<Sidebar {...baseProps({ onNavigate })} />)
-    await act(async () => switcher(el).click())
-    const manage = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('管理领域'))!
-    await act(async () => manage.click())
-    expect(onNavigate).toHaveBeenCalledWith('settings')
+    const rollup = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('领域汇总'))!
+    await act(async () => rollup.click())
+    expect(onNavigate).toHaveBeenCalledWith('rollup')
   })
 })

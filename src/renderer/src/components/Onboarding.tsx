@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 interface Props {
   sourceCount: number
-  /** 建主题：选了几个领域就建几个，之后各自排程、各自出简报 */
+  /** 建主题：选了几个方向就建几个，之后各自排程、各自出简报 */
   createTopic: (input: { id: string; name: string }) => Promise<string | null>
   onDone: () => void
 }
@@ -23,7 +23,7 @@ export function Onboarding({ sourceCount, createTopic, onDone }: Props): React.J
     { id: 'dev', label: '开发者工具', desc: 'IDE、CLI、SDK' }
   ]
 
-  // 每个选中的领域 = 一个主题（一组源 + 一套排程 + 一条独立简报）
+  // 每个选中的方向 = 一个主题（一组源 + 一套排程 + 一条独立简报）
   const finish = async (): Promise<void> => {
     for (const id of picked) {
       const t = topics.find((x) => x.id === id)
@@ -44,7 +44,7 @@ export function Onboarding({ sourceCount, createTopic, onDone }: Props): React.J
         </div>
 
         <div className="mb-6 flex gap-2">
-          {['选领域', '确认源', '接模型'].map((t, i) => (
+          {['选主题', '确认源', '接模型'].map((t, i) => (
             <div key={t} className="flex-1">
               <div className={`h-1 rounded-full ${i <= step ? 'bg-ink' : 'bg-cream'}`} />
               <div className={`mt-2 text-[11px] ${i <= step ? 'text-ink' : 'text-ink-3/60'}`}>{t}</div>

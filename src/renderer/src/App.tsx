@@ -38,23 +38,19 @@ export default function App(): React.JSX.Element {
   } = useTopics()
   const {
     domains,
-    activeId: activeDomain,
-    setActiveId: setActiveDomain,
     create: createDomain,
     rename: renameDomain,
     remove: removeDomain,
     reload: reloadDomains
   } = useDomains()
-  // 侧栏只显示当前领域下的主题；领域切换后自动落到该领域的第一个主题
-  const domainTopics = topics.filter((t) => t.domainId === activeDomain)
+
+  // 只有一个选择状态：当前主题。领域由主题推导，不再单独选。
+  const activeTopic = topics.find((t) => t.id === activeId)
+  const activeDomain = activeTopic?.domainId ?? domains[0]?.id ?? ''
   useEffect(() => {
-    if (domains.length === 0) return
-    if (!domains.some((d) => d.id === activeDomain)) setActiveDomain(domains[0]!.id)
-  }, [domains, activeDomain, setActiveDomain])
-  useEffect(() => {
-    if (domainTopics.length === 0) return
-    if (!domainTopics.some((t) => t.id === activeId)) setActiveId(domainTopics[0]!.id)
-  }, [domainTopics, activeId, setActiveId])
+    if (topics.length === 0) return
+    if (!topics.some((t) => t.id === activeId)) setActiveId(topics[0]!.id)
+  }, [topics, activeId, setActiveId])
 
   const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(
     viewDate,
@@ -111,7 +107,7 @@ export default function App(): React.JSX.Element {
   const itemCount = brief ? brief.sections.reduce((n, s) => n + s.items.length, 0) : 0
   const dateLabel = brief?.title.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? ''
 
-  // ⌘1–9 直接切领域：领域是"作用域"，切换频率比页面还高
+  // ⌘1–9 直接切主题：侧栏是扁平列表，序号就是列表顺序（跨领域也成立）
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
@@ -148,13 +144,10 @@ export default function App(): React.JSX.Element {
     <div className="flex h-full overflow-hidden">
       <Sidebar
         active={nav}
-        topics={domainTopics}
+        topics={topics}
         activeTopic={activeId}
         onPickTopic={pickTopic}
         domains={domains}
-        activeDomain={activeDomain}
-        onPickDomain={setActiveDomain}
-        onCreateDomain={createDomain}
         topicsAvailable={topicsAvailable}
         onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
         onNavigate={go}
@@ -172,7 +165,7 @@ export default function App(): React.JSX.Element {
         {nav !== 'today' && (
           <header className="flex items-baseline gap-3 px-10 pb-3 pt-6">
             <h1 className="text-[20px] font-bold tracking-[-0.03em] text-ink">
-              {TITLES[nav] ?? brief?.title ?? 'AI 简报'}
+              {TITLES[nav] ?? brief?.title ?? '简报'}
             </h1>
             <span className="hidden text-[11.5px] text-ink-3 md:inline">
               {nav === 'sources'

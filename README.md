@@ -7,7 +7,7 @@
 A local-first daily brief: it watches the fields you care about, keeps only what actually changed,
 and tells you what is different from yesterday.
 
-![Two-level sidebar: domains and topics](docs/assets/ui-two-level-sidebar.png)
+![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
 > v0.1.2 · 402 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
@@ -65,8 +65,8 @@ titles-and-links digest instead of failing.
 
 ### Domain → topic
 
-Switch domains at the top of the sidebar; topics of that domain sit below, and `⌘1–9` jumps directly.
-A topic is the unit of collection and briefing; a domain groups topics and produces rollups.
+The sidebar is a flat list of topics grouped by domain; clicking a topic switches to it, and `⌘1–9` jumps directly.
+A topic is the unit of collection and briefing; a domain only groups topics and produces rollups.
 **New topics start with 8 recommended sources** instead of copying every source.
 
 ![Choosing topics when adding a source](docs/assets/ui-source-topic-picker.png)
@@ -136,7 +136,7 @@ pnpm dist         # Windows NSIS installer (see electron-builder.yml)
 
 ### First launch
 
-Pick a few domains in onboarding → domains/topics are created with default sources → one collection runs
+Pick a few topics in onboarding → topics are created with default sources → one collection runs
 immediately (about 1–2 minutes). After that it runs on schedule; the header's **Update** button triggers a run
 manually.
 

@@ -3,8 +3,6 @@ import type { DomainPayload } from './ipc-types'
 
 export interface DomainsState {
   domains: DomainPayload[]
-  activeId: string
-  setActiveId: (id: string) => void
   create: (input: { id?: string; name: string }) => Promise<string | null>
   rename: (id: string, name: string) => Promise<boolean>
   remove: (id: string) => Promise<boolean>
@@ -13,51 +11,27 @@ export interface DomainsState {
   available: boolean
 }
 
-const STORAGE_KEY = 'meerkat.domain'
-
-/** 领域列表：当前领域记在 localStorage，重启后停在同一个领域 */
+/**
+ * 领域列表。
+ *
+ * 这里刻意不保存「当前领域」：领域由当前主题推导（见 App 的 activeDomain）。
+ * 两个选择状态会互相打架——比如在汇总页换了主题、汇总却还停在旧领域。
+ */
 export function useDomains(): DomainsState {
   const [domains, setDomains] = useState<DomainPayload[]>([])
-  const [activeId, setActiveIdState] = useState<string>(() => {
-    if (typeof localStorage === 'undefined') return ''
-    return localStorage.getItem(STORAGE_KEY) ?? ''
-  })
   const [tick, setTick] = useState(0)
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
 
-  const setActiveId = useCallback((id: string) => {
-    setActiveIdState(id)
-    try {
-      localStorage.setItem(STORAGE_KEY, id)
-    } catch {
-      /* 隐私模式忽略 */
-    }
-  }, [])
-
   useEffect(() => {
     const api = window.meerkat?.domains
     if (!api) {
-      const fallback: DomainPayload = { id: 'ai', name: 'AI', createdAt: 0, topicCount: 0 }
-      setDomains([fallback])
-      setActiveIdState((cur) => cur || fallback.id)
+      setDomains([{ id: 'ai', name: 'AI', createdAt: 0, topicCount: 0 }])
       return
     }
     let cancelled = false
     void api.list().then((list) => {
-      if (cancelled) return
-      setDomains(list)
-      setActiveIdState((cur) => {
-        const next = list.some((d) => d.id === cur) ? cur : (list[0]?.id ?? '')
-        if (next !== cur) {
-          try {
-            localStorage.setItem(STORAGE_KEY, next)
-          } catch {
-            /* 忽略 */
-          }
-        }
-        return next
-      })
+      if (!cancelled) setDomains(list)
     })
     return () => {
       cancelled = true
@@ -100,8 +74,6 @@ export function useDomains(): DomainsState {
 
   return {
     domains,
-    activeId,
-    setActiveId,
     create,
     rename,
     remove,
