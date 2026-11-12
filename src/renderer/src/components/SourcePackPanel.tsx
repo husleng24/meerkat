@@ -126,13 +126,13 @@ export function SourcePackPanel({ activeTopic, onApplied }: Props): React.JSX.El
             className="w-full max-w-[560px] rounded-2xl border border-rule bg-paper p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-[15px] font-semibold text-ink">导入源配置</h3>
+            <h3 className="text-[15px] font-semibold text-ink">导入事实源配置</h3>
             <p className="mt-1 truncate text-[11px] text-ink-3" title={preview.path}>
               {preview.path ?? '已读取配置'}
             </p>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-[11.5px]">
-              <Count label="源" value={preview.plan.counts.sources} />
+              <Count label="事实源" value={preview.plan.counts.sources} />
               <Count label="主题" value={preview.plan.counts.topics} />
               <Count label="领域" value={preview.plan.counts.domains} />
             </div>
@@ -162,7 +162,7 @@ export function SourcePackPanel({ activeTopic, onApplied }: Props): React.JSX.El
             </div>
 
             <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-              同名主题会整组替换源归属；本机排程与源健康度不会被覆盖。包里没有的源和主题保持不动。
+              同名主题会整组替换事实源归属；本机排程与事实源健康度不会被覆盖。包里没有的事实源和主题保持不动。
             </p>
 
             <div className="mt-5 flex justify-end gap-2">
@@ -188,7 +188,7 @@ export function SourcePackPanel({ activeTopic, onApplied }: Props): React.JSX.El
   )
 }
 
-const KIND_LABEL = { domain: '领域', source: '源', topic: '主题' } as const
+const KIND_LABEL = { domain: '领域', source: '事实源', topic: '主题' } as const
 
 function Count({
   label,

@@ -46,8 +46,8 @@ export function TopicManager({
       setDraftName('')
       setNote(
         res.sourceCount && res.sourceCount > 0
-          ? `已创建「${name}」，按推荐加入了 ${res.sourceCount} 个源；下面可以增减`
-          : `已创建「${name}」，暂时没有匹配的源；下面手动勾选或用推荐`
+          ? `已创建「${name}」，按推荐加入了 ${res.sourceCount} 个事实源；下面可以增减`
+          : `已创建「${name}」，暂时没有匹配的事实源；下面手动勾选或用推荐`
       )
       onChanged()
       onPick(id)
@@ -71,7 +71,7 @@ export function TopicManager({
   }
 
   const remove = async (t: TopicPayload): Promise<void> => {
-    if (!window.confirm(`删除主题「${t.name}」？它的简报与源归属会一起删掉，源本身不受影响。`)) return
+    if (!window.confirm(`删除主题「${t.name}」？它的简报与事实源归属会一起删掉，事实源本身不受影响。`)) return
     const res = await api.remove(t.id)
     setNote(res.ok ? `已删除「${t.name}」` : (res.error ?? '删除失败'))
     if (res.ok) {
@@ -149,16 +149,16 @@ export function TopicManager({
                       </button>
                     )}
                     <span className="text-[11px] text-ink-3">
-                      {t.sourceCount} 个源 · {t.hasBrief ? '已有简报' : '还没有简报'}
+                      {t.sourceCount} 个事实源 · {t.hasBrief ? '已有简报' : '还没有简报'}
                     </span>
                     <span className="ml-auto flex gap-1">
                       {onManageSources && (
                         <button
                           onClick={() => onManageSources(t.id)}
-                          title="选择这个主题要采集哪些源"
+                          title="选择这个主题要采集哪些事实源"
                           className="rounded border border-cream px-2 py-1 text-[10.5px] text-accent/90 transition-colors hover:border-accent hover:text-accent"
                         >
-                          选源
+                          选事实源
                         </button>
                       )}
                       <button

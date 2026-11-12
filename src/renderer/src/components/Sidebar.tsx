@@ -23,7 +23,7 @@ const NAV = [
   { id: 'today', label: '今日', hint: '' },
   { id: 'search', label: '搜索', hint: '' },
   { id: 'timeline', label: '时间线', hint: '' },
-  { id: 'sources', label: '源', hint: 'warn' },
+  { id: 'sources', label: '事实源', hint: 'warn' },
   { id: 'settings', label: '设置', hint: '' }
 ]
 

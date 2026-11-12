@@ -17,7 +17,7 @@ import { useDomains } from './lib/useDomains'
 
 const TITLES: Record<string, string> = {
   search: '搜索',
-  sources: '信息源',
+  sources: '事实源',
   settings: '设置',
   timeline: '时间线',
   onboarding: '开始使用'
@@ -156,7 +156,7 @@ export default function App(): React.JSX.Element {
             </h1>
             <span className="hidden text-[11.5px] text-ink-3 md:inline">
               {nav === 'sources'
-                ? `${summary.total} 个源`
+                ? `${summary.total} 个`
                 : nav === 'settings'
                   ? '排程 · 运行 · 导出'
                   : nav === 'search'

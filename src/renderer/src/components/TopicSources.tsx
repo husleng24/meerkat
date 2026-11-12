@@ -79,7 +79,7 @@ export function TopicSources({
       const api = window.meerkat?.topics
       if (!api) return
       const res = await api.setSources({ topicId, sourceIds: [...next] })
-      setNote(res.ok ? `已更新：本领域 ${next.size} 个源` : (res.error ?? '保存失败'))
+      setNote(res.ok ? `已更新：本领域 ${next.size} 个事实源` : (res.error ?? '保存失败'))
     },
     [topicId]
   )
@@ -132,7 +132,7 @@ export function TopicSources({
         />
         {onAddSource && (
           <button onClick={onAddSource} className="text-accent hover:underline">
-            ＋ 新建源
+            ＋ 新建事实源
           </button>
         )}
         {note && <span className="ml-auto text-ink-3">{note}</span>}
@@ -140,7 +140,7 @@ export function TopicSources({
 
       {sources.length > 0 && picked.size === sources.length && (
         <p className="mb-2.5 text-[11px] text-ink-3">
-          已选全部 {sources.length} 个源。全选时这个主题的简报会和别的主题高度重复；建议只保留相关的几类。
+          已选全部 {sources.length} 个事实源。全选时这个主题的简报会和别的主题高度重复；建议只保留相关的几类。
         </p>
       )}
 
@@ -195,7 +195,7 @@ export function TopicSources({
         ))}
         {sources.length === 0 && <p className="text-[12px] text-ink-3">还没有源</p>}
         {sources.length > 0 && grouped.length === 0 && (
-          <p className="text-[12px] text-ink-3">没有匹配的源；也可以点「＋ 新建源」自己加一个。</p>
+          <p className="text-[12px] text-ink-3">没有匹配的事实源；也可以点「＋ 新建事实源」自己加一个。</p>
         )}
       </div>
     </div>

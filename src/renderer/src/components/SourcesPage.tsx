@@ -107,7 +107,7 @@ export function SourcesPage({
             onClick={() => setAdding((v) => !v)}
             className="whitespace-nowrap rounded-lg border border-cream px-3 py-2 text-[12px] text-ink/80 transition-colors hover:border-accent hover:text-ink"
           >
-            {adding ? '收起' : '新增源'}
+            {adding ? '收起' : '新增事实源'}
           </button>
           <button
             onClick={() => void state.testAll()}
@@ -270,7 +270,7 @@ export function SourcesPage({
       </div>
 
       <p className="mt-4 text-[11px] leading-6 text-ink-3/80">
-        连续失败 3 次的源会被标红；若同类里有健康源，会给出"可换用"建议。
+        连续失败 3 次的事实源会被标红；若同类里有健康事实源，会给出"可换用"建议。
         {state.origin === 'sample' && '（当前是预览样例数据）'}
       </p>
     </div>

@@ -84,9 +84,9 @@ export function Onboarding({ sourceCount, createTopic, onDone }: Props): React.J
 
         {step === 1 && (
           <div>
-            <h2 className="mb-1 text-[14px] font-semibold text-ink">已为你预置 {sourceCount} 个源</h2>
+            <h2 className="mb-1 text-[14px] font-semibold text-ink">已为你预置 {sourceCount} 个事实源</h2>
             <p className="mb-4 text-[12px] text-ink-3">
-              全部可单独启停。连续失败的源会在"源"页标红，并给出可替代的同类型源。
+              全部可单独启停。连续失败的事实源会在"事实源"页标红，并给出可替代的同类型事实源。
             </p>
             <ul className="space-y-1.5 card px-4 py-3 text-[12px] text-ink/80">
               <li>· 一手官方：OpenAI、Anthropic、Google DeepMind、Hugging Face…</li>

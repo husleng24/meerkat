@@ -304,9 +304,9 @@ export function SettingsPage({
       </section>
 
       <section ref={sourcesRef} className="mb-8 scroll-mt-6">
-        <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的源</h2>
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">本主题的事实源</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          只有勾选的源会参与这个领域的采集。不同领域可以各选各的，源的健康度仍然全局共享。
+          只有勾选的事实源会参与这个领域的采集。不同领域可以各选各的，事实源的健康度仍然全局共享。
         </p>
         <TopicSources
           topicId={topicId}
@@ -318,7 +318,7 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">手动运行</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          立即采集：抓取本领域的源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
+          立即采集：抓取本领域的事实源并生成简报。重新成稿：不联网，用最近 48 小时的素材重写一版
           （换了提示词或想换个说法时用）。导出文件落在「文档/Meerkat/」。
         </p>
         <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
@@ -415,7 +415,7 @@ export function SettingsPage({
       <section className="mt-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">排查问题</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          导出诊断包（版本、源健康度、最近运行记录、日志尾部）。内容已自动脱敏：
+          导出诊断包（版本、事实源健康度、最近运行记录、日志尾部）。内容已自动脱敏：
           密钥、邮箱、路径里的用户名都会被打码。
         </p>
         <button
@@ -434,8 +434,8 @@ export function SettingsPage({
                 <Stat label="简报期数" value={overview.briefs} />
                 <Stat label="已读" value={overview.read} />
                 <Stat label="已收藏" value={overview.saved} />
-                <Stat label="源" value={overview.totalSources} />
-                <Stat label="失效源" value={overview.failingSources} warn={overview.failingSources > 0} />
+                <Stat label="事实源" value={overview.totalSources} />
+                <Stat label="失效" value={overview.failingSources} warn={overview.failingSources > 0} />
               </div>
               <div className="mt-2 text-[11px] text-ink-3">数据库 schema v{overview.schemaVersion}</div>
             </>
@@ -609,7 +609,7 @@ function FeedbackPanel(): React.JSX.Element {
               category === c ? 'border-accent bg-accent-soft text-accent' : 'border-cream text-ink/60 hover:border-accent'
             ].join(' ')}
           >
-            {{ bug: '缺陷', idea: '功能建议', source: '信息源问题', other: '其他' }[c]}
+            {{ bug: '缺陷', idea: '功能建议', source: '事实源问题', other: '其他' }[c]}
           </button>
         ))}
       </div>
@@ -629,7 +629,7 @@ function FeedbackPanel(): React.JSX.Element {
           onChange={(e) => setIncludeDiag(e.target.checked)}
           className="accent-[#3A2921]"
         />
-        附带诊断信息（版本、源健康度、最近运行、日志尾部；密钥/邮箱/用户名已打码）
+        附带诊断信息（版本、事实源健康度、最近运行、日志尾部；密钥/邮箱/用户名已打码）
       </label>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
