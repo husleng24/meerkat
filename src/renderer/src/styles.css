@@ -27,7 +27,11 @@
   --color-lumen: #06b6d4;
   --color-alert: #dc2626;
 
-  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  /* 拉丁优先、中文回退：Windows 的拉丁走 Segoe UI（雅黑的拉丁偏宽），
+     中文走雅黑 UI；macOS 上 Segoe 缺失，自然落到 PingFang。
+     不首推 Segoe UI Variable：它的命名实例在 500 时会落到 Semibold，
+     拉丁比中文重半档，同一行里反而更不一致。 */
+  --font-sans: 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, -apple-system, sans-serif;
 }
 
 html,
@@ -42,6 +46,9 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-feature-settings: 'pkna';
+  /* 不合成伪粗体：CJK 的伪粗会糊成一团；层级用字号/颜色/留白表达 */
+  font-synthesis: none;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
 }
 

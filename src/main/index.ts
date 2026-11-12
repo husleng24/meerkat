@@ -1,9 +1,8 @@
 import { app, BrowserWindow, Menu, nativeImage, screen, shell } from 'electron'
 import { join } from 'node:path'
-import { checkUpdatesInBackground, closeStore, dailyDeps, domainDeps, initStore, registerIpc } from './ipc'
+import { checkUpdatesInBackground, closeStore, dailyDeps, initStore, registerIpc } from './ipc'
 import { Scheduler } from './scheduler'
 import { runDaily } from './daily'
-import { composeDomainRollup } from './domain-daily'
 import { installCrashHandlers, log } from './log'
 import { runElectronSelfCheck } from './selfcheck'
 import { apply as applyAutoLaunch } from './autolaunch'
@@ -154,22 +153,6 @@ if (process.argv.includes('--verify')) {
         store,
         runOnce: (topicId, signal) =>
           runDaily(store, dailyDeps(), { topicId, ...(signal ? { signal } : {}) }),
-        composeDomains: async (domainId, signal) => {
-          const out = await composeDomainRollup(store, domainDeps(), {
-            domainId,
-            ...(signal ? { signal } : {})
-          })
-          // "还没有简报"不是失败，是还没到时候：记 info，别污染错误日志
-          if (!out.ok) {
-            log('info', `领域汇总跳过（${domainId}）：${out.reason ?? '没有可汇总的内容'}`)
-            return false
-          }
-          log(
-            'info',
-            `领域汇总（${domainId}）：${out.topicCount} 个主题 · ${out.itemCount} 条 · ${out.degraded ? '摘录兜底' : '已生成'}`
-          )
-          return true
-        },
         getWindow: () => mainWindow,
         showWindow
       })

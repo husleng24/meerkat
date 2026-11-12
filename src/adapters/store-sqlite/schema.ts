@@ -208,7 +208,7 @@ export const MIGRATIONS: Migration[] = [
     version: 4,
     name: 'domains',
     up: `
-      -- 领域：主题的分组；领域汇总以它为单位
+      -- 领域：主题的分组
       CREATE TABLE domains (
         id         TEXT PRIMARY KEY,
         name       TEXT    NOT NULL,
@@ -226,7 +226,7 @@ export const MIGRATIONS: Migration[] = [
     version: 5,
     name: 'domain_briefs',
     up: `
-      -- 领域汇总：从各主题当天的简报合成，所以只存 markdown
+      -- 领域汇总（v6 已移除，仅保留历史迁移）
       CREATE TABLE domain_briefs (
         id         TEXT PRIMARY KEY,
         domain_id  TEXT NOT NULL,
@@ -239,6 +239,15 @@ export const MIGRATIONS: Migration[] = [
         FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE
       );
       CREATE INDEX idx_domain_briefs ON domain_briefs(domain_id, date DESC);
+    `
+  },
+  {
+    version: 6,
+    name: 'drop_domain_briefs',
+    up: `
+      -- 领域汇总已移除：每个主题的简报就是最终产物，不再有第二层汇总。
+      -- 旧库升级时丢掉这张表；简报正文与主题数据不受影响。
+      DROP TABLE IF EXISTS domain_briefs;
     `
   }
 ]

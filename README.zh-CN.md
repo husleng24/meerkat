@@ -47,8 +47,8 @@
 
 - **本地优先**：没有账号、没有遥测；密钥加密存在本机，数据就是一个 SQLite 文件，可备份可删
 - **只讲变化**：48 小时窗口 + 打分 + 跨天去重，一期 15–24 条，不是信息流
-- **领域 → 主题 → 汇总**：先看领域综述，再下钻主题；新主题默认只带几个推荐源，不复制全部源
-- **不会开天窗**：没接模型出"仅聚合"版，汇总失败出摘录版，源不健康有看板、可替换
+- **领域 → 主题**：领域只在数据层分组，侧栏是扁平主题列表；新主题默认只带几个推荐源，不复制全部源
+- **不会开天窗**：没接模型出"仅聚合"版，源不健康有看板、可替换
 
 ## 功能
 
@@ -59,8 +59,8 @@
 
 ### 领域 → 主题
 
-侧栏是一份扁平的主题列表，按领域分组显示；点主题即切换，`⌘1–9` 直接切。
-主题是采集与简报的单位，领域只负责分组与汇总。
+侧栏是一份扁平的主题列表；点主题即切换，`⌘1–9` 直接切。
+主题是采集与简报的单位，领域只在数据层承担分组。
 **新建主题默认只带 8 个按语料推荐的源**，不再和别的主题全量重复。
 
 ![加源时选归属主题](docs/assets/ui-source-topic-picker.png)
@@ -79,14 +79,6 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时
 源是全局的（健康度按源算），归属按主题多对多。源页显示连续失败与不稳定，给出替代源建议；
 新增源时按领域分组勾选归属主题，并给一个可解释的规则推荐。设置里可以按主题搜索、勾选、
 或用「✨ 按主题推荐」补源。
-
-### 领域汇总
-
-每天 08:45（各主题跑完后）把同一领域各主题当天的简报合成一份：一段跨主题综述 +
-分主题条目，跨主题按 URL 去重。没接模型或调用失败时出摘录兜底稿，不阻塞。
-侧栏「领域汇总」页可随时手动重新汇总。
-
-![领域汇总](docs/assets/ui-domain-rollup.png)
 
 ### AI 对话
 
@@ -151,7 +143,7 @@ pnpm dist         # Windows NSIS 安装包（配置见 electron-builder.yml）
 
 ### 排程与手动运行
 
-每个主题默认 08:30，领域汇总默认 08:45；错过会在 **6 小时内**补跑一次。设置页可改时间、
+每个主题默认 08:30；错过会在 **6 小时内**补跑一次。设置页可改时间、
 关掉定时、立即采集或取消。托盘菜单显示下次运行时间，跑完弹通知。
 
 ### 模型与密钥
@@ -176,7 +168,7 @@ pnpm dist         # Windows NSIS 安装包（配置见 electron-builder.yml）
 ```
 renderer (React)  ──IPC──▶  main（Electron 组装）
                                 │
-                    app（用例：采集/成稿/对话/汇总）
+                    app（用例：采集/成稿/对话）
                                 │ 只依赖端口
                     core（domain / pipeline / policy / ports，纯逻辑）
                                 ▲
@@ -186,7 +178,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | 层 | 目录 | 职责 |
 |---|---|---|
 | core | `src/core` | 领域模型、打分与去重、提示词上下文、端口接口；不 import 任何适配器 |
-| app | `src/app` | 用例：采集、成稿、推荐、汇总、诊断；只依赖 core 的端口 |
+| app | `src/app` | 用例：采集、成稿、推荐、诊断；只依赖 core 的端口 |
 | adapters | `src/adapters` | SQLite 仓储、各类源抓取、OpenAI/Anthropic 协议、Composer |
 | main | `src/main` | Electron 组装、IPC、排程、托盘、导出、密钥 |
 | renderer | `src/renderer` | React 界面，只通过 `window.meerkat` 访问主进程 |
@@ -219,7 +211,6 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 - **AI 对话非流式**：一次返回；重排功能在 P2
 - **升级只提醒、不自动下载**：点「下载更新」跳到 Release 页面
 - **macOS 分发需要 Developer ID**：未签名/ad-hoc 包可能被 AMFI 拒绝（见「下载」）
-- **领域汇总的质量依赖各主题简报**：主题当天没出简报时用它最新一期，没有的话跳过
 
 ## 文档
 
@@ -230,7 +221,6 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | [DESIGN.md](DESIGN.md) | 功能设计与数据流 |
 | [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | 视觉规范：色值、字号、版式规则 |
 | [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI 对话的设计与实现状态 |
-| [docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md) | 领域汇总的设计与实现 |
 | [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | 领域/主题两层模型的评估 |
 | [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | 领域导航的调研与取舍 |
 | [docs/HARNESS.md](docs/HARNESS.md) | 本机 Agent harness 的调研（暂缓） |

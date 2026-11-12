@@ -20,9 +20,7 @@ const LAST_RUN_KEY = 'schedule.lastRunAt'
 
 export interface SchedulerDeps {
   store: Store
-  /** 跑一个主题的采集 + 简报；返回值用于日志与通知文案 */
-  /** 返回 true 表示真的生成了；false 表示跳过（例如主题还没有简报） */
-  composeDomains?: (domainId: string, signal?: AbortSignal) => Promise<boolean>
+  /** 跑一个主题的采集 + 简报；返回 false 表示跳过（例如主题还没有简报） */
   runOnce: (topicId: string, signal?: AbortSignal) => Promise<DailyOutcome>
   getWindow: () => BrowserWindow | null
   showWindow: () => void
@@ -110,10 +108,8 @@ export class Scheduler {
     if (isRunning()) return
     const now = Date.now()
     const due = this.dueTopics(now)
-    // 领域汇总可能独立到点（主题今天都跑过了），所以不能因为"没主题可跑"就提前 return
-    const domainDue = this.deps.composeDomains !== undefined && this.anyDomainDue(now)
-    this.refreshTray(due.length > 0 || domainDue ? '准备运行…' : this.lastSummary)
-    if (due.length === 0 && !domainDue) return
+    this.refreshTray(due.length > 0 ? '准备运行…' : this.lastSummary)
+    if (due.length === 0) return
 
     const handle = beginRun()
     if (!handle) return
@@ -123,49 +119,9 @@ export class Scheduler {
         log('info', `定时触发（${topic.name} · ${reason}）`)
         await this.runTopic(topic, handle.controller.signal)
       }
-      await this.maybeDomainRollup(handle.controller.signal)
     } finally {
       endRun(handle)
       this.refreshTray(this.lastSummary)
-    }
-  }
-
-  private domainSchedule(): { enabled: boolean; hour: number; minute: number } {
-    return {
-      enabled: true,
-      hour: this.deps.store.settings.get<number>('domain.hour') ?? 8,
-      minute: this.deps.store.settings.get<number>('domain.minute') ?? 45
-    }
-  }
-
-  private anyDomainDue(now: number): boolean {
-    const cfg = this.domainSchedule()
-    return this.deps.store.domains.list().some((d) => {
-      const lastRunAt = this.deps.store.settings.get<number>(`domain.lastRunAt.${d.id}`)
-      return decideDue(lastRunAt, now, cfg).due
-    })
-  }
-
-  /**
-   * 领域汇总：默认 08:45，在主题跑完之后执行。
-   * 每个领域记自己的 lastRunAt，所以某天某个领域失败不会影响其他领域。
-   */
-  private async maybeDomainRollup(signal?: AbortSignal): Promise<void> {
-    const compose = this.deps.composeDomains
-    if (!compose) return
-    const cfg = this.domainSchedule()
-    const now = Date.now()
-    for (const d of this.deps.store.domains.list()) {
-      const lastRunAt = this.deps.store.settings.get<number>(`domain.lastRunAt.${d.id}`)
-      if (!decideDue(lastRunAt, now, cfg).due) continue
-      try {
-        const done = await compose(d.id, signal)
-        // 跳过的也记 lastRunAt：否则每分钟都会重试一次，日志会被刷满
-        this.deps.store.settings.set(`domain.lastRunAt.${d.id}`, Date.now())
-        if (done) this.deps.getWindow()?.webContents.send('domain-brief:updated', d.id)
-      } catch (e) {
-        log('error', `领域汇总失败（${d.name}）：${e instanceof Error ? e.message : String(e)}`)
-      }
     }
   }
 

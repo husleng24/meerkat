@@ -22,7 +22,6 @@ import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolau
 import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBrief } from './export'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
-import { composeDomainRollup, type DomainDeps } from './domain-daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
   chatModels,
@@ -33,7 +32,7 @@ import {
   threadBriefStale,
   type ChatDeps
 } from './chat'
-import { composeTarget, createProviderInstance, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
+import { composeTarget, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
 import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
@@ -241,17 +240,6 @@ export function dailyDeps(): DailyDeps {
   for (const p of availableProviders()) keys[p.id] = p.key
   const overrides = store ? readModelOverrides(store) : {}
   return { compose: composeTarget(keys, overrides), promptText }
-}
-
-/** 领域汇总的依赖：和成稿同一套供应商选择 */
-export function domainDeps(): DomainDeps {
-  const keys: ProviderKeys = {}
-  for (const p of availableProviders()) keys[p.id] = p.key
-  const overrides = store ? readModelOverrides(store) : {}
-  const target = composeTarget(keys, overrides)
-  if (!target) return { chat: null }
-  const provider = createProviderInstance(target.provider, target.key)
-  return provider ? { chat: { provider, model: target.model } } : { chat: null }
 }
 
 /** 对话的依赖：可用供应商的 key 集合 */
@@ -551,7 +539,7 @@ export function registerIpc(): void {
       createdAt: now,
       updatedAt: now
     })
-    // 新主题默认只带推荐源：全选会让每个主题内容雷同，领域汇总去重一半就是证据。
+    // 新主题默认只带推荐源：全选会让每个主题内容雷同。
     // 显式传入 sourceIds 时以传入为准（脚本/引导页可以要全部）。
     const ids =
       parsed.data.sourceIds ??
@@ -772,34 +760,6 @@ export function registerIpc(): void {
     return recommendSources(requireStore(), parsed.data.topicId, {
       ...(parsed.data.limit !== undefined ? { limit: parsed.data.limit } : {})
     })
-  })
-
-  ipcMain.handle('domainBrief:latest', (_e, raw: unknown) => {
-    const parsed = z
-      .object({ domainId: z.string().min(1).max(40), date: z.string().max(20).optional() })
-      .safeParse(raw)
-    if (!parsed.success) return null
-    const b = requireStore().domainBriefs.latest(parsed.data.domainId, parsed.data.date)
-    return b ?? null
-  })
-
-  ipcMain.handle('domainBrief:compose', async (_e, raw: unknown) => {
-    const parsed = z.object({ domainId: z.string().min(1).max(40) }).safeParse(raw)
-    if (!parsed.success) return { ok: false, error: '参数非法' }
-    const out = await composeDomainRollup(requireStore(), domainDeps(), { domainId: parsed.data.domainId })
-    if (!out.ok) return { ok: false, error: out.reason ?? '生成失败' }
-    requireStore().settings.set(`domain.lastRunAt.${out.domainId}`, Date.now())
-    for (const w of BrowserWindow.getAllWindows()) {
-      if (!w.isDestroyed()) w.webContents.send('domain-brief:updated', out.domainId)
-    }
-    return {
-      ok: true,
-      date: out.date,
-      degraded: out.degraded,
-      topicCount: out.topicCount,
-      itemCount: out.itemCount,
-      ...(out.reason ? { note: out.reason } : {})
-    }
   })
 
   ipcMain.handle('update:current', () => app.getVersion())

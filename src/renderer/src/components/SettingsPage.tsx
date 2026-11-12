@@ -199,7 +199,7 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">领域</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          领域是主题的分组，也是以后出「领域汇总」的单位。先有领域，再把主题放进去。
+          领域是主题的分组。先有领域，再把主题放进去。
         </p>
         <DomainManager
           domains={domains}

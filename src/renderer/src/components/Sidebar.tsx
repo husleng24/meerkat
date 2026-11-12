@@ -1,16 +1,13 @@
 import { useState } from 'react'
-import type { DomainPayload, TopicPayload } from '../lib/ipc-types'
-import { groupTopicsByDomain } from '../../../app/topic-groups'
+import type { TopicPayload } from '../lib/ipc-types'
 import { UpdateNotice } from './UpdateNotice'
 
 interface Props {
   active: string
-  /** 全部主题；侧栏按领域分组，但不再要求先选领域 */
+  /** 全部主题，按创建顺序平铺；领域不再是一层可见的导航 */
   topics: TopicPayload[]
   activeTopic: string
   onPickTopic: (id: string) => void
-  /** 领域只用于分组小标题与汇总范围 */
-  domains: DomainPayload[]
   topicsAvailable: boolean
   /** 就地新建主题；返回新主题 id 或 null */
   onCreateTopic?: (input: { id: string; name: string }) => Promise<string | null>
@@ -34,18 +31,16 @@ const NAV = [
 ]
 
 /**
- * 左侧导航：主题是一等公民，领域只是分组标签。
+ * 左侧导航：主题是一等公民，领域不再出现在导航里。
  *
- * 为什么不再有「领域切换器」：领域由当前主题唯一确定（见 App 的 activeDomain），
- * 多一个选择器就多一个会跟主题打架的状态——汇总页换主题、跨领域快捷键失效都是它带来的。
- * 主题多到需要分组时，领域名作为小标题出现；只有一个领域时连小标题都不显示。
+ * 领域仍然存在于数据层（用于设置页的分组），但普通阅读路径上只选主题：
+ * 少一层可见的分组，就少一次「我在哪个领域」的追问。
  */
 export function Sidebar({
   active,
   topics,
   activeTopic,
   onPickTopic,
-  domains,
   topicsAvailable,
   onCreateTopic,
   onNavigate,
@@ -59,10 +54,6 @@ export function Sidebar({
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState('')
-
-  const groups = groupTopicsByDomain(topics, domains)
-  // 只有一个领域时，小标题是纯噪声；主题列表本身就是完整菜单
-  const showDomainTitles = groups.length > 1
 
   const submit = async (): Promise<void> => {
     const name = draft.trim()
@@ -84,8 +75,8 @@ export function Sidebar({
         className={[
           'flex w-full items-center gap-1.5 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
           isActive
-            ? 'bg-accent-soft font-semibold text-accent'
-            : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
+            ? 'bg-accent-soft text-accent'
+            : 'text-ink-2 hover:bg-cream hover:text-ink'
         ].join(' ')}
       >
         <span className="min-w-0 truncate">{t.name}</span>
@@ -106,34 +97,12 @@ export function Sidebar({
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-rule bg-white px-4 pb-5 pt-10">
       {/* 品牌区已移除：顶部留白只为避开 macOS 的红黄绿窗控（hiddenInset 会把它们压在内容上） */}
-      <button
-        onClick={() => onNavigate('rollup')}
-        className={[
-          'mt-0 flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
-          active === 'rollup'
-            ? 'bg-accent-soft font-semibold text-accent'
-            : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
-        ].join(' ')}
-      >
-        <span className="flex-1">领域汇总</span>
-        <span className="text-[11px] font-normal text-ink-3">今天</span>
-      </button>
-
-      <div className="mt-3 flex max-h-[260px] flex-col gap-0.5 overflow-y-auto">
-        {groups.length === 0 && topicsAvailable && (
+      <div className="mt-0 flex max-h-[320px] flex-col gap-0.5 overflow-y-auto">
+        {topics.length === 0 && topicsAvailable && (
           <div className="px-2.5 py-1 text-[12px] text-ink-3">还没有主题</div>
         )}
 
-        {groups.map((group) => (
-          <div key={group.domainId} className="flex flex-col gap-0.5">
-            {showDomainTitles && (
-              <div className="px-2.5 pb-0.5 pt-2 text-[10.5px] font-semibold tracking-[0.08em] text-ink-3">
-                {group.domainName}
-              </div>
-            )}
-            {group.topics.map(topicButton)}
-          </div>
-        ))}
+        {topics.map(topicButton)}
 
         {creating ? (
           <input
@@ -154,7 +123,7 @@ export function Sidebar({
           onCreateTopic && (
             <button
               onClick={() => setCreating(true)}
-              className="mt-1 flex w-full items-center gap-1 rounded-lg px-2.5 py-[7px] text-left text-[12px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
+              className="mt-1 flex w-full items-center gap-1 rounded-lg px-2.5 py-[7px] text-left text-[13px] text-ink-3 transition-colors hover:bg-cream hover:text-ink"
             >
               ＋ 新建主题
             </button>
@@ -172,8 +141,8 @@ export function Sidebar({
               className={[
                 'flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
                 isActive
-                  ? 'bg-accent-soft font-semibold text-accent'
-                  : 'font-medium text-ink-2 hover:bg-cream hover:text-ink'
+                  ? 'bg-accent-soft text-accent'
+                  : 'text-ink-2 hover:bg-cream hover:text-ink'
               ].join(' ')}
             >
               <span className="flex-1">{n.label}</span>

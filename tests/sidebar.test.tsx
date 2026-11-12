@@ -3,7 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Sidebar } from '../src/renderer/src/components/Sidebar'
-import type { DomainPayload, TopicPayload } from '../src/renderer/src/lib/ipc-types'
+import type { TopicPayload } from '../src/renderer/src/lib/ipc-types'
 
 function topic(over: Partial<TopicPayload> = {}): TopicPayload {
   return {
@@ -19,10 +19,6 @@ function topic(over: Partial<TopicPayload> = {}): TopicPayload {
     unreadCount: 0,
     ...over
   }
-}
-
-function domain(over: Partial<DomainPayload> = {}): DomainPayload {
-  return { id: 'ai', name: 'AI', createdAt: 1, topicCount: 3, ...over }
 }
 
 let root: Root | null = null
@@ -56,7 +52,6 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
     ],
     activeTopic: 'a',
     onPickTopic: vi.fn(),
-    domains: [domain(), domain({ id: 'robot', name: '机器人', topicCount: 1 })],
     topicsAvailable: true,
     onCreateTopic: vi.fn().mockResolvedValue(null),
     onNavigate: vi.fn(),
@@ -74,30 +69,21 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
 const topicButton = (el: HTMLElement, name: string): HTMLButtonElement =>
   [...el.querySelectorAll('button')].find((b) => b.textContent?.includes(name)) as HTMLButtonElement
 
-describe('侧栏：扁平主题列表 + 领域分组标签', () => {
-  it('多领域时按领域分组显示小标题，全部主题都在一屏里', async () => {
+describe('侧栏：扁平主题列表', () => {
+  it('全部主题平铺显示，不再有领域标签', async () => {
     const el = await render(<Sidebar {...baseProps()} />)
-    expect(el.textContent).toContain('AI')
-    expect(el.textContent).toContain('机器人')
     expect(el.textContent).toContain('模型与产品')
     expect(el.textContent).toContain('芯片与算力')
     expect(el.textContent).toContain('具身智能')
+    expect(el.textContent).not.toContain('机器人')
   })
 
-  it('单领域时不显示领域小标题，也不再有领域切换器', async () => {
-    const el = await render(
-      <Sidebar
-        {...baseProps({
-          domains: [domain({ id: 'research', name: '研究组', topicCount: 2 })],
-          topics: [topic({ id: 'a', domainId: 'research', name: '模型与产品' })]
-        })}
-      />
-    )
-    expect(el.textContent).not.toContain('研究组')
+  it('没有领域切换器', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
     expect(el.querySelector('button[aria-haspopup="listbox"]')).toBeNull()
   })
 
-  it('点主题直接切换（跨领域也是一次点击）', async () => {
+  it('点主题直接切换', async () => {
     const onPick = vi.fn()
     const el = await render(<Sidebar {...baseProps({ onPickTopic: onPick })} />)
     await act(async () => topicButton(el, '具身智能').click())
@@ -141,13 +127,5 @@ describe('侧栏：扁平主题列表 + 领域分组标签', () => {
 
     expect(created).toHaveBeenCalledWith(expect.objectContaining({ name: 'Agent 与工具' }))
     expect(onPick).toHaveBeenCalledWith('t-new')
-  })
-
-  it('「领域汇总」进入汇总页', async () => {
-    const onNavigate = vi.fn()
-    const el = await render(<Sidebar {...baseProps({ onNavigate })} />)
-    const rollup = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('领域汇总'))!
-    await act(async () => rollup.click())
-    expect(onNavigate).toHaveBeenCalledWith('rollup')
   })
 })

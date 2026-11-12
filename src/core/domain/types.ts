@@ -121,7 +121,7 @@ export interface Brief {
   createdAt: number
 }
 
-/** 领域：主题的分组，也是领域汇总的单位（一个领域下有多个主题） */
+/** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string
   name: string
@@ -145,21 +145,6 @@ export interface Topic {
   minute: number
   createdAt: number
   updatedAt: number
-}
-
-/**
- * 领域汇总：每天把该领域各主题的简报合成一份。
- * 存在的意义是"先看一层"，所以它自己不含条目 id，只引用各主题简报里的链接。
- */
-export interface DomainBrief {
-  id: string
-  domainId: string
-  date: string
-  markdown: string
-  model: string
-  tokensIn: number
-  tokensOut: number
-  createdAt: number
 }
 
 export interface ChatThread {

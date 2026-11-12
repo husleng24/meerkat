@@ -50,10 +50,8 @@ Neither platform is code-signed, and that has consequences:
 - **Local by design** — no account, no telemetry; keys are encrypted on disk and your data is one SQLite file
   you can back up or delete
 - **Only the delta** — a 48-hour window, scoring and cross-day dedupe, so an issue is 15–24 items, not a feed
-- **Domain → topic → rollup** — start from a domain-level overview and drill into a topic; new topics start
-  with a few recommended sources instead of copying every source
-- **Never a blank page** — without a model it produces a links-only digest, a failed rollup falls back to
-  excerpts, and unhealthy sources are visible and replaceable
+- **Domain → topic** — a domain groups topics in data; the sidebar itself is one flat topic list
+- **Never a blank page** — without a model it produces a links-only digest, and unhealthy sources are visible and replaceable
 
 ## Features
 
@@ -65,8 +63,8 @@ titles-and-links digest instead of failing.
 
 ### Domain → topic
 
-The sidebar is a flat list of topics grouped by domain; clicking a topic switches to it, and `⌘1–9` jumps directly.
-A topic is the unit of collection and briefing; a domain only groups topics and produces rollups.
+The sidebar is a flat list of topics; clicking a topic switches to it, and `⌘1–9` jumps directly.
+A topic is the unit of collection and briefing; a domain only groups them in data.
 **New topics start with 8 recommended sources** instead of copying every source.
 
 ![Choosing topics when adding a source](docs/assets/ui-source-topic-picker.png)
@@ -86,14 +84,6 @@ Sources are global (health is per source); membership is many-to-many per topic.
 consecutive failures and unstable feeds, and suggests replacements. When adding a source you pick the topics
 (grouped by domain) and get an explainable rule-based recommendation. In settings you can search, tick, or use
 **✨ recommended for this topic** to fill gaps.
-
-### Domain rollup
-
-Every day at 08:45 (after topics finish), each domain merges its topics' briefs into one rollup: a cross-topic
-overview plus per-topic items, deduped by URL. Without a model (or when the call fails) it falls back to an
-excerpt sheet instead of blocking. The **Domain rollup** page in the sidebar lets you recompose at any time.
-
-![Domain rollup](docs/assets/ui-domain-rollup.png)
 
 ### AI chat
 
@@ -164,7 +154,7 @@ Full reproduction steps: [docs/HISTORY.md](docs/HISTORY.md) (Chinese).
 
 ### Schedule and manual runs
 
-Each topic defaults to 08:30, domain rollups to 08:45; a missed slot is caught up within **6 hours**.
+Each topic defaults to 08:30; a missed slot is caught up within **6 hours**.
 Settings lets you change times, disable the schedule, run now or cancel. The tray menu shows the next run;
 a notification appears when it finishes.
 
@@ -190,7 +180,7 @@ a notification appears when it finishes.
 ```
 renderer (React)  ──IPC──▶  main (Electron assembly)
                                 │
-                    app (use cases: collect / compose / chat / rollup)
+                    app (use cases: collect / compose / chat)
                                 │  depends on ports only
                     core (domain / pipeline / policy / ports, pure)
                                 ▲
@@ -200,7 +190,7 @@ renderer (React)  ──IPC──▶  main (Electron assembly)
 | Layer | Path | Responsibility |
 |---|---|---|
 | core | `src/core` | Domain model, scoring and dedupe, prompt context, port interfaces; imports no adapters |
-| app | `src/app` | Use cases: collection, composition, recommendations, rollups, diagnostics; depends only on core ports |
+| app | `src/app` | Use cases: collection, composition, recommendations, diagnostics; depends only on core ports |
 | adapters | `src/adapters` | SQLite repositories, source fetchers, OpenAI/Anthropic protocols, composer |
 | main | `src/main` | Electron assembly, IPC, scheduler, tray, export, keystore |
 | renderer | `src/renderer` | React UI; talks to main only through `window.meerkat` |
@@ -236,7 +226,6 @@ Common commands: `pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `p
 - **AI chat is not streaming**; reordering is P2
 - **Updates are a notice, not a download**: the app links to the Release page instead of installing it
 - **macOS distribution needs a Developer ID**: unsigned/ad-hoc builds can be refused by AMFI (see Download)
-- **Rollup quality depends on topic briefs**: a topic without a brief for the day falls back to its latest one
 
 ## Docs
 
@@ -249,7 +238,6 @@ Most design docs are currently written in Chinese.
 | [DESIGN.md](DESIGN.md) | Feature design and data flow |
 | [docs/VISUAL-WORLD.md](docs/VISUAL-WORLD.md) | Visual spec: colors, type scale, layout rules |
 | [docs/AI-CHAT.md](docs/AI-CHAT.md) | AI chat design and status |
-| [docs/DOMAIN-ROLLUP.md](docs/DOMAIN-ROLLUP.md) | Domain rollup design and implementation |
 | [docs/DOMAIN-TOPIC-MODEL.md](docs/DOMAIN-TOPIC-MODEL.md) | Evaluating the domain/topic model |
 | [docs/TOPIC-NAV.md](docs/TOPIC-NAV.md) / [docs/DOMAIN-PLACEMENT.md](docs/DOMAIN-PLACEMENT.md) | Navigation research and trade-offs |
 | [docs/HARNESS.md](docs/HARNESS.md) | Local agent harness research (deferred) |
