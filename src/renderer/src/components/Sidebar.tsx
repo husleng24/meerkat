@@ -122,7 +122,7 @@ export function Sidebar({
         )}
       </div>
 
-      <div className="mt-auto border-t border-rule pt-3">
+      <div className="mt-auto pt-3">
         <UpdateNotice />
         <SidebarMenu
           active={active}
