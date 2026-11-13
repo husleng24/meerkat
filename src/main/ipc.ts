@@ -929,12 +929,12 @@ export function registerIpc(): void {
 
   ipcMain.handle('diag:export', () => exportDiagnostic(requireStore()))
 
-  ipcMain.handle('export:richtext', (_e, raw: unknown) => {
+  ipcMain.handle('export:richtext', async (_e, raw: unknown) => {
     const parsed = z
       .object({ html: z.string().min(1).max(2_000_000), text: z.string().max(2_000_000) })
       .safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
-    copyBriefRichText(parsed.data.html, parsed.data.text)
+    await copyBriefRichText(parsed.data.html, parsed.data.text)
     return { ok: true }
   })
 

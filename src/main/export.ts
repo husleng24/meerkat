@@ -5,7 +5,7 @@
  * 主进程负责：查主题名 → 生成文件名 → 落地 → 在文件管理器里定位。
  * 三种格式共用这一条规则，避免「某个格式忘了带主题」——那会静默覆盖另一个主题的文件。
  */
-import { BrowserWindow, app, clipboard, shell } from 'electron'
+import { BrowserWindow, app, clipboard, ClipboardItem, shell } from 'electron'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { briefFileName } from '../app/brief-identity'
@@ -69,7 +69,7 @@ export async function exportBrief(store: Store, req: ExportRequest): Promise<str
 }
 
 /** 复制为富文本：同时放 text/html 与 text/plain，粘到 Word/邮件里保留排版 */
-export function copyBriefRichText(html: string, text: string): boolean {
-  clipboard.write({ text, html })
+export async function copyBriefRichText(html: string, text: string): Promise<boolean> {
+  await clipboard.write([new ClipboardItem({ 'text/plain': text, 'text/html': html })])
   return true
 }
