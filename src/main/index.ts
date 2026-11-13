@@ -10,6 +10,14 @@ import { brandPath } from './paths'
 
 const isDev = !app.isPackaged
 
+// Windows 上 Chromium 的 UIA 文本 provider 会被系统输入/划词工具查询，38.8.6 的
+// UIA 回调在地址 0x1 处崩溃（2026-11-13 的 26776 minidump，CrBrowserMain /
+// uiautomationcore）。关掉 renderer accessibility 是最小止损；需要读屏时用
+// MEERKAT_A11Y=1 显式打开。
+if (process.platform === 'win32' && process.env['MEERKAT_A11Y'] !== '1') {
+  app.commandLine.appendSwitch('disable-renderer-accessibility')
+}
+
 // 名字影响通知、关于面板与调试时的辨识度；macOS 菜单栏那一位由 .app 的
 // Info.plist 决定，运行时代码改不了（见下方 Dock 图标的处理）
 app.setName('Meerkat')
