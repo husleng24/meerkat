@@ -9,7 +9,7 @@ import { SearchPage } from './components/SearchPage'
 import { useBriefData } from './lib/useBriefData'
 import { useSortedSources, useSources } from './lib/useSources'
 import { useFlags } from './lib/useFlags'
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
 import { useTopics } from './lib/useTopics'
@@ -50,7 +50,7 @@ export default function App(): React.JSX.Element {
     if (!topics.some((t) => t.id === activeId)) setActiveId(topics[0]!.id)
   }, [topics, activeId, setActiveId])
 
-  const { brief, loading, origin, bridgeAvailable, urlToId, comparison, previousDate } = useBriefData(
+  const { brief, loading, urlToId, comparison, previousDate } = useBriefData(
     viewDate,
     activeId || undefined
   )
@@ -68,10 +68,10 @@ export default function App(): React.JSX.Element {
     return head && KNOWN_ROUTES.includes(head) ? head : 'today'
   })
   const subRoute = hashParts[1]
-  const go = (id: string): void => {
+  const go = useCallback((id: string): void => {
     setNav(id)
     if (typeof location !== 'undefined') history.replaceState(null, '', '#' + id)
-  }
+  }, [])
 
   /** 跳到源页并直接展开"新增源"表单（表单里会默认勾上当前主题） */
   const goAddSource = (): void => {
@@ -79,9 +79,10 @@ export default function App(): React.JSX.Element {
     setNav('sources')
   }
 
-  /** 选主题：只切换当前主题，页面本身不动 */
+  /** 选主题：切到该主题，并回到今日简报 */
   const pickTopic = (id: string): void => {
     setActiveId(id)
+    go('today')
   }
 
   /** 报头右侧的"更新"：和设置页走同一个 run:now，跑完靠 brief:updated 广播刷新界面 */
@@ -108,10 +109,11 @@ export default function App(): React.JSX.Element {
       if (!t) return
       e.preventDefault()
       setActiveId(t.id)
+      go('today')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [topics, setActiveId])
+  }, [topics, setActiveId, go])
 
   // Ctrl/Cmd+K 跳到搜索：这是阅读器里最常用的一个动作
   useEffect(() => {
@@ -129,7 +131,7 @@ export default function App(): React.JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [go])
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -142,8 +144,6 @@ export default function App(): React.JSX.Element {
         onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
         onNavigate={go}
         attentionSources={summary.attention}
-        origin={origin}
-        bridgeAvailable={bridgeAvailable}
         dateLabel={dateLabel}
       />
 

@@ -56,8 +56,6 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
     onCreateTopic: vi.fn().mockResolvedValue(null),
     onNavigate: vi.fn(),
     attentionSources: 15,
-    origin: 'ipc',
-    bridgeAvailable: true,
     dateLabel: '2026-11-12',
     ...over
   }
@@ -124,5 +122,29 @@ describe('侧栏：扁平主题列表', () => {
 
     expect(created).toHaveBeenCalledWith(expect.objectContaining({ name: 'Agent 与工具' }))
     expect(onPick).toHaveBeenCalledWith('t-new')
+  })
+
+  it('没有今日导航，也没有数据来源文案', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
+    const navLabels = [...el.querySelectorAll('nav button')].map((b) => b.textContent?.trim() ?? '')
+    expect(navLabels.some((x) => x.startsWith('今日'))).toBe(false)
+    expect(el.textContent).not.toContain('数据来源')
+  })
+
+  it('底部导航按钮打开全局菜单，事实源告警带数量', async () => {
+    const onNavigate = vi.fn()
+    const el = await render(<Sidebar {...baseProps({ onNavigate })} />)
+    const trigger = el.querySelector('button[aria-haspopup="menu"]') as HTMLButtonElement
+    await act(async () => trigger.click())
+
+    const items = [...el.querySelectorAll('[role="menuitem"]')]
+    const labels = items.map((i) => i.textContent ?? '')
+    expect(labels.some((x) => x.includes('搜索'))).toBe(true)
+    expect(labels.some((x) => x.includes('时间线'))).toBe(true)
+    expect(labels.some((x) => x.includes('设置'))).toBe(true)
+    expect(labels.find((x) => x.includes('事实源'))).toContain('15')
+
+    await act(async () => items.find((i) => i.textContent?.includes('时间线'))!.click())
+    expect(onNavigate).toHaveBeenCalledWith('timeline')
   })
 })
