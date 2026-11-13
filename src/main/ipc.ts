@@ -121,7 +121,8 @@ const topicCreateSchema = z.object({
   /** 所属领域；不传落到默认领域 */
   domainId: z.string().min(1).max(40).optional(),
   /** 新主题默认收录的源；不传就是全部 */
-  sourceIds: z.array(z.string().min(1)).max(200).optional()
+  sourceIds: z.array(z.string().min(1)).max(200).optional(),
+  editorialFocus: z.string().max(200).optional()
 })
 const domainCreateSchema = z.object({
   id: z.string().min(1).max(40).optional(),
@@ -134,7 +135,8 @@ const domainRenameSchema = z.object({
 const topicUpdateSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(30).optional(),
-  enabled: z.boolean().optional()
+  enabled: z.boolean().optional(),
+  editorialFocus: z.string().max(200).optional()
 })
 const scheduleSetSchema = z.object({
   topicId: z.string().min(1).max(40),
@@ -622,6 +624,9 @@ export function registerIpc(): void {
       enabled: true,
       hour: 8,
       minute: 30,
+      ...(parsed.data.editorialFocus?.trim()
+        ? { editorialFocus: parsed.data.editorialFocus.trim() }
+        : {}),
       createdAt: now,
       updatedAt: now
     })
@@ -644,6 +649,13 @@ export function registerIpc(): void {
       ...topic,
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
       ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+      ...(parsed.data.editorialFocus !== undefined
+        ? {
+            editorialFocus: parsed.data.editorialFocus.trim()
+              ? parsed.data.editorialFocus.trim()
+              : undefined
+          }
+        : {}),
       updatedAt: Date.now()
     })
     return { ok: true }

@@ -215,6 +215,8 @@ export interface TopicPayload {
   enabled: boolean
   hour: number
   minute: number
+  /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
+  editorialFocus?: string
   sourceCount: number
   hasBrief: boolean
   /** 最新一期简报的条目数；没有简报为 0，界面显示「—」 */
@@ -269,8 +271,9 @@ export interface MeerkatBridge {
       name: string
       domainId?: string
       sourceIds?: string[]
+      editorialFocus?: string
     }) => Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }>
-    update: (input: { id: string; name?: string; enabled?: boolean }) => Promise<{ ok: boolean; error?: string }>
+    update: (input: { id: string; name?: string; enabled?: boolean; editorialFocus?: string }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
     sourceIds: (id: string) => Promise<string[]>
     setSources: (input: { topicId: string; sourceIds: string[] }) => Promise<{ ok: boolean; error?: string }>

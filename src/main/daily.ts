@@ -218,6 +218,7 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
         dateLabel,
         weekday: weekdayOf(now),
         topicName: topic.name,
+        ...(topic.editorialFocus ? { editorialFocus: topic.editorialFocus } : {}),
         sourceStats: input.sourceStats,
         elapsedMs: input.elapsedMs
       },

@@ -143,6 +143,8 @@ export interface Topic {
   /** 本地时间的触发点 */
   hour: number
   minute: number
+  /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
+  editorialFocus?: string
   createdAt: number
   updatedAt: number
 }

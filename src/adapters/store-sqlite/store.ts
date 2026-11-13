@@ -49,6 +49,7 @@ interface ChatMessageRow {
 }
 interface TopicRow {
   id: string; name: string; domain_id: string; enabled: number; hour: number; minute: number
+  editorial_focus: string | null
   created_at: number; updated_at: number
 }
 
@@ -102,6 +103,9 @@ const toTopic = (r: TopicRow): Topic => ({
   enabled: bool(r.enabled),
   hour: r.hour,
   minute: r.minute,
+  ...(r.editorial_focus !== null && r.editorial_focus.trim() !== ''
+    ? { editorialFocus: r.editorial_focus }
+    : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -446,14 +450,16 @@ class SqliteTopicStore implements TopicStore {
   upsert(t: Topic): void {
     this.db
       .prepare(
-        `INSERT INTO topics (id,name,domain_id,enabled,hour,minute,created_at,updated_at)
-         VALUES (@id,@name,@domain_id,@enabled,@hour,@minute,@created_at,@updated_at)
+        `INSERT INTO topics (id,name,domain_id,enabled,hour,minute,editorial_focus,created_at,updated_at)
+         VALUES (@id,@name,@domain_id,@enabled,@hour,@minute,@editorial_focus,@created_at,@updated_at)
          ON CONFLICT(id) DO UPDATE SET name=excluded.name, domain_id=excluded.domain_id,
            enabled=excluded.enabled, hour=excluded.hour, minute=excluded.minute,
+           editorial_focus=excluded.editorial_focus,
            updated_at=excluded.updated_at`
       )
       .run({
         id: t.id, name: t.name, domain_id: t.domainId, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
+        editorial_focus: t.editorialFocus ?? null,
         created_at: t.createdAt, updated_at: t.updatedAt
       })
   }

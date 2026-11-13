@@ -30,6 +30,8 @@ export interface ComposeInput {
    * 简报标题必须带上它：同一台机器上可以并行多个主题，「AI 简报」只对默认主题成立。
    */
   topicName: string
+  /** 这个主题的编辑重点；只影响选题与解读，不改变输出格式 */
+  editorialFocus?: string
   windowHours: number
   items: ComposeItem[]
   /** 传给适配器做模板替换，例如板块名映射 */

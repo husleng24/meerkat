@@ -54,6 +54,31 @@ describe('用对话供应商成稿', () => {
     expect(seen!.messages[1]!.content).toContain('https://example.com/a')
   })
 
+  it('把主题编辑重点注入 system prompt', async () => {
+    let seen: ChatRequest | null = null
+    const composer = createChatComposer({
+      provider: stubProvider({ ok: true, text: '# 简报', model: 'm', usage: { input: 1, output: 2 } }, (r) => (seen = r)),
+      model: 'm',
+      systemPrompt: '主题 {topic}。重点：{editorialFocus}。'
+    })
+    await composer.compose({ ...input, editorialFocus: '只关注融资与倒闭' })
+    expect(seen!.messages[0]).toEqual({
+      role: 'system',
+      content: '主题 AI 综合。重点：只关注融资与倒闭。'
+    })
+  })
+
+  it('没有编辑重点时用通用默认值', async () => {
+    let seen: ChatRequest | null = null
+    const composer = createChatComposer({
+      provider: stubProvider({ ok: true, text: '# 简报', model: 'm', usage: { input: 1, output: 2 } }, (r) => (seen = r)),
+      model: 'm',
+      systemPrompt: '主题 {topic}。重点：{editorialFocus}。'
+    })
+    await composer.compose(input)
+    expect(seen!.messages[0]!.content).toBe('主题 AI 综合。重点：（未设置，按通用编辑标准）。')
+  })
+
   it('模型把整篇包在 ```markdown 里时剥掉围栏', async () => {
     const composer = createChatComposer({
       provider: stubProvider({ ok: true, text: '```markdown\n# 简报\n```', model: 'm', usage: { input: 0, output: 0 } }),

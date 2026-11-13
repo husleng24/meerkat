@@ -47,6 +47,8 @@ export interface PackTopic {
   name: string
   domainId: string
   enabled?: boolean
+  /** 主题的编辑重点；只影响选题与解读 */
+  focus?: string
   /** 主题收录的源 id，顺序即导出时的顺序 */
   sources: string[]
 }
@@ -173,6 +175,9 @@ function parseTopic(raw: unknown, index: number): PackTopic {
     name: str(r['name'], `topics[${index}].name`, 60),
     domainId: str(r['domainId'], `topics[${index}].domainId`, 40),
     sources,
+    ...(optStr(r['focus'], `topics[${index}].focus`, 200) !== undefined
+      ? { focus: optStr(r['focus'], `topics[${index}].focus`, 200)! }
+      : {}),
     ...(optBool(r['enabled'], `topics[${index}].enabled`) !== undefined
       ? { enabled: optBool(r['enabled'], `topics[${index}].enabled`)! }
       : {})
@@ -284,6 +289,7 @@ export function buildPack(store: Store, scope: PackScope, now = Date.now()): Sou
       name: t.name,
       domainId: t.domainId,
       enabled: t.enabled,
+      ...(t.editorialFocus ? { focus: t.editorialFocus } : {}),
       sources: store.topics.sourceIds(t.id).filter((id) => sourceIdSet.has(id))
     })),
     sources: sources.map(packSource)
@@ -408,6 +414,11 @@ export function planImport(store: Store, pack: SourcePack, now = Date.now()): Im
           name: pt.name,
           domainId,
           enabled: pt.enabled ?? existing.enabled,
+          ...(pt.focus !== undefined
+            ? { editorialFocus: pt.focus }
+            : existing.editorialFocus !== undefined
+              ? { editorialFocus: existing.editorialFocus }
+              : {}),
           updatedAt: now
         }
       : {
@@ -415,6 +426,7 @@ export function planImport(store: Store, pack: SourcePack, now = Date.now()): Im
           name: pt.name,
           domainId,
           enabled: pt.enabled ?? true,
+          ...(pt.focus !== undefined ? { editorialFocus: pt.focus } : {}),
           hour: 8,
           minute: 30,
           createdAt: now,
