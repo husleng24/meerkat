@@ -153,6 +153,10 @@ export interface ChatThread {
   id: string
   title: string
   topicId: string
+  /** brief：当天简报的对话；item：某条新闻的评论串 */
+  scope: 'brief' | 'item'
+  /** scope=item 时指向条目 */
+  itemId?: string
   /** 创建时对应的简报日期；作为默认上下文 */
   briefDate?: string
   model: string

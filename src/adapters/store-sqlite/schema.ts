@@ -257,6 +257,16 @@ export const MIGRATIONS: Migration[] = [
       -- 每个主题自己的编辑重点：只影响选题与解读，不改变简报格式。
       ALTER TABLE topics ADD COLUMN editorial_focus TEXT;
     `
+  },
+  {
+    version: 8,
+    name: 'chat_item_threads',
+    up: `
+      -- 条目评论串：scope='item' 时 item_id 指向这条新闻；brief 仍是原来的每日对话
+      ALTER TABLE chat_threads ADD COLUMN scope TEXT NOT NULL DEFAULT 'brief';
+      ALTER TABLE chat_threads ADD COLUMN item_id TEXT;
+      CREATE INDEX idx_chat_threads_item ON chat_threads(topic_id, item_id) WHERE item_id IS NOT NULL;
+    `
   }
 ]
 

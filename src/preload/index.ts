@@ -118,6 +118,8 @@ const api = {
       id: string
       title: string
       topicId: string
+      scope: 'brief' | 'item'
+      itemId?: string
       briefDate?: string
       model: string
       createdAt: number
@@ -126,6 +128,23 @@ const api = {
       contextTokens: number
       briefStale: boolean
     } | null> => ipcRenderer.invoke('chat:ensure', input),
+    ensureItem: (input: {
+      topicId: string
+      itemId: string
+      model?: string
+    }): Promise<{
+      id: string
+      title: string
+      topicId: string
+      scope: 'brief' | 'item'
+      itemId?: string
+      model: string
+      createdAt: number
+      updatedAt: number
+      archived: boolean
+      contextTokens: number
+      briefStale: boolean
+    } | null> => ipcRenderer.invoke('chat:ensureItem', input),
     messages: (
       threadId: string
     ): Promise<
@@ -149,8 +168,8 @@ const api = {
       includePrevious?: boolean
     }): Promise<{
       ok: boolean
-      user?: { id: string; role: 'user'; content: string; createdAt: number }
-      assistant?: { id: string; role: 'assistant'; content: string; model?: string; createdAt: number }
+      user?: { id: string; role: 'user'; content: string; contextJson?: string; createdAt: number }
+      assistant?: { id: string; role: 'assistant'; content: string; model?: string; contextJson?: string; createdAt: number }
       error?: string
       estimatedTokens?: number
       model?: string

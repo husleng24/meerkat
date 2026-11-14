@@ -137,6 +137,9 @@ export interface ChatThreadPayload {
   id: string
   title: string
   topicId: string
+  /** brief：当天简报的对话；item：某条新闻的评论串 */
+  scope: 'brief' | 'item'
+  itemId?: string
   briefDate?: string
   model: string
   createdAt: number
@@ -155,6 +158,8 @@ export interface ChatMessagePayload {
   model?: string
   tokensIn?: number
   tokensOut?: number
+  /** 时间线卡等结构化引用（JSON） */
+  contextJson?: string
   createdAt: number
 }
 
@@ -180,6 +185,7 @@ export interface ChatProviderPayload {
 export interface ChatBridge {
   models: () => Promise<ChatModelPayload[]>
   ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
+  ensureItem: (input: { topicId: string; itemId: string; model?: string }) => Promise<ChatThreadPayload | null>
   messages: (threadId: string) => Promise<ChatMessagePayload[]>
   send: (input: {
     threadId: string

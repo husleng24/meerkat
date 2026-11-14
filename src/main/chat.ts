@@ -16,6 +16,8 @@ import {
 } from './providers'
 import { buildChatContext, estimateTokens, type ChatContextSource } from '../core/chat/context'
 import { chatLatch } from './run-control'
+import { composeItemTimeline } from './item-timeline'
+import { collectRelatedItems } from '../app/event-timeline'
 import { log } from './log'
 import type { Store } from '../core/ports/store'
 import type { ChatModelInfo, ChatMessage } from '../core/ports/chat'
@@ -74,7 +76,20 @@ function resolveBrief(store: Store, thread: ChatThread) {
   return byDate ?? store.briefs.latest(thread.topicId)
 }
 
+const AGENT_MENTION = /@(agent|meerkat)\b/i
+
 export function threadContextSources(store: Store, thread: ChatThread, includePrevious: boolean): ChatContextSource[] {
+  // 条目评论串：上下文是这条新闻与同一事件的其他报道，而不是某一天的简报
+  if (thread.scope === 'item' && thread.itemId) {
+    const item = store.items.get(thread.itemId)
+    if (!item) return []
+    const related = collectRelatedItems(store, { itemId: item.id })
+    return related.items.slice(0, 12).map((it) => ({
+      kind: 'items' as const,
+      label: it.title,
+      text: `标题：${it.title}\n摘要：${it.summary}\n链接：${it.url}`
+    }))
+  }
   const brief = resolveBrief(store, thread)
   if (!brief) return []
   const sources: ChatContextSource[] = [
@@ -97,13 +112,57 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
   if (!handle) return { ok: false, error: '上一条还在回复中' }
 
   try {
-    const brief = resolveBrief(store, thread)
-    const sources = threadContextSources(store, thread, input.includePrevious === true)
-    if (sources.length === 0) return { ok: false, error: '还没有简报可以作为上下文' }
-
-    const context = buildChatContext(sources)
     const text = input.text.trim() || (input.actionId ? actionPrompt(input.actionId) : '')
     if (!text) return { ok: false, error: '消息是空的' }
+
+    // 条目评论里 @agent：整理这条新闻关联的时间线，而不是普通问答
+    if (thread.scope === 'item' && thread.itemId && AGENT_MENTION.test(text)) {
+      const now0 = Date.now()
+      const userMessage: ChatStoredMessage = {
+        id: `cm-${now0}-u`,
+        threadId: thread.id,
+        role: 'user',
+        content: text,
+        contextJson: JSON.stringify({ itemId: thread.itemId }),
+        createdAt: now0
+      }
+      store.chat.addMessage(userMessage)
+
+      const outcome = await composeItemTimeline(store, deps, {
+        itemId: thread.itemId,
+        text,
+        model: input.model ?? thread.model,
+        ...(handle.controller.signal ? { signal: handle.controller.signal } : {})
+      })
+      if (!outcome) return { ok: false, error: '找不到这条新闻，无法整理时间线' }
+
+      const now = Date.now()
+      const assistant: ChatStoredMessage = {
+        id: `cm-${now}-a`,
+        threadId: thread.id,
+        role: 'assistant',
+        content:
+          outcome.timeline.summary ??
+          `已整理「${outcome.timeline.title}」的时间线，共 ${outcome.timeline.phases.length} 个节点。`,
+        ...(outcome.model ? { model: outcome.model } : {}),
+        contextJson: JSON.stringify({ timeline: outcome.timeline }),
+        createdAt: now
+      }
+      store.chat.addMessage(assistant)
+      store.chat.update(thread.id, {
+        ...(outcome.timeline.title ? { title: outcome.timeline.title.slice(0, 20) } : {}),
+        updatedAt: now
+      })
+      return { ok: true, user: userMessage, assistant, estimatedTokens: 0, ...(outcome.model ? { model: outcome.model } : {}) }
+    }
+
+    const brief = resolveBrief(store, thread)
+    const sources = threadContextSources(store, thread, input.includePrevious === true)
+    if (sources.length === 0) {
+      return { ok: false, error: thread.scope === 'item' ? '这条新闻还没有可用于问答的素材' : '还没有简报可以作为上下文' }
+    }
+
+    const context = buildChatContext(sources)
 
     const model = input.model ?? thread.model ?? defaultChatModel(deps)
     const now = Date.now()
@@ -216,10 +275,43 @@ export function ensureThread(
 
   const now = Date.now()
   const thread: ChatThread = {
-    id: `ct-${now}`,
+    // 同一毫秒内建两段会话时 id 不能撞：加一小段随机后缀
+    id: `ct-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title: '新对话',
     topicId: topic.id,
+    scope: 'brief',
     ...(date ? { briefDate: date } : {}),
+    model: input.model ?? defaultChatModel({ keys: {} }),
+    createdAt: now,
+    updatedAt: now,
+    archived: false
+  }
+  store.chat.create(thread)
+  return thread
+}
+
+/**
+ * 某条新闻的评论串。一个条目一段，和当天的简报对话分开。
+ * 没有条目就直接返回 null——评论必须挂在真实条目上。
+ */
+export function ensureItemThread(
+  store: Store,
+  input: { topicId: string; itemId: string; model?: string }
+): ChatThread | null {
+  const topic = store.topics.get(input.topicId)
+  const item = store.items.get(input.itemId)
+  if (!topic || !item) return null
+
+  const existing = store.chat.findByItem(topic.id, item.id)
+  if (existing) return existing
+
+  const now = Date.now()
+  const thread: ChatThread = {
+    id: `ct-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    title: item.title.slice(0, 20),
+    topicId: topic.id,
+    scope: 'item',
+    itemId: item.id,
     model: input.model ?? defaultChatModel({ keys: {} }),
     createdAt: now,
     updatedAt: now,

@@ -208,6 +208,16 @@ export function BriefView({
                       onToggleSave={() => flags.toggle(id, 'isSaved')}
                       onToggleHide={() => flags.toggle(id, 'isHidden')}
                       onOpen={() => openFirstLink(item.key)}
+                      {...(id
+                        ? {
+                            onComment: () =>
+                              window.dispatchEvent(
+                                new CustomEvent('meerkat:comment-item', {
+                                  detail: { itemId: id, title: item.title }
+                                })
+                              )
+                          }
+                        : {})}
                     />
                   </div>
                 )

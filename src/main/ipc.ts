@@ -28,6 +28,7 @@ import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
   chatModels,
   defaultChatModel,
+  ensureItemThread,
   ensureThread,
   previewContextTokens,
   sendChatMessage,
@@ -106,6 +107,11 @@ const providerIdSchema = z.enum(['deepseek', 'openai', 'anthropic'])
 const chatEnsureSchema = z.object({
   topicId: topicIdSchema,
   briefDate: z.string().max(20).optional(),
+  model: z.string().max(40).optional()
+})
+const chatEnsureItemSchema = z.object({
+  topicId: topicIdSchema,
+  itemId: z.string().min(1).max(80),
   model: z.string().max(40).optional()
 })
 const chatSendSchema = z.object({
@@ -776,6 +782,18 @@ export function registerIpc(): void {
       contextTokens: previewContextTokens(s, thread.id, false),
       briefStale: threadBriefStale(s, thread)
     }
+  })
+
+  ipcMain.handle('chat:ensureItem', (_e, raw: unknown) => {
+    const parsed = chatEnsureItemSchema.safeParse(raw)
+    if (!parsed.success) return null
+    const deps = chatDeps()
+    const thread = ensureItemThread(requireStore(), {
+      ...parsed.data,
+      model: parsed.data.model ?? defaultChatModel(deps)
+    })
+    if (!thread) return null
+    return { ...thread, contextTokens: 0, briefStale: false }
   })
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {

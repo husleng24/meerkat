@@ -41,6 +41,7 @@ interface FlagRow {
 interface SettingRow { key: string; value: string }
 interface ChatThreadRow {
   id: string; title: string; topic_id: string; brief_date: string | null
+  scope: string; item_id: string | null
   model: string; created_at: number; updated_at: number; archived: number
 }
 interface ChatMessageRow {
@@ -114,6 +115,8 @@ const toChatThread = (r: ChatThreadRow): ChatThread => ({
   id: r.id,
   title: r.title,
   topicId: r.topic_id,
+  scope: r.scope === 'item' ? 'item' : 'brief',
+  ...(r.item_id !== null ? { itemId: r.item_id } : {}),
   ...(r.brief_date !== null ? { briefDate: r.brief_date } : {}),
   model: r.model,
   createdAt: r.created_at,
@@ -618,20 +621,36 @@ class SqliteChatStore implements ChatStore {
   }
   findByDate(topicId: string, briefDate: string): ChatThread | undefined {
     const r = this.db
-      .prepare('SELECT * FROM chat_threads WHERE topic_id = ? AND brief_date = ? ORDER BY updated_at DESC LIMIT 1')
+      .prepare(
+        `SELECT * FROM chat_threads
+         WHERE topic_id = ? AND brief_date = ? AND scope = 'brief'
+         ORDER BY updated_at DESC LIMIT 1`
+      )
       .get(topicId, briefDate) as ChatThreadRow | undefined
+    return r ? toChatThread(r) : undefined
+  }
+  findByItem(topicId: string, itemId: string): ChatThread | undefined {
+    const r = this.db
+      .prepare(
+        `SELECT * FROM chat_threads
+         WHERE topic_id = ? AND item_id = ? AND scope = 'item'
+         ORDER BY updated_at DESC LIMIT 1`
+      )
+      .get(topicId, itemId) as ChatThreadRow | undefined
     return r ? toChatThread(r) : undefined
   }
   create(t: ChatThread): void {
     this.db
       .prepare(
-        `INSERT INTO chat_threads (id,title,topic_id,brief_date,model,created_at,updated_at,archived)
-         VALUES (@id,@title,@topic_id,@brief_date,@model,@created_at,@updated_at,@archived)`
+        `INSERT INTO chat_threads (id,title,topic_id,scope,item_id,brief_date,model,created_at,updated_at,archived)
+         VALUES (@id,@title,@topic_id,@scope,@item_id,@brief_date,@model,@created_at,@updated_at,@archived)`
       )
       .run({
         id: t.id,
         title: t.title,
         topic_id: t.topicId,
+        scope: t.scope ?? 'brief',
+        item_id: t.itemId ?? null,
         brief_date: t.briefDate ?? null,
         model: t.model,
         created_at: t.createdAt,

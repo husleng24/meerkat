@@ -76,6 +76,8 @@ export interface ChatStore {
   get(id: string): ChatThread | undefined
   /** 同一主题同一天的会话（P0：一个位置一段对话） */
   findByDate(topicId: string, briefDate: string): ChatThread | undefined
+  /** 某条新闻的评论串（一个条目一段） */
+  findByItem(topicId: string, itemId: string): ChatThread | undefined
   create(thread: ChatThread): void
   update(id: string, patch: { title?: string; model?: string; updatedAt?: number }): void
   remove(id: string): void

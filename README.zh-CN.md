@@ -81,6 +81,13 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时
 或用「✨ 按主题推荐」补源。源配置可以导出为 JSON，连主题归属一起带走；换机或新建主题时
 导入即可（见 [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md)）。
 
+### 评论与事件时间线
+
+每条新闻都能评论。在评论里 `@agent`，它会用本地同一事件的多篇报道整理一条时间线：
+分阶段、每条带来源、标出时间缺口与待确认问题。没配模型或模型输出不合法时，退回按日期整理的可读版本。
+
+![评论里 @agent 整理的时间线](docs/assets/ui-item-timeline.png)
+
 ### AI 对话
 
 右下角浮层（`⌘J`）：基于当天简报提问、总结，可切换已配置的供应商。每个主题每天一段会话，
@@ -229,6 +236,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | [docs/TODO.md](docs/TODO.md) | 待办、已知限制与工程债 |
 | [docs/FEEDBACK.md](docs/FEEDBACK.md) | 反馈分级与修复流程 |
 | [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | 真机验收原始记录 |
+| [docs/EVENT-TIMELINE.md](docs/EVENT-TIMELINE.md) | 条目评论与事件时间线（P0） |
 | [docs/RELEASE.md](docs/RELEASE.md) | 发版流程与产物说明 |
 | [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 开发日志与实现细节（归档） |
 
