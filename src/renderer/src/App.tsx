@@ -15,6 +15,8 @@ import { ChatWidget } from './components/ChatWidget'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent)
+
 const TITLES: Record<string, string> = {
   search: '搜索',
   sources: '事实源',
@@ -135,6 +137,8 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="flex h-full overflow-hidden">
+      {/* 没有它，隐藏标题栏的窗口无法拖动 */}
+      {IS_MAC && <div className="app-drag-strip" aria-hidden="true" />}
       <Sidebar
         active={nav}
         topics={topics}
