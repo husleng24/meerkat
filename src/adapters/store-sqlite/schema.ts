@@ -267,6 +267,39 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE chat_threads ADD COLUMN item_id TEXT;
       CREATE INDEX idx_chat_threads_item ON chat_threads(topic_id, item_id) WHERE item_id IS NOT NULL;
     `
+  },
+  {
+    version: 9,
+    name: 'stories',
+    up: `
+      -- 用户让 agent 持续跟踪的事件。一条评论可创建一个 story。
+      CREATE TABLE stories (
+        id           TEXT PRIMARY KEY,
+        title        TEXT    NOT NULL,
+        query        TEXT    NOT NULL,
+        aliases_json TEXT    NOT NULL,
+        topic_id     TEXT    NOT NULL,
+        item_id      TEXT,
+        thread_id    TEXT,
+        status       TEXT    NOT NULL DEFAULT 'active', -- active | paused | archived
+        miss_count   INTEGER NOT NULL DEFAULT 0,
+        last_match_at INTEGER,
+        last_prompt_at INTEGER,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL,
+        FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_stories_status ON stories(status);
+
+      CREATE TABLE story_items (
+        story_id TEXT    NOT NULL,
+        item_id  TEXT    NOT NULL,
+        added_at INTEGER NOT NULL,
+        PRIMARY KEY (story_id, item_id),
+        FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id)  REFERENCES items(id)   ON DELETE CASCADE
+      );
+    `
   }
 ]
 

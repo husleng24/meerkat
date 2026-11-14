@@ -2,11 +2,11 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore
+  DomainStore, ChatStore, StoryStore
 } from '../../core/ports/store'
 import type {
   Domain,
-  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole
+  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -44,6 +44,13 @@ interface ChatThreadRow {
   scope: string; item_id: string | null
   model: string; created_at: number; updated_at: number; archived: number
 }
+interface StoryRow {
+  id: string; title: string; query: string; aliases_json: string
+  topic_id: string; item_id: string | null; thread_id: string | null
+  status: string; miss_count: number; last_match_at: number | null
+  last_prompt_at: number | null; created_at: number; updated_at: number
+}
+
 interface ChatMessageRow {
   id: string; thread_id: string; role: string; content: string; model: string | null
   tokens_in: number | null; tokens_out: number | null; context_json: string | null; created_at: number
@@ -122,6 +129,22 @@ const toChatThread = (r: ChatThreadRow): ChatThread => ({
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   archived: bool(r.archived)
+})
+
+const toStory = (r: StoryRow): Story => ({
+  id: r.id,
+  title: r.title,
+  query: r.query,
+  aliases: JSON.parse(r.aliases_json) as string[],
+  topicId: r.topic_id,
+  ...(r.item_id !== null ? { itemId: r.item_id } : {}),
+  ...(r.thread_id !== null ? { threadId: r.thread_id } : {}),
+  status: r.status === 'paused' || r.status === 'archived' ? r.status : 'active',
+  missCount: r.miss_count,
+  ...(r.last_match_at !== null ? { lastMatchAt: r.last_match_at } : {}),
+  ...(r.last_prompt_at !== null ? { lastPromptAt: r.last_prompt_at } : {}),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
 })
 
 const toChatMessage = (r: ChatMessageRow): ChatStoredMessage => ({
@@ -694,6 +717,87 @@ class SqliteChatStore implements ChatStore {
   }
 }
 
+class SqliteStoryStore implements StoryStore {
+  constructor(private db: DB) {}
+  create(story: Story): void {
+    this.db
+      .prepare(
+        `INSERT INTO stories
+         (id,title,query,aliases_json,topic_id,item_id,thread_id,status,miss_count,last_match_at,last_prompt_at,created_at,updated_at)
+         VALUES (@id,@title,@query,@aliases_json,@topic_id,@item_id,@thread_id,@status,@miss_count,@last_match_at,@last_prompt_at,@created_at,@updated_at)`
+      )
+      .run({
+        id: story.id,
+        title: story.title,
+        query: story.query,
+        aliases_json: JSON.stringify(story.aliases),
+        topic_id: story.topicId,
+        item_id: story.itemId ?? null,
+        thread_id: story.threadId ?? null,
+        status: story.status,
+        miss_count: story.missCount,
+        last_match_at: story.lastMatchAt ?? null,
+        last_prompt_at: story.lastPromptAt ?? null,
+        created_at: story.createdAt,
+        updated_at: story.updatedAt
+      })
+  }
+  get(id: string): Story | undefined {
+    const r = this.db.prepare('SELECT * FROM stories WHERE id = ?').get(id) as StoryRow | undefined
+    return r ? toStory(r) : undefined
+  }
+  list(status?: Story['status']): Story[] {
+    const rows = (
+      status
+        ? this.db.prepare('SELECT * FROM stories WHERE status = ? ORDER BY updated_at DESC').all(status)
+        : this.db.prepare('SELECT * FROM stories ORDER BY updated_at DESC').all()
+    ) as StoryRow[]
+    return rows.map(toStory)
+  }
+  byThread(threadId: string): Story | undefined {
+    const r = this.db
+      .prepare("SELECT * FROM stories WHERE thread_id = ? AND status != 'archived' ORDER BY updated_at DESC LIMIT 1")
+      .get(threadId) as StoryRow | undefined
+    return r ? toStory(r) : undefined
+  }
+  update(
+    id: string,
+    patch: Partial<Pick<Story, 'status' | 'missCount' | 'lastMatchAt' | 'lastPromptAt' | 'updatedAt' | 'title' | 'aliases'>>
+  ): void {
+    const cur = this.get(id)
+    if (!cur) return
+    this.db
+      .prepare(
+        `UPDATE stories SET status=?, miss_count=?, last_match_at=?, last_prompt_at=?, updated_at=?, title=?, aliases_json=?
+         WHERE id=?`
+      )
+      .run(
+        patch.status ?? cur.status,
+        patch.missCount ?? cur.missCount,
+        patch.lastMatchAt ?? cur.lastMatchAt ?? null,
+        patch.lastPromptAt ?? cur.lastPromptAt ?? null,
+        patch.updatedAt ?? Date.now(),
+        patch.title ?? cur.title,
+        JSON.stringify(patch.aliases ?? cur.aliases),
+        id
+      )
+  }
+  itemIds(storyId: string): string[] {
+    return (this.db.prepare('SELECT item_id FROM story_items WHERE story_id = ?').all(storyId) as Array<{ item_id: string }>).map(
+      (r) => r.item_id
+    )
+  }
+  addItems(storyId: string, itemIds: string[], ts: number): number {
+    const stmt = this.db.prepare('INSERT OR IGNORE INTO story_items (story_id,item_id,added_at) VALUES (?,?,?)')
+    let added = 0
+    for (const id of itemIds) added += stmt.run(storyId, id, ts).changes
+    return added
+  }
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM stories WHERE id = ?').run(id)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -701,6 +805,7 @@ class SqliteStore implements Store {
   readonly items: ItemStore
   readonly briefs: BriefStore
   readonly chat: ChatStore
+  readonly stories: StoryStore
   readonly runs: RunStore
   readonly flags: FlagStore
   readonly settings: SettingsStore
@@ -712,6 +817,7 @@ class SqliteStore implements Store {
     this.items = new SqliteItemStore(db)
     this.briefs = new SqliteBriefStore(db)
     this.chat = new SqliteChatStore(db)
+    this.stories = new SqliteStoryStore(db)
     this.runs = new SqliteRunStore(db)
     this.flags = new SqliteFlagStore(db)
     this.settings = new SqliteSettingsStore(db)

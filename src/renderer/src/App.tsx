@@ -12,6 +12,7 @@ import { useFlags } from './lib/useFlags'
 import { useCallback, useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
+import { TrackingReview } from './components/TrackingReview'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 
@@ -264,6 +265,7 @@ export default function App(): React.JSX.Element {
 
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
+      <TrackingReview />
       {activeId && (
         <ChatWidget topicId={activeId} briefDate={dateLabel} hasPrevious={previousDate.length > 0} />
       )}

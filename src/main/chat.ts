@@ -18,6 +18,8 @@ import { buildChatContext, estimateTokens, type ChatContextSource } from '../cor
 import { chatLatch } from './run-control'
 import { composeItemTimeline } from './item-timeline'
 import { collectRelatedItems } from '../app/event-timeline'
+import { classifyIntent, hasAgentMention, stripMention } from '../app/agent-intent'
+import { createStoryFromItem, setStoryStatus } from '../app/story-tracking'
 import { log } from './log'
 import type { Store } from '../core/ports/store'
 import type { ChatModelInfo, ChatMessage } from '../core/ports/chat'
@@ -76,8 +78,6 @@ function resolveBrief(store: Store, thread: ChatThread) {
   return byDate ?? store.briefs.latest(thread.topicId)
 }
 
-const AGENT_MENTION = /@(agent|meerkat)\b/i
-
 export function threadContextSources(store: Store, thread: ChatThread, includePrevious: boolean): ChatContextSource[] {
   // 条目评论串：上下文是这条新闻与同一事件的其他报道，而不是某一天的简报
   if (thread.scope === 'item' && thread.itemId) {
@@ -112,48 +112,94 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
   if (!handle) return { ok: false, error: '上一条还在回复中' }
 
   try {
-    const text = input.text.trim() || (input.actionId ? actionPrompt(input.actionId) : '')
+    let text = input.text.trim() || (input.actionId ? actionPrompt(input.actionId) : '')
     if (!text) return { ok: false, error: '消息是空的' }
 
-    // 条目评论里 @agent：整理这条新闻关联的时间线，而不是普通问答
-    if (thread.scope === 'item' && thread.itemId && AGENT_MENTION.test(text)) {
-      const now0 = Date.now()
-      const userMessage: ChatStoredMessage = {
-        id: `cm-${now0}-u`,
-        threadId: thread.id,
-        role: 'user',
-        content: text,
-        contextJson: JSON.stringify({ itemId: thread.itemId }),
-        createdAt: now0
-      }
-      store.chat.addMessage(userMessage)
+    // 条目评论里 @agent：先分意图，再决定是问答 / 一次性时间线 / 持续跟踪
+    if (thread.scope === 'item' && thread.itemId && hasAgentMention(text)) {
+      const intent = classifyIntent(text)
 
-      const outcome = await composeItemTimeline(store, deps, {
-        itemId: thread.itemId,
-        text,
-        model: input.model ?? thread.model,
-        ...(handle.controller.signal ? { signal: handle.controller.signal } : {})
-      })
-      if (!outcome) return { ok: false, error: '找不到这条新闻，无法整理时间线' }
+      // 只是提问：剥掉 mention，走普通问答，不落 story
+      if (intent === 'ask') {
+        text = stripMention(text)
+        if (!text) return { ok: false, error: '想问什么？' }
+      } else {
+        const now0 = Date.now()
+        const userMessage: ChatStoredMessage = {
+          id: `cm-${now0}-u`,
+          threadId: thread.id,
+          role: 'user',
+          content: text,
+          contextJson: JSON.stringify({ itemId: thread.itemId, intent }),
+          createdAt: now0
+        }
+        store.chat.addMessage(userMessage)
 
-      const now = Date.now()
-      const assistant: ChatStoredMessage = {
-        id: `cm-${now}-a`,
-        threadId: thread.id,
-        role: 'assistant',
-        content:
-          outcome.timeline.summary ??
-          `已整理「${outcome.timeline.title}」的时间线，共 ${outcome.timeline.phases.length} 个节点。`,
-        ...(outcome.model ? { model: outcome.model } : {}),
-        contextJson: JSON.stringify({ timeline: outcome.timeline }),
-        createdAt: now
+        if (intent === 'untrack') {
+          const story = store.stories.byThread(thread.id)
+          if (story) setStoryStatus(store, story.id, 'archived')
+          const stopped: ChatStoredMessage = {
+            id: `cm-${Date.now()}-a`,
+            threadId: thread.id,
+            role: 'assistant',
+            content: story ? `已停止跟踪「${story.title}」。之后不会再检查新进展。` : '这个评论串目前没有在跟踪的事件。',
+            contextJson: JSON.stringify({ tracking: 'stopped', ...(story ? { storyId: story.id } : {}) }),
+            createdAt: Date.now()
+          }
+          store.chat.addMessage(stopped)
+          return { ok: true, user: userMessage, assistant: stopped, estimatedTokens: 0 }
+        }
+
+        // track：没有就建；已有就复用，顺带刷新一次时间线
+        let story = store.stories.byThread(thread.id)
+        if (intent === 'track' && !story) {
+          const created = createStoryFromItem(store, {
+            itemId: thread.itemId,
+            threadId: thread.id,
+            topicId: thread.topicId,
+            text
+          })
+          if (created) {
+            store.stories.create(created)
+            store.stories.addItems(created.id, [thread.itemId], now0)
+            story = store.stories.get(created.id)
+          }
+        }
+
+        const outcome = await composeItemTimeline(store, deps, {
+          itemId: thread.itemId,
+          text,
+          model: input.model ?? thread.model,
+          ...(handle.controller.signal ? { signal: handle.controller.signal } : {})
+        })
+        if (!outcome) return { ok: false, error: '找不到这条新闻，无法整理时间线' }
+
+        const now = Date.now()
+        const tracking = intent === 'track' && story ? 'active' : undefined
+        const content =
+          (outcome.timeline.summary ??
+            `已整理「${outcome.timeline.title}」的时间线，共 ${outcome.timeline.phases.length} 个节点。`) +
+          (tracking ? ' 已开始跟踪这件事，有新进展会追加到这个评论串。' : '')
+        const assistant: ChatStoredMessage = {
+          id: `cm-${now}-a`,
+          threadId: thread.id,
+          role: 'assistant',
+          content,
+          ...(outcome.model ? { model: outcome.model } : {}),
+          contextJson: JSON.stringify({
+            timeline: outcome.timeline,
+            ...(story ? { storyId: story.id } : {}),
+            ...(tracking ? { tracking } : {})
+          }),
+          createdAt: now
+        }
+        store.chat.addMessage(assistant)
+        store.chat.update(thread.id, {
+          ...(outcome.timeline.title ? { title: outcome.timeline.title.slice(0, 20) } : {}),
+          updatedAt: now
+        })
+        return { ok: true, user: userMessage, assistant, estimatedTokens: 0, ...(outcome.model ? { model: outcome.model } : {}) }
       }
-      store.chat.addMessage(assistant)
-      store.chat.update(thread.id, {
-        ...(outcome.timeline.title ? { title: outcome.timeline.title.slice(0, 20) } : {}),
-        updatedAt: now
-      })
-      return { ok: true, user: userMessage, assistant, estimatedTokens: 0, ...(outcome.model ? { model: outcome.model } : {}) }
     }
 
     const brief = resolveBrief(store, thread)

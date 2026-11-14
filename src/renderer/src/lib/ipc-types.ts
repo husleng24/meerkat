@@ -133,6 +133,13 @@ export interface AutoLaunchState {
   reason?: string
 }
 
+export interface StoryReviewPayload {
+  id: string
+  title: string
+  missCount: number
+  status: 'active' | 'paused' | 'archived'
+}
+
 export interface ChatThreadPayload {
   id: string
   title: string
@@ -262,6 +269,11 @@ export interface MeerkatBridge {
     check: () => Promise<UpdateCheckPayload>
     open: (url: string) => Promise<{ ok: boolean; error?: string }>
     onAvailable: (cb: (info: UpdateCheckPayload) => void) => () => void
+  }
+  stories?: {
+    needsReview: () => Promise<StoryReviewPayload[]>
+    setStatus: (input: { id: string; status: 'active' | 'paused' | 'archived' }) => Promise<StoryReviewPayload | null>
+    list: () => Promise<StoryReviewPayload[]>
   }
   chat?: ChatBridge
   domains?: {

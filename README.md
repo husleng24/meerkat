@@ -88,8 +88,15 @@ and imported on another machine or for a new topic; see [docs/SOURCE-PACK.md](do
 
 ### Comments and event timelines
 
-Every item can be commented on. Mention `@agent` in a comment and it turns the reports it already has about
-that event into a timeline: phases with sources, time gaps and open questions. Without a model — or when the
+Every item can be commented on. Mention `@agent` and it first works out what you want: a quick answer,
+a one-off timeline, or ongoing tracking.
+
+- **Ask**: answers from the item and its related coverage, no story created
+- **Timeline**: turns the reports it already has into one timeline
+- **Track**: `@agent 帮我盯着这件事` keeps watching; new coverage is appended to the same comment thread,
+  and after three quiet collections it asks whether to keep tracking
+
+The timeline itself: phases with sources, time gaps and open questions. Without a model — or when the
 model output fails citation checks — it falls back to a plain date-grouped version.
 
 ![A timeline requested from a comment](docs/assets/ui-item-timeline.png)

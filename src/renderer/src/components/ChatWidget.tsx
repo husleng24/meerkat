@@ -268,7 +268,11 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
                 )}
                 {m.role === 'assistant' ? (
                   timelineOf(m.contextJson) ? (
-                    <TimelineCard timeline={timelineOf(m.contextJson)!} />
+                    <TimelineCard
+                      timeline={timelineOf(m.contextJson)!}
+                      {...(storyMeta(m.contextJson).storyId ? { storyId: storyMeta(m.contextJson).storyId } : {})}
+                      {...(storyMeta(m.contextJson).tracking ? { tracking: true } : {})}
+                    />
                   ) : (
                     <ChatMarkdown text={m.content} />
                   )
@@ -368,6 +372,19 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
 function fmtK(n: number): string {
   if (!n) return '—'
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
+}
+
+function storyMeta(contextJson: string | undefined): { storyId?: string; tracking?: boolean } {
+  if (!contextJson) return {}
+  try {
+    const data = JSON.parse(contextJson) as { storyId?: string; tracking?: string }
+    return {
+      ...(typeof data.storyId === 'string' ? { storyId: data.storyId } : {}),
+      ...(data.tracking === 'active' ? { tracking: true } : {})
+    }
+  } catch {
+    return {}
+  }
 }
 
 function timelineOf(contextJson: string | undefined): EventTimeline | null {

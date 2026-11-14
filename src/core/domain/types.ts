@@ -149,6 +149,29 @@ export interface Topic {
   updatedAt: number
 }
 
+/** 被 agent 持续跟踪的事件 */
+export interface Story {
+  id: string
+  title: string
+  /** 原始事件描述（通常是条目标题） */
+  query: string
+  /** 检索用的实体/别名 */
+  aliases: string[]
+  topicId: string
+  /** 发起跟踪的条目 */
+  itemId?: string
+  /** 在哪个评论串里发起的 */
+  threadId?: string
+  status: 'active' | 'paused' | 'archived'
+  /** 连续多少次采集没有新命中 */
+  missCount: number
+  lastMatchAt?: number
+  /** 上次弹窗询问"还要继续吗"的时间 */
+  lastPromptAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
 export interface ChatThread {
   id: string
   title: string

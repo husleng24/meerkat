@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { EventTimeline } from '../../../app/event-timeline'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -12,8 +13,32 @@ const STATUS_LABEL: Record<string, string> = {
  * 每条都带来源；确定性的兜底版会明确写"没有生成解读"，避免用户把按日期
  * 罗列的条目误当成模型梳理过的因果。
  */
-export function TimelineCard({ timeline }: { timeline: EventTimeline }): React.JSX.Element {
+export function TimelineCard({
+  timeline,
+  storyId,
+  tracking
+}: {
+  timeline: EventTimeline
+  storyId?: string
+  tracking?: boolean
+}): React.JSX.Element {
   const byId = new Map((timeline.items ?? []).map((i) => [i.id, i]))
+  const [stopped, setStopped] = useState(false)
+  // 重新打开评论串时，以库里的状态为准：可能上次已经停止跟踪了
+  useEffect(() => {
+    if (!storyId) return
+    void window.meerkat?.stories
+      ?.list()
+      .then((list) => {
+        if (list.find((s) => s.id === storyId)?.status === 'archived') setStopped(true)
+      })
+      .catch(() => undefined)
+  }, [storyId])
+  const stop = async (): Promise<void> => {
+    if (!storyId) return
+    await window.meerkat?.stories?.setStatus({ id: storyId, status: 'archived' })
+    setStopped(true)
+  }
 
   return (
     <div className="rounded-xl border border-rule bg-cream/30 p-3">
@@ -83,6 +108,18 @@ export function TimelineCard({ timeline }: { timeline: EventTimeline }): React.J
         <div className="mt-2.5 rounded-lg bg-white px-2.5 py-2 text-[10.5px] text-ink-3">
           <span className="font-medium text-ink-2">时间线缺口：</span>
           {timeline.gaps.join('；')}
+        </div>
+      )}
+      {(tracking || stopped) && storyId && (
+        <div className="mt-2 flex items-center gap-2 border-t border-rule pt-2 text-[10.5px] text-ink-3">
+          <span className={stopped ? '' : 'text-accent'}>
+            {stopped ? '已停止跟踪' : '● 跟踪中'}
+          </span>
+          {!stopped && (
+            <button onClick={() => void stop()} className="ml-auto hover:text-alert hover:underline">
+              停止跟踪
+            </button>
+          )}
         </div>
       )}
       {timeline.openQuestions.length > 0 && (

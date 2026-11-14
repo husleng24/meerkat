@@ -57,7 +57,7 @@ describe('schema v4：领域迁移', () => {
 
     expect(s.topics.sourceIds('chip')).toEqual(['s1'])
     expect(s.briefs.latest('chip')?.markdown).toContain('甲')
-    expect(s.schemaVersion()).toBe(8)
+    expect(s.schemaVersion()).toBe(9)
     s.close()
   })
 

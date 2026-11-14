@@ -36,6 +36,7 @@ import {
   type ChatDeps
 } from './chat'
 import { composeTarget, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
+import { markStoryPrompted, setStoryStatus, storiesToReview } from '../app/story-tracking'
 import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
@@ -109,6 +110,7 @@ const chatEnsureSchema = z.object({
   briefDate: z.string().max(20).optional(),
   model: z.string().max(40).optional()
 })
+const storyStatusSchema = z.enum(['active', 'paused', 'archived'])
 const chatEnsureItemSchema = z.object({
   topicId: topicIdSchema,
   itemId: z.string().min(1).max(80),
@@ -795,6 +797,22 @@ export function registerIpc(): void {
     if (!thread) return null
     return { ...thread, contextTokens: 0, briefStale: false }
   })
+
+  ipcMain.handle('stories:needsReview', () => {
+    const s = requireStore()
+    const list = storiesToReview(s)
+    // 弹过就记一笔，冷却期内不再重复问
+    for (const story of list) markStoryPrompted(s, story.id)
+    return list
+  })
+
+  ipcMain.handle('stories:setStatus', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(80), status: storyStatusSchema }).safeParse(raw)
+    if (!parsed.success) return null
+    return setStoryStatus(requireStore(), parsed.data.id, parsed.data.status) ?? null
+  })
+
+  ipcMain.handle('stories:list', () => requireStore().stories.list())
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {
     const parsed = z.string().min(1).max(60).safeParse(raw)

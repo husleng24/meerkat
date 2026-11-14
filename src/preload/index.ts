@@ -107,6 +107,22 @@ const api = {
     }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('schedule:set', cfg)
   },
 
+  stories: {
+    needsReview: (): Promise<Array<{
+      id: string
+      title: string
+      missCount: number
+      status: 'active' | 'paused' | 'archived'
+    }>> => ipcRenderer.invoke('stories:needsReview'),
+    setStatus: (input: {
+      id: string
+      status: 'active' | 'paused' | 'archived'
+    }): Promise<{ id: string; title: string; status: string; missCount: number } | null> =>
+      ipcRenderer.invoke('stories:setStatus', input),
+    list: (): Promise<Array<{ id: string; title: string; status: string; missCount: number }>> =>
+      ipcRenderer.invoke('stories:list')
+  },
+
   chat: {
     models: (): Promise<Array<{ id: string; label: string; provider: string; contextWindow: number; tier: 'fast' | 'deep' }>> =>
       ipcRenderer.invoke('chat:models'),

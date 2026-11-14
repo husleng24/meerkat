@@ -22,6 +22,7 @@ import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
 import { decideSave, type SaveDecision } from '../app/brief-save'
 import { RunCancelledError, isAbortError } from '../app/run-cancel'
 import { log } from './log'
+import { runStoriesAfterCollect } from './story-runner'
 import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 
@@ -266,6 +267,13 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
     }
   } else {
     log('warn', `未写入简报：${save.detail}`)
+  }
+
+  // 采集完成后刷新跟踪中的事件；跟踪失败不能影响简报本身
+  try {
+    runStoriesAfterCollect(store)
+  } catch (e) {
+    log('warn', `刷新跟踪失败：${e instanceof Error ? e.message : String(e)}`)
   }
 
   return {
