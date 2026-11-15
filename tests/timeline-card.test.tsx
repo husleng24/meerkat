@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { TimelineCard } from '../src/renderer/src/components/TimelineCard'
@@ -82,6 +82,16 @@ describe('时间线卡', () => {
     await act(async () => btn.click())
     const dates = [...el.querySelectorAll('li')].map((li) => li.textContent?.match(/2026-11-\d\d/)?.[0])
     expect(dates[0]).toBe('2026-11-12')
+  })
+
+  it('可以打开完整时间线页', async () => {
+    const el = await render()
+    const heard = vi.fn()
+    window.addEventListener('meerkat:open-timeline', heard as EventListener, { once: true })
+    const btn = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('展开完整时间线'))!
+    await act(async () => btn.click())
+    expect(heard).toHaveBeenCalled()
+    expect((heard.mock.calls[0]![0] as CustomEvent).detail.timeline.title).toBe('黄仁勋辞职与复职请愿')
   })
 
   it('缺口与待确认可见，待确认可展开', async () => {

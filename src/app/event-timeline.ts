@@ -31,6 +31,17 @@ export interface TimelinePhase {
   sourceItemIds: string[]
 }
 
+/** "现在"：优先取综述最后一句，没有综述再退回最后节点 */
+export function timelineNow(timeline: EventTimeline): string | undefined {
+  return (
+    timeline.summary
+      ?.split(/[。！？；]/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .at(-1) ?? timeline.phases.at(-1)?.headline
+  )
+}
+
 export interface EventTimeline {
   title: string
   range: { from: string; to: string }

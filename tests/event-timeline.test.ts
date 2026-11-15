@@ -6,7 +6,8 @@ import {
   extractKeywords,
   findGaps,
   mergeDuplicates,
-  parseTimelineJson
+  parseTimelineJson,
+  timelineNow
 } from '../src/app/event-timeline'
 import { composeItemTimeline } from '../src/main/item-timeline'
 import type { Item } from '../src/core/domain/types'
@@ -98,6 +99,18 @@ describe('确定性时间线', () => {
     expect(t.gaps.join('')).toContain('2 天没有新进展')
     expect(t.mode).toBe('deterministic')
     expect(t.items?.length).toBeGreaterThan(0)
+  })
+
+  it('现在取综述最后一句', () => {
+    expect(timelineNow({
+      title: 'x',
+      range: { from: 'a', to: 'b' },
+      summary: '第一句。最后一句是现在。',
+      phases: [{ date: '2026-11-15', headline: '最后节点', status: 'reported', confidence: 'single-source', sourceItemIds: ['i1'] }],
+      gaps: [],
+      openQuestions: [],
+      mode: 'agent'
+    })).toBe('最后一句是现在')
   })
 
   it('没有模型时 compose 仍返回可读时间线', async () => {

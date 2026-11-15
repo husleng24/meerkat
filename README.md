@@ -100,7 +100,7 @@ a quick answer, a one-off timeline, or ongoing tracking.
 - **Tracking overview**: a dedicated "跟踪" page lists every tracked event with material count, last check,
   quiet runs, and pause / resume / abandon controls
 
-The timeline itself: a current-state line, node/report counts and phase chips, newest first by default, then events with sources, time gaps and open questions. Without a model — or when the
+The timeline itself: a current-state line, node/report counts and phase chips, newest first by default, then events with sources, time gaps and open questions. A full-screen view shows the whole timeline with a source summary. Without a model — or when the
 model output fails citation checks — it falls back to a plain date-grouped version.
 
 ![A timeline requested from a comment](docs/assets/ui-item-timeline.png)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { EventTimeline } from '../../../app/event-timeline'
+import { timelineNow, type EventTimeline } from '../../../app/event-timeline'
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: '已确认',
@@ -49,13 +49,7 @@ export function TimelineCard({
 
   const phases = timeline.phases
   const latest = phases.at(-1)
-  // "现在"优先取综述的最后一句：那里通常就是最新状态；没有综述再退回最后节点
-  const nowText =
-    timeline.summary
-      ?.split(/[。！？；]/)
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .at(-1) ?? latest?.headline
+  const nowText = timelineNow(timeline)
   const nodeCount = phases.length
   const reportCount = new Set(phases.flatMap((p) => p.sourceItemIds)).size
 
@@ -251,6 +245,21 @@ export function TimelineCard({
           )}
         </div>
       )}
+
+      <div className="mx-3.5 border-t border-rule/70 pt-2">
+        <button
+          onClick={() =>
+            window.dispatchEvent(
+              new CustomEvent('meerkat:open-timeline', {
+                detail: { timeline, ...(storyId ? { storyId } : {}), ...(tracking ? { tracking } : {}) }
+              })
+            )
+          }
+          className="text-[9.5px] text-accent hover:underline"
+        >
+          展开完整时间线 →
+        </button>
+      </div>
 
       {(tracking || stopped) && storyId && (
         <div className="mx-3.5 flex items-center gap-2 border-t border-rule/70 py-2 text-[9.5px] text-ink-3">
