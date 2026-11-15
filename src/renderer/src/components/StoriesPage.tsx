@@ -49,9 +49,12 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
     await load()
   }
 
-  const openTimeline = async (id: string): Promise<void> => {
-    const data = await api?.timeline({ id }).catch(() => null)
-    if (!data) return
+  const openTimeline = async (story: StoryPayload): Promise<void> => {
+    const data = await api?.timeline({ id: story.id }).catch(() => null)
+    if (!data) {
+      onOpen(story)
+      return
+    }
     window.dispatchEvent(new CustomEvent('meerkat:open-timeline', { detail: data }))
   }
 
@@ -120,10 +123,9 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
                 ].join(' ')}
               />
               <button
-                onClick={() => onOpen(s)}
-                disabled={!s.itemId}
+                onClick={() => (s.nodeCount > 0 ? void openTimeline(s) : onOpen(s))}
                 className="min-w-0 flex-1 text-left"
-                title={s.itemId ? '打开这条跟踪的评论串' : '缺少源条目，无法打开'}
+                title={s.nodeCount > 0 ? '打开完整时间线' : '打开这条跟踪的评论串'}
               >
                 <div className="truncate text-[12.5px] font-medium text-ink hover:text-accent">{s.title}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-2">
@@ -157,12 +159,19 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
               <div className="flex shrink-0 items-center gap-1">
                 {s.nodeCount > 0 && (
                   <button
-                    onClick={() => void openTimeline(s.id)}
+                    onClick={() => void openTimeline(s)}
                     className="rounded-md px-2 py-1 text-[10.5px] font-medium text-accent hover:bg-accent-soft"
                   >
                     时间线
                   </button>
                 )}
+                <button
+                  onClick={() => onOpen(s)}
+                  disabled={!s.itemId}
+                  className="rounded-md px-2 py-1 text-[10.5px] text-ink-3 hover:bg-cream hover:text-ink disabled:opacity-40"
+                >
+                  评论
+                </button>
                 {s.status === 'active' ? (
                   <button
                     onClick={() => void setStatus(s.id, 'paused')}

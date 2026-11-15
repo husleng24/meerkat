@@ -87,7 +87,7 @@ describe('跟踪总览', () => {
     expect(setStatus).toHaveBeenCalledWith({ id: 'st-1', status: 'archived' })
   })
 
-  it('点「时间线」直接打开完整时间线', async () => {
+  it('点标题直接打开完整时间线', async () => {
     const timeline = {
       title: '黄仁勋辞职与复职请愿',
       range: { from: '2026-11-12', to: '2026-11-15' },
@@ -108,7 +108,7 @@ describe('跟踪总览', () => {
     const el = await render(<StoriesPage onOpen={vi.fn()} />)
     const heard = vi.fn()
     window.addEventListener('meerkat:open-timeline', heard as EventListener, { once: true })
-    const btn = [...el.querySelectorAll('button')].find((b) => b.textContent?.trim() === '时间线')!
+    const btn = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('黄仁勋辞职'))!
     await act(async () => btn.click())
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0))
@@ -118,7 +118,7 @@ describe('跟踪总览', () => {
     expect((heard.mock.calls[0]![0] as CustomEvent).detail.storyId).toBe('st-1')
   })
 
-  it('点标题打开评论串', async () => {
+  it('点「评论」打开评论串', async () => {
     const onOpen = vi.fn()
     ;(window as unknown as { meerkat: unknown }).meerkat = {
       stories: {
@@ -129,8 +129,8 @@ describe('跟踪总览', () => {
       }
     }
     const el = await render(<StoriesPage onOpen={onOpen} />)
-    const title = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('黄仁勋辞职'))
-    await act(async () => (title as HTMLButtonElement).click())
+    const comment = [...el.querySelectorAll('button')].find((b) => b.textContent?.trim() === '评论')
+    await act(async () => (comment as HTMLButtonElement).click())
     expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'st-1' }))
   })
 })
