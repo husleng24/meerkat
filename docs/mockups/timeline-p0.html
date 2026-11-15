@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Meerkat · 时间线版型</title>
+<style>
+  :root{
+    --paper:#faf9f6; --cream:#f3f1ec; --rule:#e7e3dc; --ink:#111827; --ink2:#4b5563; --ink3:#9ca3af;
+    --accent:#4f46e5; --accent-soft:#eef0ff; --alert:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#ece9e4;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);padding:38px;display:flex;flex-direction:column;gap:34px;align-items:center;
+  }
+  .board{display:flex;flex-direction:column;align-items:flex-start}
+  .label{font-size:12px;letter-spacing:.08em;color:#6b7280;margin-bottom:10px;font-weight:600}
+  .panel{
+    width:468px;background:#fff;border:1px solid var(--rule);border-radius:18px;overflow:hidden;
+    box-shadow:0 24px 60px -36px rgba(17,24,39,.35);
+  }
+  .p-head{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--rule)}
+  .p-head .t{font-size:13px;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-head .back{font-size:10.5px;color:var(--accent);white-space:nowrap}
+  .p-head .close{margin-left:auto;font-size:10.5px;color:var(--ink3);white-space:nowrap}
+  .p-sub{padding:9px 16px;border-bottom:1px solid var(--rule)}
+  .p-sub span{display:inline-block;max-width:100%;background:var(--cream);border:1px solid var(--rule);border-radius:999px;padding:3px 9px;font-size:10.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-body{padding:14px 14px 16px;display:flex;flex-direction:column;gap:12px}
+  .story{border:1px solid var(--rule);border-radius:13px;overflow:hidden}
+  .story-head{padding:13px 14px 11px;background:linear-gradient(180deg,#fcfbff,#fff)}
+  .story-title{font-size:14px;font-weight:700;letter-spacing:-.01em}
+  .story-meta{margin-top:5px;font-size:10.5px;color:var(--ink3);display:flex;gap:6px;flex-wrap:wrap}
+  .now{margin-top:10px;background:var(--accent-soft);border-radius:9px;padding:8px 10px;font-size:11.5px;line-height:1.55;color:#3730a3}
+  .now b{font-weight:600}
+  .phases{display:flex;gap:6px;padding:11px 14px 0;overflow:hidden}
+  .phase{flex:0 0 auto;border:1px solid var(--rule);background:#fff;border-radius:999px;padding:4px 9px;font-size:10px;color:var(--ink3);white-space:nowrap}
+  .phase.on{border-color:#c7d2fe;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .phase .d{opacity:.65;margin-left:3px}
+  .newbar{margin:11px 14px 0;border-radius:7px;background:#ecfdf5;color:#047857;font-size:10px;padding:4px 8px;display:flex;gap:6px;align-items:center}
+  .newbar span{margin-left:auto;opacity:.7}
+  .events{padding:4px 14px 2px}
+  .ev{position:relative;padding:10px 0 10px 17px;border-bottom:1px solid #f1eee8}
+  .ev:last-child{border-bottom:0}
+  .ev::before{content:"";position:absolute;left:0;top:16px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .ev.old::before{background:#d1d5db}
+  .ev::after{content:"";position:absolute;left:3px;top:23px;bottom:-8px;width:1px;background:var(--rule)}
+  .ev:last-child::after{display:none}
+  .ev-date{font-size:10px;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .ev-title{font-size:12px;font-weight:600;line-height:1.45;margin-top:2px}
+  .ev-detail{font-size:11px;line-height:1.65;color:var(--ink2);margin-top:3px}
+  .badges{display:flex;gap:5px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .badge{font-size:9px;border-radius:4px;padding:1px 5px;background:var(--cream);color:var(--ink3)}
+  .badge.rumor{background:#fef2f2;color:var(--alert)}
+  .badge.multi{background:#f5f3ff;color:#6d28d9}
+  .sources{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+  .src{font-size:9.5px;background:#f8f7f3;border:1px solid #f0ede6;border-radius:4px;padding:1px 5px;color:var(--ink3)}
+  .gap{margin:2px 14px 10px;border:1px dashed #ddd8ce;border-radius:8px;padding:6px 9px;font-size:10px;color:var(--ink3);display:flex;gap:6px;align-items:center}
+  .questions{margin:0 14px 12px;border-top:1px solid #f1eee8;padding-top:8px;font-size:10.5px;color:var(--ink3);display:flex;align-items:center;gap:5px}
+  .questions b{color:var(--ink2);font-weight:600}
+  .questions .n{margin-left:auto;color:var(--ink3)}
+  .track{margin:0 14px 6px;border-top:1px solid var(--rule);padding-top:9px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink3)}
+  .expand{margin:0 14px 12px;font-size:10.5px;color:var(--accent)}
+  .order{display:flex;gap:8px;font-size:9.5px;color:var(--ink3);padding:9px 14px 0}
+  .order .on{color:var(--ink2);font-weight:600}
+  .order .right{margin-left:auto;color:var(--accent)}
+  .track .on{color:var(--accent);font-weight:600}
+  .track .stop{margin-left:auto;color:var(--ink3)}
+  .composer{margin:0 14px 14px;border:1px solid var(--rule);border-radius:12px;padding:9px 10px}
+  .composer .ph{font-size:11.5px;color:#b0aca2}
+  .composer .row{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .send{background:#111827;color:#fff;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:600}
+  .model{margin-left:auto;font-size:9.5px;color:var(--ink3);border:1px solid var(--rule);border-radius:999px;padding:2px 8px}
+  .rule{height:1px;background:var(--rule);margin:0 14px}
+
+  /* 跟踪列表版型 */
+  .track-panel{width:900px;background:var(--paper);border:1px solid var(--rule);border-radius:18px;padding:24px 26px;box-shadow:0 24px 60px -36px rgba(17,24,39,.3)}
+  .tp-head{display:flex;align-items:baseline;gap:8px}
+  .tp-head h2{font-size:18px;letter-spacing:-.02em}
+  .tp-head span{font-size:11px;color:var(--ink3)}
+  .tp-sub{margin-top:3px;font-size:10.5px;color:var(--ink3)}
+  .tabs{display:flex;gap:6px;margin-top:14px}
+  .tab{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;font-size:10.5px;color:var(--ink3);background:#fff}
+  .tab.on{border-color:#c7d2fe;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .rows{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .row{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:13px 15px;display:flex;gap:10px;align-items:flex-start}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:7px;flex:0 0 auto}
+  .row .main{min-width:0;flex:1}
+  .row .title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .latest{font-size:11px;color:var(--ink2);margin-top:3px;display:flex;gap:6px;align-items:center}
+  .latest .time{color:var(--ink3);font-size:10px}
+  .latest .plus{background:#ecfdf5;color:#047857;border-radius:4px;font-size:9px;padding:1px 5px;font-weight:600}
+  .row .meta{font-size:10px;color:var(--ink3);margin-top:4px;display:flex;gap:6px}
+  .row .acts{display:flex;gap:2px;flex:0 0 auto}
+  .row .acts span{font-size:10px;color:var(--ink3);padding:3px 7px;border-radius:5px}
+  .quiet .dot{background:#d1d5db}
+  .quiet .quietline{color:#b45309}
+  .note{margin-top:14px;font-size:10px;color:var(--ink3)}
+</style>
+</head>
+<body>
+  <div class="board">
+    <div class="label">版型 A · 评论面板里的紧凑时间线（默认最新在上）</div>
+    <div class="panel">
+      <div class="p-head">
+        <div class="t">评论 · 黄仁勋辞去 Nvidia CEO，11.5 万人联署…</div>
+        <div class="back">返回简报</div><div class="close">收起 ⌘J</div>
+      </div>
+      <div class="p-sub"><span>新闻 · 黄仁勋辞去 Nvidia CEO，11.5 万人联署要求复职</span></div>
+      <div class="p-body">
+        <div class="story">
+          <div class="story-head">
+            <div class="story-title">黄仁勋辞职与复职请愿</div>
+            <div class="story-meta"><span>11-12 → 11-15</span><span>·</span><span>4 个节点</span><span>·</span><span>32 篇报道</span></div>
+            <div class="now"><b>现在：</b>科技高管联署要求复职，签名已超 11.5 万；英伟达尚未回应。</div>
+          </div>
+          <div class="phases">
+            <div class="phase">辞职<span class="d">11-12</span></div>
+            <div class="phase">国会作证<span class="d">11-13</span></div>
+            <div class="phase on">请愿要求复职<span class="d">11-15</span></div>
+          </div>
+          <div class="newbar">上次查看后新增 2 条<span>已读至 11-13</span></div>
+          <div class="order"><span class="on">最新在上</span><span>从头看</span></div>
+          <div class="events">
+            <div class="ev">
+              <div class="ev-date">11-15</div>
+              <div class="ev-title">马斯克等科技高管联署请愿，要求英伟达让黄仁勋复职</div>
+              <div class="ev-detail">签名数已超过 11.5 万；请愿发起方要求董事会重新考虑辞任决定。</div>
+              <div class="badges"><span class="badge multi">多来源</span><span class="badge">报道</span></div>
+              <div class="sources"><span class="src">The Verge</span><span class="src">TechCrunch</span><span class="src">Reuters</span></div>
+            </div>
+            <div class="ev">
+              <div class="ev-date">11-13</div>
+              <div class="ev-title">黄仁勋同意赴国会作证</div>
+              <div class="ev-detail">报道称其已接受邀请，具体日期尚未公布。</div>
+              <div class="badges"><span class="badge">单一来源</span><span class="badge">报道</span></div>
+              <div class="sources"><span class="src">Reuters</span></div>
+            </div>
+            <div class="ev old">
+              <div class="ev-date">11-12</div>
+              <div class="ev-title">辞任 CEO，CFO Colette Kress 临时接任</div>
+              <div class="ev-detail">多家媒体确认辞职与临时继任安排，公司内部邮件称正值“极其困难的时期”。</div>
+              <div class="badges"><span class="badge multi">多来源</span><span class="badge">报道</span></div>
+              <div class="sources"><span class="src">The Verge</span><span class="src">TechCrunch</span><span class="src">Latent Space</span></div>
+            </div>
+          </div>
+          <div class="gap">⌁ 11-10 ~ 11-11 没有新进展</div>
+          <div class="questions"><b>待确认 3 项</b><span class="n">英伟达是否回应请愿 · 继任者是谁 · 调查结论</span></div>
+          <div class="track"><span class="on">● 跟踪中</span><span class="stop">停止跟踪</span></div>
+          <div class="expand">展开完整时间线 →</div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="ph">评论… 输入 @agent 整理时间线，⌘↵ 发送</div>
+        <div class="row"><span class="send">发送</span><span class="model">DeepSeek Flash</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="label">版型 B · 跟踪总览：先给“最近进展”，不再先报素材数</div>
+    <div class="track-panel">
+      <div class="tp-head"><h2>事件跟踪</h2><span>2 个跟踪中</span></div>
+      <div class="tp-sub">持续关注的事件 · 有新报道会追加到原评论串</div>
+      <div class="tabs"><div class="tab on">跟踪中 2</div><div class="tab">已暂停</div><div class="tab">已放弃 1</div></div>
+      <div class="rows">
+        <div class="row">
+          <div class="dot"></div>
+          <div class="main">
+            <div class="title">黄仁勋辞职与复职请愿</div>
+            <div class="latest"><span class="plus">+2</span> 联署要求复职，签名超 11.5 万 <span class="time">· 2 小时前</span></div>
+            <div class="meta"><span>4 个节点</span><span>·</span><span>32 篇报道</span><span>·</span><span>跟踪中</span></div>
+          </div>
+          <div class="acts"><span>暂停</span><span>放弃</span></div>
+        </div>
+        <div class="row quiet">
+          <div class="dot"></div>
+          <div class="main">
+            <div class="title">ChatGPT Wallet 上线</div>
+            <div class="latest quietline">已连续 2 次采集没有新进展 <span class="time">· 2 小时前</span></div>
+            <div class="meta"><span>1 个节点</span><span>·</span><span>3 篇报道</span><span>·</span><span>跟踪中</span></div>
+          </div>
+          <div class="acts"><span>暂停</span><span>放弃</span></div>
+        </div>
+      </div>
+      <div class="note">对比：现状把“32 条素材 / 上次检查 / 别名”放在第一行，用户看不到“最新发生了什么”。版型 B 把最近一条进展提到第一行。</div>
+    </div>
+  </div>
+</body>
+</html>
