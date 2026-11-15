@@ -58,6 +58,26 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     return () => window.removeEventListener('meerkat:comment-item', onComment)
   }, [])
 
+  // 选中正文后浮出的工具条：打开面板并预填
+  useEffect(() => {
+    const onAsk = (e: Event): void => {
+      const detail = (e as CustomEvent<{ text?: string; mode?: 'ask' | 'track'; itemId?: string; title?: string }>)
+        .detail
+      if (!detail?.text) return
+      if (detail.itemId) {
+        setItemContext({ id: detail.itemId, title: detail.title ?? '这条新闻' })
+      } else {
+        setItemContext(null)
+      }
+      setDraft(detail.mode === 'track' ? `@agent 帮我盯着这件事：${detail.text}` : detail.text)
+      setOpen(true)
+      writeFlag(OPEN_KEY, true)
+      setTimeout(() => document.getElementById('chat-input')?.focus(), 60)
+    }
+    window.addEventListener('meerkat:ask-agent', onAsk)
+    return () => window.removeEventListener('meerkat:ask-agent', onAsk)
+  }, [])
+
   // 切主题时退出条目评论，避免评论串挂到别的主题下；
   // 从「跟踪」页跨主题打开时，detail 已带上目标 topicId，不能被这次切换清掉
   useEffect(() => {

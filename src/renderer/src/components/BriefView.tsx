@@ -195,6 +195,8 @@ export function BriefView({
                   <div
                     key={item.key}
                     className="rise"
+                    data-item-id={id || undefined}
+                    data-item-title={item.title}
                     style={{ animationDelay: `${Math.min(globalIndex, 12) * 40}ms` }}
                   >
                     <ItemCard

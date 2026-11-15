@@ -88,8 +88,9 @@ and imported on another machine or for a new topic; see [docs/SOURCE-PACK.md](do
 
 ### Comments and event timelines
 
-Every item can be commented on. Mention `@agent` and it first works out what you want: a quick answer,
-a one-off timeline, or ongoing tracking.
+Every item can be commented on, and selecting text in the brief pops up "ask the agent / track" so the
+selection goes straight into the conversation. Mention `@agent` and it first works out what you want:
+a quick answer, a one-off timeline, or ongoing tracking.
 
 - **Ask**: answers from the item and its related coverage, no story created
 - **Timeline**: turns the reports it already has into one timeline

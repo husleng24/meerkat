@@ -14,6 +14,7 @@ import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
 import { TrackingReview } from './components/TrackingReview'
 import { StoriesPage } from './components/StoriesPage'
+import { SelectionAgent } from './components/SelectionAgent'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 import { useStoriesSummary } from './lib/useStoriesSummary'
@@ -286,6 +287,7 @@ export default function App(): React.JSX.Element {
 
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
+      <SelectionAgent />
       <TrackingReview />
       {activeId && (
         <ChatWidget topicId={activeId} briefDate={dateLabel} hasPrevious={previousDate.length > 0} />
