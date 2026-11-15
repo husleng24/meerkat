@@ -25,7 +25,7 @@ const MODEL_KEY = 'meerkat.chat.model'
 export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JSX.Element {
   const [open, setOpen] = useState(() => readFlag(OPEN_KEY, false))
   /** 从某条新闻点「评论」进来时，面板切成这条新闻的评论串 */
-  const [itemContext, setItemContext] = useState<{ id: string; title: string } | null>(null)
+  const [itemContext, setItemContext] = useState<{ id: string; title: string; topicId?: string } | null>(null)
   const [thread, setThread] = useState<ChatThreadPayload | null>(null)
   const [briefStale, setBriefStale] = useState(false)
   const [messages, setMessages] = useState<ChatMessagePayload[]>([])
@@ -44,9 +44,13 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
   // 条目上的「评论」按钮通过这个事件打开面板；不新增第二个聊天入口
   useEffect(() => {
     const onComment = (e: Event): void => {
-      const detail = (e as CustomEvent<{ itemId?: string; title?: string }>).detail
+      const detail = (e as CustomEvent<{ itemId?: string; title?: string; topicId?: string }>).detail
       if (!detail?.itemId) return
-      setItemContext({ id: detail.itemId, title: detail.title ?? '这条新闻' })
+      setItemContext({
+        id: detail.itemId,
+        title: detail.title ?? '这条新闻',
+        ...(detail.topicId ? { topicId: detail.topicId } : {})
+      })
       setOpen(true)
       writeFlag(OPEN_KEY, true)
     }
@@ -54,9 +58,10 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     return () => window.removeEventListener('meerkat:comment-item', onComment)
   }, [])
 
-  // 切主题时退出条目评论，避免评论串挂到别的主题下
+  // 切主题时退出条目评论，避免评论串挂到别的主题下；
+  // 从「跟踪」页跨主题打开时，detail 已带上目标 topicId，不能被这次切换清掉
   useEffect(() => {
-    setItemContext(null)
+    setItemContext((ctx) => (ctx?.topicId && ctx.topicId !== topicId ? null : ctx))
   }, [topicId])
 
   // 模型目录：只列已配置 key 的供应商；当前选中的模型不在其中时自动落到第一个
@@ -80,7 +85,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     let cancelled = false
     const load = async (): Promise<void> => {
       const t = itemId
-        ? await api.ensureItem({ topicId, itemId, model })
+        ? await api.ensureItem({ topicId: itemContext?.topicId ?? topicId, itemId, model })
         : await api.ensure({ topicId, ...(briefDate ? { briefDate } : {}), model })
       if (cancelled || !t) return
       setThread(t)

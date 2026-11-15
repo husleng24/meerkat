@@ -119,8 +119,21 @@ const api = {
       status: 'active' | 'paused' | 'archived'
     }): Promise<{ id: string; title: string; status: string; missCount: number } | null> =>
       ipcRenderer.invoke('stories:setStatus', input),
-    list: (): Promise<Array<{ id: string; title: string; status: string; missCount: number }>> =>
-      ipcRenderer.invoke('stories:list'),
+    list: (): Promise<Array<{
+      id: string
+      title: string
+      query: string
+      aliases: string[]
+      topicId: string
+      itemId?: string
+      threadId?: string
+      status: 'active' | 'paused' | 'archived'
+      missCount: number
+      lastMatchAt?: number
+      createdAt: number
+      updatedAt: number
+      itemCount: number
+    }>> => ipcRenderer.invoke('stories:list'),
     onReview: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('stories:review', listener)

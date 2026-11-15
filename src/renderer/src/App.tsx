@@ -13,6 +13,7 @@ import { useCallback, useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { ChatWidget } from './components/ChatWidget'
 import { TrackingReview } from './components/TrackingReview'
+import { StoriesPage } from './components/StoriesPage'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 
@@ -23,6 +24,7 @@ const TITLES: Record<string, string> = {
   sources: '事实源',
   settings: '设置',
   timeline: '时间线',
+  stories: '跟踪',
   onboarding: '开始使用'
 }
 
@@ -168,7 +170,9 @@ export default function App(): React.JSX.Element {
                     ? '全文检索（Ctrl/Cmd+K）'
                     : nav === 'timeline'
                       ? '历史简报'
-                      : ''}
+                      : nav === 'stories'
+                        ? '持续关注的事件'
+                        : ''}
             </span>
           </header>
         )}
@@ -239,6 +243,20 @@ export default function App(): React.JSX.Element {
 
           {nav === 'onboarding' && (
             <Onboarding sourceCount={summary.total} createTopic={createTopic} onDone={() => go('today')} />
+          )}
+
+          {nav === 'stories' && (
+            <StoriesPage
+              onOpen={(story) => {
+                if (!story.itemId) return
+                window.dispatchEvent(
+                  new CustomEvent('meerkat:comment-item', {
+                    detail: { itemId: story.itemId, title: story.title, topicId: story.topicId }
+                  })
+                )
+                if (story.topicId && story.topicId !== activeId) setActiveId(story.topicId)
+              }}
+            />
           )}
 
           {nav === 'timeline' && (

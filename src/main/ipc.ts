@@ -812,7 +812,13 @@ export function registerIpc(): void {
     return setStoryStatus(requireStore(), parsed.data.id, parsed.data.status) ?? null
   })
 
-  ipcMain.handle('stories:list', () => requireStore().stories.list())
+  ipcMain.handle('stories:list', () => {
+    const store = requireStore()
+    return store.stories.list().map((story) => ({
+      ...story,
+      itemCount: store.stories.itemIds(story.id).length
+    }))
+  })
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {
     const parsed = z.string().min(1).max(60).safeParse(raw)

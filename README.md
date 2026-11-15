@@ -96,6 +96,8 @@ a one-off timeline, or ongoing tracking.
 - **Track**: `@agent 帮我盯着这件事` keeps watching; aliases are expanded on the first run (Chinese/English
   and alternate wording), so English coverage is matched too. New coverage is appended to the same comment
   thread, and after three quiet collections it asks whether to keep tracking — in-app and via a system notification
+- **Tracking overview**: a dedicated "跟踪" page lists every tracked event with material count, last check,
+  quiet runs, and pause / resume / abandon controls
 
 The timeline itself: phases with sources, time gaps and open questions. Without a model — or when the
 model output fails citation checks — it falls back to a plain date-grouped version.

@@ -133,6 +133,23 @@ export interface AutoLaunchState {
   reason?: string
 }
 
+export interface StoryPayload {
+  id: string
+  title: string
+  query: string
+  aliases: string[]
+  topicId: string
+  itemId?: string
+  threadId?: string
+  status: 'active' | 'paused' | 'archived'
+  missCount: number
+  lastMatchAt?: number
+  lastPromptAt?: number
+  createdAt: number
+  updatedAt: number
+  itemCount: number
+}
+
 export interface StoryReviewPayload {
   id: string
   title: string
@@ -273,7 +290,7 @@ export interface MeerkatBridge {
   stories?: {
     needsReview: () => Promise<StoryReviewPayload[]>
     setStatus: (input: { id: string; status: 'active' | 'paused' | 'archived' }) => Promise<StoryReviewPayload | null>
-    list: () => Promise<StoryReviewPayload[]>
+    list: () => Promise<StoryPayload[]>
     onReview?: (cb: () => void) => () => void
   }
   chat?: ChatBridge
