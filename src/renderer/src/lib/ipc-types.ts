@@ -4,6 +4,7 @@
  * 只能有一处 `declare global`：多处声明同名属性时 TypeScript 要求类型完全一致，
  * 实际开发中几乎必然漂移（P1-4 与 P1-5 就撞过一次）。
  */
+import type { EventTimeline } from '../../../app/event-timeline'
 import type { Source } from '../../../core/domain/types'
 
 export interface ProbeProgress {
@@ -294,6 +295,11 @@ export interface MeerkatBridge {
     needsReview: () => Promise<StoryReviewPayload[]>
     setStatus: (input: { id: string; status: 'active' | 'paused' | 'archived' }) => Promise<StoryReviewPayload | null>
     list: () => Promise<StoryPayload[]>
+    timeline: (input: { id: string }) => Promise<{
+      timeline: EventTimeline
+      storyId: string
+      tracking: boolean
+    } | null>
     onReview?: (cb: () => void) => () => void
   }
   chat?: ChatBridge

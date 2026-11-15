@@ -139,6 +139,11 @@ const api = {
       latest?: { title: string; at: number }
       latestEvent?: { title: string; date: string }
     }>> => ipcRenderer.invoke('stories:list'),
+    timeline: (input: { id: string }): Promise<{
+      timeline: unknown
+      storyId: string
+      tracking: boolean
+    } | null> => ipcRenderer.invoke('stories:timeline', input),
     onReview: (cb: () => void): (() => void) => {
       const listener = (): void => cb()
       ipcRenderer.on('stories:review', listener)

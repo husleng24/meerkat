@@ -815,6 +815,26 @@ export function registerIpc(): void {
     return list
   })
 
+  ipcMain.handle('stories:timeline', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(80) }).safeParse(raw)
+    if (!parsed.success) return null
+    const store = requireStore()
+    const story = store.stories.get(parsed.data.id)
+    if (!story?.threadId) return null
+    for (const m of [...store.chat.messages(story.threadId)].reverse()) {
+      if (!m.contextJson) continue
+      try {
+        const ctx = JSON.parse(m.contextJson) as { timeline?: unknown }
+        if (ctx.timeline) {
+          return { timeline: ctx.timeline, storyId: story.id, tracking: story.status === 'active' }
+        }
+      } catch {
+        /* 忽略坏消息 */
+      }
+    }
+    return null
+  })
+
   ipcMain.handle('stories:setStatus', (_e, raw: unknown) => {
     const parsed = z.object({ id: z.string().min(1).max(80), status: storyStatusSchema }).safeParse(raw)
     if (!parsed.success) return null

@@ -49,6 +49,12 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
     await load()
   }
 
+  const openTimeline = async (id: string): Promise<void> => {
+    const data = await api?.timeline({ id }).catch(() => null)
+    if (!data) return
+    window.dispatchEvent(new CustomEvent('meerkat:open-timeline', { detail: data }))
+  }
+
   const active = stories.filter((s) => s.status === 'active')
   const paused = stories.filter((s) => s.status === 'paused')
   const archived = stories.filter((s) => s.status === 'archived')
@@ -149,6 +155,14 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
                 </div>
               </button>
               <div className="flex shrink-0 items-center gap-1">
+                {s.nodeCount > 0 && (
+                  <button
+                    onClick={() => void openTimeline(s.id)}
+                    className="rounded-md px-2 py-1 text-[10.5px] font-medium text-accent hover:bg-accent-soft"
+                  >
+                    时间线
+                  </button>
+                )}
                 {s.status === 'active' ? (
                   <button
                     onClick={() => void setStatus(s.id, 'paused')}
