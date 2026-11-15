@@ -23,6 +23,7 @@ import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic }
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBrief } from './export'
+import { extractBriefSummary } from '../app/brief-summary'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
@@ -321,13 +322,21 @@ export function registerIpc(): void {
   ipcMain.handle('brief:list', (_e, raw: unknown) => {
     const parsed = briefTopicSchema.safeParse(raw)
     if (!parsed.success) return []
-    return requireStore()
-      .briefs.list(60, parsed.data)
+    // 同一天可能因为"立即采集"重跑而有多期；列表只展示最新一期，避免日期重复
+    const briefs = requireStore().briefs.list(60, parsed.data)
+    const latestByDate = new Map<string, (typeof briefs)[number]>()
+    for (const b of briefs) {
+      const prev = latestByDate.get(b.date)
+      if (!prev || b.createdAt > prev.createdAt) latestByDate.set(b.date, b)
+    }
+    return [...latestByDate.values()]
+      .sort((a, b) => b.date.localeCompare(a.date))
       .map((b) => ({
         date: b.date,
         model: b.model,
         linkCheck: b.linkCheck ?? '',
         chars: b.markdown.length,
+        summary: extractBriefSummary(b.markdown),
         createdAt: b.createdAt
       }))
   })

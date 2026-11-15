@@ -319,7 +319,9 @@ export interface MeerkatBridge {
   briefByDate?: (date: string, topicId?: string) => Promise<BriefPayload | null>
   briefList?: (
     topicId?: string
-  ) => Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>>
+  ) => Promise<
+    Array<{ date: string; model: string; linkCheck: string; chars: number; summary: string; createdAt: number }>
+  >
   sources?: SourcesBridge
   flags?: FlagsBridge
   items?: {

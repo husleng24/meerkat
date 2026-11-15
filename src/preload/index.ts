@@ -24,7 +24,9 @@ const api = {
 
   briefList: (
     topicId?: string
-  ): Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>> =>
+  ): Promise<
+    Array<{ date: string; model: string; linkCheck: string; chars: number; summary: string; createdAt: number }>
+  > =>
     ipcRenderer.invoke('brief:list', topicId),
 
   briefByDate: (date: string, topicId?: string): Promise<BriefPayload | null> =>
