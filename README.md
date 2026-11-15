@@ -73,9 +73,9 @@ A topic is the unit of collection and briefing; a domain only groups them in dat
 
 `New / Progressed / Not repeated again` three numbers under the header, expandable to the exact items.
 
-### Search, timeline and reading state
+### Search, past briefs and reading state
 
-FTS5 full-text search (with section, source, time filters, highlighting and sorting); timeline for past briefs;
+FTS5 full-text search (with section, source, time filters, highlighting and sorting); past briefs by date;
 read / saved / hidden flags are persisted and mapped back to item ids by URL.
 
 ### Source management

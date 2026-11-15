@@ -24,7 +24,7 @@ const TITLES: Record<string, string> = {
   search: '搜索',
   sources: '事实源',
   settings: '设置',
-  timeline: '时间线',
+  timeline: '历史简报',
   stories: '跟踪',
   onboarding: '开始使用'
 }
@@ -172,7 +172,7 @@ export default function App(): React.JSX.Element {
                   : nav === 'search'
                     ? '全文检索（Ctrl/Cmd+K）'
                     : nav === 'timeline'
-                      ? '历史简报'
+                      ? '按日期回看'
                       : nav === 'stories'
                         ? '持续关注的事件'
                         : ''}

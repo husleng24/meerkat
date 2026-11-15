@@ -17,7 +17,7 @@ interface Row {
 }
 
 /**
- * 时间线：历史简报列表。
+ * 历史简报：按日期回看每一期。
  * 只做一件事——让你翻得回前几天的简报。全文检索留到以后（数据层已支持 FTS5）。
  */
 export function TimelinePage({ current, onOpen, topicId }: Props): React.JSX.Element {

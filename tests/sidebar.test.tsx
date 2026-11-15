@@ -140,11 +140,11 @@ describe('侧栏：扁平主题列表', () => {
     const items = [...el.querySelectorAll('[role="menuitem"]')]
     const labels = items.map((i) => i.textContent ?? '')
     expect(labels.some((x) => x.includes('搜索'))).toBe(true)
-    expect(labels.some((x) => x.includes('时间线'))).toBe(true)
+    expect(labels.some((x) => x.includes('历史简报'))).toBe(true)
     expect(labels.some((x) => x.includes('设置'))).toBe(true)
     expect(labels.find((x) => x.includes('事实源'))).toContain('15')
 
-    await act(async () => items.find((i) => i.textContent?.includes('时间线'))!.click())
+    await act(async () => items.find((i) => i.textContent?.includes('历史简报'))!.click())
     expect(onNavigate).toHaveBeenCalledWith('timeline')
   })
 })

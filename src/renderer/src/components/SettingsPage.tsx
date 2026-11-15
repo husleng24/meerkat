@@ -230,7 +230,7 @@ export function SettingsPage({
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">主题</h2>
         <p className="mb-4 text-[12px] text-ink-3">
-          一个主题有自己的一组源、一套排程和一条简报。切到哪个主题，今日与时间线就显示哪一个。
+          一个主题有自己的一组源、一套排程和一条简报。切到哪个主题，今日与历史简报就显示哪一个。
         </p>
         <TopicManager
           topics={topics}
