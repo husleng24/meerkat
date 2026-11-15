@@ -55,13 +55,32 @@ const EVENT_SUFFIXES = [
 
 const DAY = 86_400_000
 
+/** 英文标题里这些词不是实体，单独当别名会匹配到大量无关新闻 */
+const EN_STOP = new Set([
+  'the', 'a', 'an', 'and', 'or', 'with', 'for', 'from', 'this', 'that', 'these', 'those',
+  'other', 'others', 'tech', 'execs', 'executives', 'sign', 'signs', 'signed', 'calling',
+  'call', 'calls', 'new', 'update', 'live', 'breaking', 'says', 'said', 'report', 'reports',
+  'after', 'before', 'over', 'into', 'amid', 'about', 'could', 'would', 'should'
+])
+
 const dateOf = (ts: number | undefined): string =>
   new Date(ts ?? Date.now()).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
 
 /** "黄仁勋辞职，英伟达33年首换帅" → ["黄仁勋", "英伟达33年首"] */
 export function extractKeywords(title: string, extra = ''): string[] {
   const out: string[] = []
-  for (const raw of `${title} ${extra}`.split(/[，,。.!！?？：:；;、\s/|（）()【】\[\]"“”'']+/)) {
+  const text = `${title} ${extra}`
+
+  // 英文先按"首字母大写序列"收人名/公司名：Elon Musk / Jensen Huang / Nvidia，
+  // 避免被空格拆成 other / tech / execs 这种通用词
+  for (const m of text.matchAll(/\b[A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*\b/g)) {
+    const name = m[0].trim()
+    if (name.length >= 2 && !EN_STOP.has(name.toLowerCase())) out.push(name)
+  }
+
+  for (const raw of text.split(/[，,。.!！?？：:；;、\s/|（）()【】\[\]"“”'']+/)) {
+    // 纯英文段交给上面的实体提取，这里只处理中文/混合段
+    if (/^[A-Za-z0-9\s-]+$/.test(raw)) continue
     let seg = raw.trim()
     if (seg.length < 2) continue
     // 反复剥掉尾部事件词："黄仁勋辞职" → "黄仁勋"
@@ -77,9 +96,9 @@ export function extractKeywords(title: string, extra = ''): string[] {
     }
     // 去掉尾部纯数字/年份，保留"英伟达"这种实体
     seg = seg.replace(/[\d０-９]+年?$/g, '').trim()
-    if (seg.length >= 2) out.push(seg)
+    if (seg.length >= 2 && !EN_STOP.has(seg.toLowerCase())) out.push(seg)
   }
-  return [...new Set(out)].slice(0, 6)
+  return [...new Set(out)].slice(0, 8)
 }
 
 /** 合并同事件报道：先按 URL 去重，再按标题相似度聚类 */
@@ -144,7 +163,7 @@ function refOf(item: Item, store: Store): TimelineItemRef {
     url: item.url,
     sourceName: store.sources.get(item.sourceId)?.name ?? item.sourceId,
     date: dateOf(item.publishedAt ?? item.fetchedAt),
-    summary: item.summary.slice(0, 240)
+    summary: item.summary.slice(0, 140)
   }
 }
 
@@ -219,6 +238,8 @@ const TIMELINE_SYSTEM = `你是新闻编辑，要基于给定素材整理一条�
 4. 官方/一手来源标 status="confirmed"；媒体报道标 "reported"；未证实爆料标 "rumor"。
 5. 不要脑补缺失：时间上断档写进 gaps，未解问题写进 openQuestions。
 6. 除专有名词外全部用中文。
+7. headline 不超过 30 字，detail 不超过 80 字，summary 不超过 120 字，phases 3–8 条。
+8. 输出必须是一个完整的 JSON 对象，不要省略结尾。
 
 只输出 JSON，不要代码块，结构：
 {
@@ -243,7 +264,7 @@ export function buildTimelinePrompt(
   ]
   for (const r of refs) {
     lines.push(`- id=${r.id} | ${r.date} | ${r.sourceName} | ${r.title}`)
-    if (r.summary) lines.push(`  摘要：${r.summary.replace(/\s+/g, ' ').slice(0, 160)}`)
+    if (r.summary) lines.push(`  摘要：${r.summary.replace(/\s+/g, ' ').slice(0, 120)}`)
   }
   return [
     { role: 'system', content: TIMELINE_SYSTEM },

@@ -31,6 +31,11 @@ describe('别名清洗', () => {
     ])
   })
 
+  it('丢弃单个通用英文词，保留实体', () => {
+    const cleaned = cleanAliases(['Elon', 'Musk', 'other', 'tech', 'Nvidia', 'Jensen Huang'])
+    expect(cleaned).toEqual(['Nvidia', 'Jensen Huang'])
+  })
+
   it('标题保底别名包含实体', () => {
     expect(fallbackAliases('黄仁勋辞职，英伟达33年首换帅')).toEqual(expect.arrayContaining(['黄仁勋']))
   })

@@ -52,6 +52,18 @@ describe('事件关键词', () => {
     expect(kw).not.toContain('黄仁勋辞职')
   })
 
+  it('英文标题保留完整人名/公司名，不拆成通用词', () => {
+    const kw = extractKeywords(
+      'Elon Musk, other tech execs sign petition calling on Nvidia to reinstate Jensen Huang'
+    )
+    expect(kw).toContain('Elon Musk')
+    expect(kw).toContain('Nvidia')
+    expect(kw).toContain('Jensen Huang')
+    expect(kw).not.toContain('other')
+    expect(kw).not.toContain('tech')
+    expect(kw).not.toContain('execs')
+  })
+
   it('评论里的词也会被带上', () => {
     expect(extractKeywords('黄仁勋辞职', '英伟达 官方回应了吗')).toContain('英伟达')
   })

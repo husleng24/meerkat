@@ -188,6 +188,12 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
 
         const now = Date.now()
         const tracking = intent === 'track' && story ? 'active' : undefined
+        if (tracking && story) {
+          const title = outcome.timeline.title?.trim()
+          if (title) store.stories.update(story.id, { title: title.slice(0, 60) })
+          const ids = [...new Set((outcome.timeline.items ?? []).map((i) => i.id))]
+          if (ids.length > 0) store.stories.addItems(story.id, ids, now)
+        }
         const content =
           (outcome.timeline.summary ??
             `已整理「${outcome.timeline.title}」的时间线，共 ${outcome.timeline.phases.length} 个节点。`) +

@@ -14,6 +14,7 @@ import {
   type EventTimeline
 } from '../app/event-timeline'
 import { createProviderInstance, modelCatalog, resolveModel, type ProviderKeys } from './providers'
+import { log } from './log'
 import type { ProviderId } from '../core/chat/providers'
 
 export interface TimelineDeps {
@@ -54,7 +55,8 @@ export async function composeItemTimeline(
   const related = collectRelatedItems(store, {
     itemId: item.id,
     text: input.text ?? '',
-    ...(input.aliases ? { aliases: input.aliases } : {})
+    ...(input.aliases ? { aliases: input.aliases } : {}),
+    limit: 40
   })
   if (related.groups.length === 0) return null
 
@@ -64,22 +66,30 @@ export async function composeItemTimeline(
 
   const refs = toTimelineRefs(store, related.groups.map((g) => g.main))
   const validIds = new Set(related.groups.flatMap((g) => g.ids))
-  const messages = buildTimelinePrompt(refs, related.keywords, item.title)
 
-  try {
-    const r = await chat.provider.chat(
-      { model: chat.model, messages, maxTokens: 3000, temperature: 0.3 },
-      input.signal
-    )
-    if (!r.ok || !r.text.trim()) {
-      return { timeline: { ...fallback, note: '模型没有返回可用内容，先给你按日期整理的版本' } }
+  // 第一次给足上下文；模型返回空/无法校验时，用更少素材重试一次。
+  // 素材太多时模型容易直接空输出，缩到 12 条通常能稳定出结果。
+  const attempts = [refs.slice(0, 25), refs.slice(0, 12)]
+  for (const [index, subset] of attempts.entries()) {
+    const messages = buildTimelinePrompt(subset, related.keywords, item.title)
+    try {
+      const r = await chat.provider.chat(
+        { model: chat.model, messages, maxTokens: 6000, temperature: 0.3 },
+        input.signal
+      )
+      if (!r.ok || !r.text.trim()) {
+        log('warn', `时间线整理失败（第 ${index + 1} 次）：${r.ok ? '空输出' : `${r.reason} ${r.detail}`}`)
+        continue
+      }
+      const parsed = parseTimelineJson(r.text, validIds, item.title)
+      if (!parsed) {
+        log('warn', `时间线输出无法校验（第 ${index + 1} 次）：${r.text.slice(0, 400)}`)
+        continue
+      }
+      return { timeline: { ...parsed, items: refs }, model: r.model }
+    } catch {
+      log('warn', `时间线整理异常（第 ${index + 1} 次）`)
     }
-    const parsed = parseTimelineJson(r.text, validIds, item.title)
-    if (!parsed) {
-      return { timeline: { ...fallback, note: '模型输出无法校验，先给你按日期整理的版本' } }
-    }
-    return { timeline: { ...parsed, items: refs }, model: r.model }
-  } catch {
-    return { timeline: { ...fallback, note: '整理超时或网络失败，先给你按日期整理的版本' } }
   }
+  return { timeline: { ...fallback, note: '模型没有返回可用内容，先给你按日期整理的版本' } }
 }

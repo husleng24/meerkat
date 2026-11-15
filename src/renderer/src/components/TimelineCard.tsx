@@ -85,20 +85,22 @@ export function TimelineCard({
             </div>
             {p.detail && <p className="mt-0.5 text-[11px] leading-relaxed text-ink-2">{p.detail}</p>}
             <div className="mt-1 flex flex-wrap gap-1">
-              {p.sourceItemIds.map((id) => {
-                const src = byId.get(id)
-                return src ? (
-                  <a
-                    key={id}
-                    href={src.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded bg-white px-1.5 py-px text-[9.5px] text-ink-3 hover:text-accent"
-                  >
-                    {src.sourceName}
-                  </a>
-                ) : null
-              })}
+              {[...new Map(
+                p.sourceItemIds
+                  .map((id) => byId.get(id))
+                  .filter((x): x is NonNullable<typeof x> => Boolean(x))
+                  .map((src) => [src.sourceName, src] as const)
+              ).values()].map((src) => (
+                <a
+                  key={src.id}
+                  href={src.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded bg-white px-1.5 py-px text-[9.5px] text-ink-3 hover:text-accent"
+                >
+                  {src.sourceName}
+                </a>
+              ))}
             </div>
           </li>
         ))}
