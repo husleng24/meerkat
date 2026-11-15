@@ -113,12 +113,15 @@ export interface RelatedResult {
 /** 用实体词在本地全量条目里找相关新闻；目标条目始终排在最前 */
 export function collectRelatedItems(
   store: Store,
-  input: { itemId: string; text?: string; limit?: number }
+  input: { itemId: string; text?: string; aliases?: string[]; limit?: number }
 ): RelatedResult {
   const target = store.items.get(input.itemId)
   if (!target) return { items: [], keywords: [], groups: [] }
 
-  const keywords = extractKeywords(target.title, input.text ?? '')
+  // 标题里抽的实体 + 跟踪时生成的别名（中英文/换说法），最多 10 个，避免查询爆炸
+  const keywords = [...new Set([...extractKeywords(target.title, input.text ?? ''), ...(input.aliases ?? [])])]
+    .filter((k) => k.trim().length >= 2)
+    .slice(0, 10)
   const byId = new Map<string, Item>([[target.id, target]])
   for (const kw of keywords) {
     // 关键词至少 3 字才走 FTS，短词由 store 退化为 LIKE

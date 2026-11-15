@@ -20,6 +20,7 @@ import { composeItemTimeline } from './item-timeline'
 import { collectRelatedItems } from '../app/event-timeline'
 import { classifyIntent, hasAgentMention, stripMention } from '../app/agent-intent'
 import { createStoryFromItem, setStoryStatus } from '../app/story-tracking'
+import { expandAliases } from './alias-expander'
 import { log } from './log'
 import type { Store } from '../core/ports/store'
 import type { ChatModelInfo, ChatMessage } from '../core/ports/chat'
@@ -152,12 +153,22 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
 
         // track：没有就建；已有就复用，顺带刷新一次时间线
         let story = store.stories.byThread(thread.id)
+        let aliases: string[] | undefined
         if (intent === 'track' && !story) {
+          const item = store.items.get(thread.itemId)
+          // 一次小模型调用换中英文/换说法别名；失败会退回标题实体，不阻断跟踪
+          if (item) {
+            aliases = await expandAliases(deps, item, {
+              model: input.model ?? thread.model,
+              ...(handle.controller.signal ? { signal: handle.controller.signal } : {})
+            })
+          }
           const created = createStoryFromItem(store, {
             itemId: thread.itemId,
             threadId: thread.id,
             topicId: thread.topicId,
-            text
+            text,
+            ...(aliases ? { aliases } : {})
           })
           if (created) {
             store.stories.create(created)
@@ -169,6 +180,7 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
         const outcome = await composeItemTimeline(store, deps, {
           itemId: thread.itemId,
           text,
+          ...(aliases ? { aliases } : {}),
           model: input.model ?? thread.model,
           ...(handle.controller.signal ? { signal: handle.controller.signal } : {})
         })

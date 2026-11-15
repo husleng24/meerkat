@@ -6,6 +6,7 @@
 import type { Store } from '../core/ports/store'
 import type { Item, Story } from '../core/domain/types'
 import { extractKeywords } from './event-timeline'
+import { cleanAliases } from './aliases'
 
 /** 连续多少次采集没有新进展就问一句 */
 export const STALE_AFTER_MISSES = 3
@@ -14,13 +15,13 @@ const PROMPT_COOLDOWN = 7 * 86_400_000
 
 export function createStoryFromItem(
   store: Store,
-  input: { itemId: string; threadId: string; topicId: string; text?: string; now?: number }
+  input: { itemId: string; threadId: string; topicId: string; text?: string; aliases?: string[]; now?: number }
 ): Story | null {
   const item = store.items.get(input.itemId)
   if (!item) return null
   const now = input.now ?? Date.now()
-  // 别名只从新闻标题取：评论里的"帮我盯着"不是实体，混进去会误匹配
-  const aliases = extractKeywords(item.title)
+  // 优先用模型扩展出的中英文/换说法别名；没有就退回标题实体
+  const aliases = cleanAliases(input.aliases?.length ? input.aliases : extractKeywords(item.title))
   const story: Story = {
     id: `st-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title: item.title.slice(0, 60),

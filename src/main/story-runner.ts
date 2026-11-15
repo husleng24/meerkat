@@ -4,9 +4,35 @@
  * 只追加"有变化"和"刚好连续空跑到达阈值"两种消息，避免每个评论串被每天
  * 的"没有新进展"刷屏。
  */
+import { BrowserWindow, Notification } from 'electron'
 import type { Store } from '../core/ports/store'
 import { STALE_AFTER_MISSES, refreshStories } from '../app/story-tracking'
 import { log } from './log'
+
+/** 应用在前台时不弹系统通知，避免打断阅读 */
+function notify(title: string, body: string, onClick?: () => void): void {
+  try {
+    if (!Notification.isSupported() || BrowserWindow.getFocusedWindow()) return
+    const n = new Notification({ title, body })
+    n.on('click', () => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win) {
+        win.show()
+        win.focus()
+      }
+      onClick?.()
+    })
+    n.show()
+  } catch (e) {
+    log('warn', `系统通知失败：${e instanceof Error ? e.message : String(e)}`)
+  }
+}
+
+function askRendererToReview(): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('stories:review')
+  }
+}
 
 export interface StoryRunSummary {
   storyId: string
@@ -37,6 +63,7 @@ export function runStoriesAfterCollect(store: Store, now = Date.now()): StoryRun
         createdAt: now
       })
       store.chat.update(thread.id, { updatedAt: now })
+      notify('Meerkat 跟踪更新', `「${r.story.title}」新增 ${r.added.length} 条进展`)
     }
 
     if (r.missCount === STALE_AFTER_MISSES && thread) {
@@ -50,6 +77,8 @@ export function runStoriesAfterCollect(store: Store, now = Date.now()): StoryRun
         createdAt: now
       })
       store.chat.update(thread.id, { updatedAt: now })
+      notify('还在跟踪这件事吗？', `「${r.story.title}」连续 ${STALE_AFTER_MISSES} 次采集没有新进展。`, askRendererToReview)
+      askRendererToReview()
     }
 
     out.push({

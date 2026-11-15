@@ -46,12 +46,16 @@ export interface TimelineOutcome {
 export async function composeItemTimeline(
   store: Store,
   deps: TimelineDeps,
-  input: { itemId: string; text?: string; model?: string; signal?: AbortSignal }
+  input: { itemId: string; text?: string; aliases?: string[]; model?: string; signal?: AbortSignal }
 ): Promise<TimelineOutcome | null> {
   const item = store.items.get(input.itemId)
   if (!item) return null
 
-  const related = collectRelatedItems(store, { itemId: item.id, text: input.text ?? '' })
+  const related = collectRelatedItems(store, {
+    itemId: item.id,
+    text: input.text ?? '',
+    ...(input.aliases ? { aliases: input.aliases } : {})
+  })
   if (related.groups.length === 0) return null
 
   const fallback = buildDeterministicTimeline(store, related.groups, item.title)

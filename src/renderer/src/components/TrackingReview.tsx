@@ -23,8 +23,12 @@ export function TrackingReview(): React.JSX.Element | null {
 
   useEffect(() => {
     void load()
-    const off = window.meerkat?.onBriefUpdated?.(() => void load())
-    return () => off?.()
+    const offBrief = window.meerkat?.onBriefUpdated?.(() => void load())
+    const offReview = window.meerkat?.stories?.onReview?.(() => void load())
+    return () => {
+      offBrief?.()
+      offReview?.()
+    }
   }, [load])
 
   const story = queue[0]

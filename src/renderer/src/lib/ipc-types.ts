@@ -274,6 +274,7 @@ export interface MeerkatBridge {
     needsReview: () => Promise<StoryReviewPayload[]>
     setStatus: (input: { id: string; status: 'active' | 'paused' | 'archived' }) => Promise<StoryReviewPayload | null>
     list: () => Promise<StoryReviewPayload[]>
+    onReview?: (cb: () => void) => () => void
   }
   chat?: ChatBridge
   domains?: {

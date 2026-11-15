@@ -120,7 +120,12 @@ const api = {
     }): Promise<{ id: string; title: string; status: string; missCount: number } | null> =>
       ipcRenderer.invoke('stories:setStatus', input),
     list: (): Promise<Array<{ id: string; title: string; status: string; missCount: number }>> =>
-      ipcRenderer.invoke('stories:list')
+      ipcRenderer.invoke('stories:list'),
+    onReview: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('stories:review', listener)
+      return () => ipcRenderer.removeListener('stories:review', listener)
+    }
   },
 
   chat: {
