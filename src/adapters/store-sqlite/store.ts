@@ -787,6 +787,19 @@ class SqliteStoryStore implements StoryStore {
       (r) => r.item_id
     )
   }
+  latestItem(storyId: string): { title: string; at: number } | undefined {
+    const r = this.db
+      .prepare(
+        `SELECT i.title AS title, si.added_at AS at
+         FROM story_items si
+         JOIN items i ON i.id = si.item_id
+         WHERE si.story_id = ?
+         ORDER BY si.added_at DESC, COALESCE(i.published_at, i.fetched_at) DESC
+         LIMIT 1`
+      )
+      .get(storyId) as { title: string; at: number } | undefined
+    return r
+  }
   addItems(storyId: string, itemIds: string[], ts: number): number {
     const stmt = this.db.prepare('INSERT OR IGNORE INTO story_items (story_id,item_id,added_at) VALUES (?,?,?)')
     let added = 0

@@ -7,8 +7,6 @@ interface Props {
 }
 
 const DAY = 86_400_000
-/** 旧数据里可能还留着模型给的通用词，展示时再过滤一遍 */
-const GENERIC = /^(introducing|announcing|launches|launch|new|update|live|breaking|the|a|an)$/i
 
 function ago(ts: number | undefined): string {
   if (!ts) return '还没检查'
@@ -105,7 +103,7 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
 
       <ul className="mt-4 space-y-2">
         {shown.map((s) => {
-          const aliases = s.aliases.filter((a) => !GENERIC.test(a))
+          const latest = s.latest
           return (
           <li key={s.id} className="rounded-xl border border-rule bg-white px-4 py-3">
             <div className="flex items-start gap-2">
@@ -122,16 +120,31 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
                 title={s.itemId ? '打开这条跟踪的评论串' : '缺少源条目，无法打开'}
               >
                 <div className="truncate text-[12.5px] font-medium text-ink hover:text-accent">{s.title}</div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] text-ink-3">
-                  <span>{s.itemCount} 条素材</span>
-                  <span>· 上次检查 {ago(s.lastMatchAt)}</span>
-                  {s.missCount > 0 && (
-                    <span className={s.missCount >= 3 ? 'text-alert/80' : 'text-ink-3'}>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-ink-2">
+                  {s.latestEvent ? (
+                    <>
+                      <span className="truncate">{s.latestEvent.title}</span>
+                      <span className="shrink-0 text-ink-3">· {s.latestEvent.date.slice(5)}</span>
+                    </>
+                  ) : latest ? (
+                    <>
+                      <span className="truncate">{latest.title}</span>
+                      <span className="shrink-0 text-ink-3">· {ago(latest.at)}</span>
+                    </>
+                  ) : (
+                    <span className="text-ink-3">还没有新素材 · 上次检查 {ago(s.lastMatchAt)}</span>
+                  )}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-ink-3">
+                  <span>{s.nodeCount} 个节点</span>
+                  <span>·</span>
+                  <span>{s.itemCount} 篇报道</span>
+                  <span>·</span>
+                  <span>{s.status === 'active' ? '跟踪中' : s.status === 'paused' ? '已暂停' : '已放弃'}</span>
+                  {s.missCount > 0 && s.status === 'active' && (
+                    <span className={s.missCount >= 3 ? 'text-alert/80' : 'text-amber-700/80'}>
                       · 连续 {s.missCount} 次无新进展
                     </span>
-                  )}
-                  {aliases.length > 0 && (
-                    <span className="max-w-[320px] truncate">· 别名 {aliases.slice(0, 3).join(' / ')}</span>
                   )}
                 </div>
               </button>

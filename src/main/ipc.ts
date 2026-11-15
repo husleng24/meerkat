@@ -823,10 +823,39 @@ export function registerIpc(): void {
 
   ipcMain.handle('stories:list', () => {
     const store = requireStore()
-    return store.stories.list().map((story) => ({
-      ...story,
-      itemCount: store.stories.itemIds(story.id).length
-    }))
+    return store.stories.list().map((story) => {
+      // 时间线节点数从评论串最后一条 timeline 消息里取；没生成过就是 0
+      let nodeCount = 0
+      let latestEvent: { title: string; date: string } | undefined
+      if (story.threadId) {
+        for (const m of [...store.chat.messages(story.threadId)].reverse()) {
+          if (!m.contextJson) continue
+          try {
+            const ctx = JSON.parse(m.contextJson) as { timeline?: { phases?: unknown[] } }
+            if (Array.isArray(ctx.timeline?.phases)) {
+              nodeCount = ctx.timeline.phases.length
+              const last = ctx.timeline.phases.at(-1) as { headline?: unknown; date?: unknown } | undefined
+              if (typeof last?.headline === 'string') {
+                latestEvent = {
+                  title: last.headline,
+                  date: typeof last.date === 'string' ? last.date : ''
+                }
+              }
+              break
+            }
+          } catch {
+            /* 忽略坏消息 */
+          }
+        }
+      }
+      return {
+        ...story,
+        itemCount: store.stories.itemIds(story.id).length,
+        nodeCount,
+        latest: store.stories.latestItem(story.id),
+        ...(latestEvent ? { latestEvent } : {})
+      }
+    })
   })
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {

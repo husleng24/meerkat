@@ -135,6 +135,9 @@ const api = {
       createdAt: number
       updatedAt: number
       itemCount: number
+      nodeCount: number
+      latest?: { title: string; at: number }
+      latestEvent?: { title: string; date: string }
     }>> => ipcRenderer.invoke('stories:list'),
     onReview: (cb: () => void): (() => void) => {
       const listener = (): void => cb()

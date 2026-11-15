@@ -93,6 +93,8 @@ export interface StoryStore {
   update(id: string, patch: Partial<Pick<Story, 'status' | 'missCount' | 'lastMatchAt' | 'lastPromptAt' | 'updatedAt' | 'title' | 'aliases'>>): void
   /** 已经挂到这条 story 上的条目 id */
   itemIds(storyId: string): string[]
+  /** 最新挂上来的素材（跟踪页"最近进展"用） */
+  latestItem(storyId: string): { title: string; at: number } | undefined
   addItems(storyId: string, itemIds: string[], ts: number): number
   remove(id: string): void
 }

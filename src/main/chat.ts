@@ -191,7 +191,8 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
         if (tracking && story) {
           const title = outcome.timeline.title?.trim()
           if (title) store.stories.update(story.id, { title: title.slice(0, 60) })
-          const ids = [...new Set((outcome.timeline.items ?? []).map((i) => i.id))]
+          // 只挂时间线真正引用的条目；检索到但没用上的不算"素材"
+          const ids = [...new Set(outcome.timeline.phases.flatMap((p) => p.sourceItemIds))]
           if (ids.length > 0) store.stories.addItems(story.id, ids, now)
         }
         const content =

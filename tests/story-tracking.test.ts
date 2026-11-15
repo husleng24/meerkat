@@ -58,6 +58,7 @@ describe('跟踪匹配', () => {
     const story = makeStory(store)
     expect(story.aliases.some((a) => a.includes('黄仁勋'))).toBe(true)
     expect(store.stories.get(story.id)?.status).toBe('active')
+    expect(store.stories.latestItem(story.id)?.title).toContain('黄仁勋')
   })
 
   it('只返回上次检查之后的新条目', () => {

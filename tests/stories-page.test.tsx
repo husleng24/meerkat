@@ -21,6 +21,9 @@ const story = (over: Partial<StoryPayload>): StoryPayload => ({
   createdAt: Date.now() - 86_400_000,
   updatedAt: Date.now(),
   itemCount: 3,
+  nodeCount: 4,
+  latest: { title: '联署要求复职，签名超 11.5 万', at: Date.now() - 7_200_000 },
+  latestEvent: { title: '联署要求复职，签名超 11.5 万', date: '2026-11-15' },
   lastMatchAt: Date.now() - 3_600_000,
   ...over
 })
@@ -52,7 +55,9 @@ describe('跟踪总览', () => {
     }
     const el = await render(<StoriesPage onOpen={vi.fn()} />)
     expect(el.textContent).toContain('黄仁勋辞职')
-    expect(el.textContent).toContain('3 条素材')
+    expect(el.textContent).toContain('联署要求复职')
+    expect(el.textContent).toContain('4 个节点')
+    expect(el.textContent).toContain('3 篇报道')
     expect(el.textContent).toContain('连续 3 次无新进展')
   })
 

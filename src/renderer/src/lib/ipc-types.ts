@@ -148,6 +148,9 @@ export interface StoryPayload {
   createdAt: number
   updatedAt: number
   itemCount: number
+  nodeCount: number
+  latest?: { title: string; at: number }
+  latestEvent?: { title: string; date: string }
 }
 
 export interface StoryReviewPayload {
