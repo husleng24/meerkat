@@ -16,6 +16,8 @@ interface Props {
   /** 需关注的源（连续失败 + 不稳定），与源页同一个口径 */
   attentionSources: number
   dateLabel: string
+  /** 跟踪中/待确认数量；不传时入口仍然显示，只是没有数字 */
+  tracking?: { active: number; quiet: number }
 }
 
 /**
@@ -24,6 +26,16 @@ interface Props {
  * 领域仍然存在于数据层（用于设置页的分组），但普通阅读路径上只选主题：
  * 少一层可见的分组，就少一次「我在哪个领域」的追问。
  */
+function RadarIcon(): React.JSX.Element {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="8" r="1.6" fill="currentColor" />
+      <path d="M8 2.5v2M13.5 8h-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function Sidebar({
   active,
   topics,
@@ -33,7 +45,8 @@ export function Sidebar({
   onCreateTopic,
   onNavigate,
   attentionSources,
-  dateLabel
+  dateLabel,
+  tracking
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState('')
@@ -88,6 +101,33 @@ export function Sidebar({
       ].join(' ')}
     >
       {/* 品牌区已移除：macOS 的顶部留白只为避开红黄绿窗控 */}
+      <button
+        onClick={() => onNavigate('stories')}
+        aria-current={active === 'stories' ? 'page' : undefined}
+        title="跟踪中的事件"
+        className={[
+          'mb-2 flex w-full items-center gap-2 rounded-lg px-2.5 py-[7px] text-left text-[13px] transition-colors',
+          active === 'stories' ? 'bg-accent-soft text-accent' : 'text-ink-2 hover:bg-cream hover:text-ink'
+        ].join(' ')}
+      >
+        <RadarIcon />
+        <span>跟踪</span>
+        {tracking && tracking.quiet > 0 && (
+          <span
+            aria-label={`${tracking.quiet} 个跟踪很久没有新进展`}
+            className="h-1.5 w-1.5 rounded-full bg-alert"
+          />
+        )}
+        <span className="flex-1" />
+        {tracking && tracking.active > 0 && (
+          <span className={['tabular-nums text-[11px]', active === 'stories' ? 'text-accent/80' : 'text-ink-3'].join(' ')}>
+            {tracking.active}
+          </span>
+        )}
+      </button>
+
+      <div className="mb-2 border-t border-rule" />
+
       <div className="mt-0 flex max-h-[320px] flex-col gap-0.5 overflow-y-auto">
         {topics.length === 0 && topicsAvailable && (
           <div className="px-2.5 py-1 text-[12px] text-ink-3">还没有主题</div>

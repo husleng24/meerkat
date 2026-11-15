@@ -148,3 +148,23 @@ describe('侧栏：扁平主题列表', () => {
     expect(onNavigate).toHaveBeenCalledWith('timeline')
   })
 })
+
+describe('侧栏：跟踪入口', () => {
+  it('始终显示，带跟踪中数量', async () => {
+    const el = await render(<Sidebar {...baseProps({ tracking: { active: 3, quiet: 0 } })} />)
+    const entry = topicButton(el, '跟踪')
+    expect(entry).toBeTruthy()
+    expect(entry.textContent).toContain('3')
+  })
+
+  it('点「跟踪」跳到跟踪页；有待确认时显示红点', async () => {
+    const onNavigate = vi.fn()
+    const el = await render(
+      <Sidebar {...baseProps({ tracking: { active: 2, quiet: 1 }, onNavigate })} />
+    )
+    const entry = topicButton(el, '跟踪')
+    await act(async () => entry.click())
+    expect(onNavigate).toHaveBeenCalledWith('stories')
+    expect(el.querySelector('[aria-label="1 个跟踪很久没有新进展"]')).not.toBeNull()
+  })
+})

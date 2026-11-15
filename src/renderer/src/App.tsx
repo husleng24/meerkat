@@ -16,6 +16,7 @@ import { TrackingReview } from './components/TrackingReview'
 import { StoriesPage } from './components/StoriesPage'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
+import { useStoriesSummary } from './lib/useStoriesSummary'
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent)
 
@@ -60,10 +61,11 @@ export default function App(): React.JSX.Element {
     activeId || undefined
   )
   const flags = useFlags(brief, urlToId)
+  const tracking = useStoriesSummary()
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
-  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding']
+  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -152,6 +154,7 @@ export default function App(): React.JSX.Element {
         onNavigate={go}
         attentionSources={summary.attention}
         dateLabel={dateLabel}
+        tracking={tracking}
       />
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">

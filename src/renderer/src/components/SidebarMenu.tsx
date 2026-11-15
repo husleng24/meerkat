@@ -31,7 +31,6 @@ export function SidebarMenu({ active, attentionSources, dateLabel, onNavigate }:
   const items: Item[] = [
     { id: 'search', label: '搜索', meta: isMac ? '⌘K' : 'Ctrl K', icon: <SearchIcon /> },
     { id: 'timeline', label: '时间线', meta: dateLabel, icon: <ClockIcon /> },
-    { id: 'stories', label: '跟踪', icon: <RadarIcon /> },
     {
       id: 'sources',
       label: '事实源',
@@ -176,16 +175,6 @@ function SearchIcon(): React.JSX.Element {
     <svg {...iconProps}>
       <circle cx="7" cy="7" r="4.2" />
       <path d="m10.2 10.2 3 3" />
-    </svg>
-  )
-}
-
-function RadarIcon(): React.JSX.Element {
-  return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.5" stroke="currentColor" strokeWidth="1.2" />
-      <circle cx="8" cy="8" r="1.6" fill="currentColor" />
-      <path d="M8 2.5v2M13.5 8h-2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   )
 }
