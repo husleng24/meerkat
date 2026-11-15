@@ -13,6 +13,8 @@ interface OpenDetail {
  * 面板空间只够看结论和最近三条；这一页负责"从头读一遍"：
  * 左侧完整时间轴，右侧来源与事件信息，宽窗口两栏、窄窗口单栏。
  */
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent)
+
 export function TimelineOverlay(): React.JSX.Element | null {
   const [data, setData] = useState<OpenDetail | null>(null)
   const [stopped, setStopped] = useState(false)
@@ -67,7 +69,13 @@ export function TimelineOverlay(): React.JSX.Element | null {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-paper">
-      <header className="sticky top-0 z-10 border-b border-rule bg-paper/95 px-6 py-3 backdrop-blur">
+      <header
+        className={[
+          'sticky top-0 z-10 border-b border-rule bg-paper/95 px-6 backdrop-blur',
+          // macOS 的 hiddenInset 窗控压在内容上，给红黄绿留出高度
+          IS_MAC ? 'pb-3 pt-10' : 'py-3'
+        ].join(' ')}
+      >
         <div className="mx-auto flex max-w-[1100px] items-center gap-3">
           <button onClick={() => setData(null)} className="shrink-0 text-[11.5px] text-ink-2 hover:text-ink">
             ← 返回
