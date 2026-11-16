@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 429 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 478 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -73,9 +73,9 @@ A topic is the unit of collection and briefing; a domain only groups them in dat
 
 `New / Progressed / Not repeated again` three numbers under the header, expandable to the exact items.
 
-### Search, timeline and reading state
+### Search, past briefs and reading state
 
-FTS5 full-text search (with section, source, time filters, highlighting and sorting); timeline for past briefs;
+FTS5 full-text search (with section, source, time filters, highlighting and sorting); past briefs by date;
 read / saved / hidden flags are persisted and mapped back to item ids by URL.
 
 ### Source management
@@ -85,6 +85,25 @@ consecutive failures and unstable feeds, and suggests replacements. When adding 
 (grouped by domain) and get an explainable rule-based recommendation. In settings you can search, tick, or use
 **✨ recommended for this topic** to fill gaps. Sources can be exported as a JSON pack (with topic membership)
 and imported on another machine or for a new topic; see [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md).
+
+### Comments and event timelines
+
+Every item can be commented on, and selecting text in the brief pops up "ask the agent / track" so the
+selection goes straight into the conversation. Mention `@agent` and it first works out what you want:
+a quick answer, a one-off timeline, or ongoing tracking.
+
+- **Ask**: answers from the item and its related coverage, no story created
+- **Timeline**: turns the reports it already has into one timeline
+- **Track**: `@agent 帮我盯着这件事` keeps watching; aliases are expanded on the first run (Chinese/English
+  and alternate wording), so English coverage is matched too. New coverage is appended to the same comment
+  thread, and after three quiet collections it asks whether to keep tracking — in-app and via a system notification
+- **Tracking overview**: a dedicated "跟踪" page lists every tracked event with material count, last check,
+  quiet runs, and pause / resume / abandon controls
+
+The timeline itself: a current-state line, node/report counts and phase chips, newest first by default, then events with sources, time gaps and open questions. A full-screen view shows the whole timeline with a source summary. Without a model — or when the
+model output fails citation checks — it falls back to a plain date-grouped version.
+
+![A timeline requested from a comment](docs/assets/ui-item-timeline.png)
 
 ### AI chat
 
@@ -222,7 +241,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **429 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **478 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
@@ -261,6 +280,7 @@ Most design docs are currently written in Chinese.
 | [docs/TODO.md](docs/TODO.md) | TODOs, limitations and engineering debt |
 | [docs/FEEDBACK.md](docs/FEEDBACK.md) | Feedback triage and fix flow |
 | [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | Raw real-device verification records |
+| [docs/EVENT-TIMELINE.md](docs/EVENT-TIMELINE.md) | Item comments and event timelines (P0) |
 | [docs/RELEASE.md](docs/RELEASE.md) | Release process and artifacts |
 | [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 development log (archived) |
 

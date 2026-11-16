@@ -29,6 +29,8 @@ interface Props {
   onToggleSave: () => void
   onToggleHide: () => void
   onOpen: () => void
+  /** 有 itemId 时才给评论入口 */
+  onComment?: () => void
 }
 
 /**
@@ -48,7 +50,8 @@ export function ItemCard({
   onSelect,
   onToggleSave,
   onToggleHide,
-  onOpen
+  onOpen,
+  onComment
 }: Props): React.JSX.Element {
   if (hidden) {
     return (
@@ -110,6 +113,11 @@ export function ItemCard({
           ))}
         </span>
         <span className="ml-auto flex items-center gap-3">
+          {onComment && (
+            <IconButton label="评论 · @agent 整理时间线" onClick={onComment}>
+              💬
+            </IconButton>
+          )}
           <span className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             <IconButton label={saved ? '取消收藏' : '收藏 (s)'} active={saved} onClick={onToggleSave}>
               {saved ? '★' : '☆'}

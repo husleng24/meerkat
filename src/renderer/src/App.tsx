@@ -13,14 +13,22 @@ import { useCallback, useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
 import { NoChangeView } from './components/NoChangeView'
 import { ChatWidget } from './components/ChatWidget'
+import { TrackingReview } from './components/TrackingReview'
+import { StoriesPage } from './components/StoriesPage'
+import { SelectionAgent } from './components/SelectionAgent'
+import { TimelineOverlay } from './components/TimelineOverlay'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
+import { useStoriesSummary } from './lib/useStoriesSummary'
+
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent)
 
 const TITLES: Record<string, string> = {
   search: '搜索',
   sources: '事实源',
   settings: '设置',
-  timeline: '时间线',
+  timeline: '历史简报',
+  stories: '跟踪',
   onboarding: '开始使用'
 }
 
@@ -56,10 +64,11 @@ export default function App(): React.JSX.Element {
     activeId || undefined
   )
   const flags = useFlags(brief, urlToId)
+  const tracking = useStoriesSummary()
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
-  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'sources', 'settings', 'onboarding']
+  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -145,6 +154,8 @@ export default function App(): React.JSX.Element {
 
   return (
     <div className="flex h-full overflow-hidden">
+      {/* 没有它，隐藏标题栏的窗口无法拖动 */}
+      {IS_MAC && <div className="app-drag-strip" aria-hidden="true" />}
       <Sidebar
         active={nav}
         topics={topics}
@@ -155,6 +166,7 @@ export default function App(): React.JSX.Element {
         onNavigate={go}
         attentionSources={summary.attention}
         dateLabel={dateLabel}
+        tracking={tracking}
       />
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -172,8 +184,10 @@ export default function App(): React.JSX.Element {
                   : nav === 'search'
                     ? '全文检索（Ctrl/Cmd+K）'
                     : nav === 'timeline'
-                      ? '历史简报'
-                      : ''}
+                      ? '按日期回看'
+                      : nav === 'stories'
+                        ? '持续关注的事件'
+                        : ''}
             </span>
           </header>
         )}
@@ -269,6 +283,20 @@ export default function App(): React.JSX.Element {
             <Onboarding sourceCount={summary.total} createTopic={createTopic} onDone={() => go('today')} />
           )}
 
+          {nav === 'stories' && (
+            <StoriesPage
+              onOpen={(story) => {
+                if (!story.itemId) return
+                window.dispatchEvent(
+                  new CustomEvent('meerkat:comment-item', {
+                    detail: { itemId: story.itemId, title: story.title, topicId: story.topicId }
+                  })
+                )
+                if (story.topicId && story.topicId !== activeId) setActiveId(story.topicId)
+              }}
+            />
+          )}
+
           {nav === 'timeline' && (
             <TimelinePage
               topicId={activeId || undefined}
@@ -293,6 +321,9 @@ export default function App(): React.JSX.Element {
 
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
+      <SelectionAgent />
+      <TimelineOverlay />
+      <TrackingReview />
       {activeId && (
         <ChatWidget topicId={activeId} briefDate={dateLabel} hasPrevious={previousDate.length > 0} />
       )}

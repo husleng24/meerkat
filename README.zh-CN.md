@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 429 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 478 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -69,9 +69,9 @@
 
 报头下方给出 `新增 / 有进展 / 没再提` 三个数，点开可看具体是哪几条。
 
-### 搜索、时间线与阅读状态
+### 搜索、历史简报与阅读状态
 
-FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时间线按日期回看历史简报；
+FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历史简报按日期回看；
 已读/收藏/隐藏都落库，简报里的条目按 URL 反查回条目 id。
 
 ### 源管理
@@ -80,6 +80,21 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；时
 新增源时按领域分组勾选归属主题，并给一个可解释的规则推荐。设置里可以按主题搜索、勾选、
 或用「✨ 按主题推荐」补源。源配置可以导出为 JSON，连主题归属一起带走；换机或新建主题时
 导入即可（见 [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md)）。
+
+### 评论与事件时间线
+
+每条新闻都能评论。选中正文文字时还会浮出「用 agent 提问 / 跟踪」，带着选中内容直接进入对话，不用先点右下角。
+在评论里 `@agent`，它会先分清你是想问一句、整理一次，还是要持续跟踪：
+
+- **提问**：直接回答，不建跟踪
+- **整理**：用本地同一事件的多篇报道生成一条时间线
+- **跟踪**：`@agent 帮我盯着这件事`，之后有新报道会追加到评论串；首次跟踪会自动扩展中英文/换说法别名，英文报道也能命中；连续 3 次采集没有进展时会主动问你是否放弃，并支持系统通知
+- **跟踪总览**：侧栏「跟踪」页集中管理所有事件，可查看素材数/上次检查/连续无进展，暂停、继续或放弃
+
+时间线：
+分阶段、每条带来源、标出时间缺口与待确认问题。没配模型或模型输出不合法时，退回按日期整理的可读版本。
+
+![评论里 @agent 整理的时间线](docs/assets/ui-item-timeline.png)
 
 ### AI 对话
 
@@ -209,7 +224,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**429 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**478 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
@@ -244,6 +259,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 | [docs/TODO.md](docs/TODO.md) | 待办、已知限制与工程债 |
 | [docs/FEEDBACK.md](docs/FEEDBACK.md) | 反馈分级与修复流程 |
 | [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) | 真机验收原始记录 |
+| [docs/EVENT-TIMELINE.md](docs/EVENT-TIMELINE.md) | 条目评论与事件时间线（P0） |
 | [docs/RELEASE.md](docs/RELEASE.md) | 发版流程与产物说明 |
 | [docs/HISTORY.md](docs/HISTORY.md) | P1–P4 开发日志与实现细节（归档） |
 

@@ -24,11 +24,13 @@ import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic }
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
 import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBrief } from './export'
+import { extractBriefSummary } from '../app/brief-summary'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
   chatModels,
   defaultChatModel,
+  ensureItemThread,
   ensureThread,
   previewContextTokens,
   sendChatMessage,
@@ -36,6 +38,7 @@ import {
   type ChatDeps
 } from './chat'
 import { composeTarget, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
+import { markStoryPrompted, setStoryStatus, storiesToReview } from '../app/story-tracking'
 import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
 import { beginRun, cancelRun, endRun } from './run-control'
@@ -107,6 +110,12 @@ const providerIdSchema = z.enum(['deepseek', 'openai', 'anthropic'])
 const chatEnsureSchema = z.object({
   topicId: topicIdSchema,
   briefDate: z.string().max(20).optional(),
+  model: z.string().max(40).optional()
+})
+const storyStatusSchema = z.enum(['active', 'paused', 'archived'])
+const chatEnsureItemSchema = z.object({
+  topicId: topicIdSchema,
+  itemId: z.string().min(1).max(80),
   model: z.string().max(40).optional()
 })
 const chatSendSchema = z.object({
@@ -317,8 +326,15 @@ export function registerIpc(): void {
   ipcMain.handle('brief:list', (_e, raw: unknown) => {
     const parsed = briefTopicSchema.safeParse(raw)
     if (!parsed.success) return []
-    return requireStore()
-      .briefs.list(60, parsed.data)
+    // 同一天可能因为"立即采集"重跑而有多期；列表只展示最新一期，避免日期重复
+    const briefs = requireStore().briefs.list(60, parsed.data)
+    const latestByDate = new Map<string, (typeof briefs)[number]>()
+    for (const b of briefs) {
+      const prev = latestByDate.get(b.date)
+      if (!prev || b.createdAt > prev.createdAt) latestByDate.set(b.date, b)
+    }
+    return [...latestByDate.values()]
+      .sort((a, b) => b.date.localeCompare(a.date))
       .map((b) => {
         const trace = parseBriefTrace(b.irJson)
         return {
@@ -327,6 +343,7 @@ export function registerIpc(): void {
           noChange: b.model === 'no-change' || trace?.noChange === true,
           linkCheck: b.linkCheck ?? '',
           chars: b.markdown.length,
+          summary: extractBriefSummary(b.markdown),
           createdAt: b.createdAt
         }
       })
@@ -784,6 +801,89 @@ export function registerIpc(): void {
       contextTokens: previewContextTokens(s, thread.id, false),
       briefStale: threadBriefStale(s, thread)
     }
+  })
+
+  ipcMain.handle('chat:ensureItem', (_e, raw: unknown) => {
+    const parsed = chatEnsureItemSchema.safeParse(raw)
+    if (!parsed.success) return null
+    const deps = chatDeps()
+    const thread = ensureItemThread(requireStore(), {
+      ...parsed.data,
+      model: parsed.data.model ?? defaultChatModel(deps)
+    })
+    if (!thread) return null
+    return { ...thread, contextTokens: 0, briefStale: false }
+  })
+
+  ipcMain.handle('stories:needsReview', () => {
+    const s = requireStore()
+    const list = storiesToReview(s)
+    // 弹过就记一笔，冷却期内不再重复问
+    for (const story of list) markStoryPrompted(s, story.id)
+    return list
+  })
+
+  ipcMain.handle('stories:timeline', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(80) }).safeParse(raw)
+    if (!parsed.success) return null
+    const store = requireStore()
+    const story = store.stories.get(parsed.data.id)
+    if (!story?.threadId) return null
+    for (const m of [...store.chat.messages(story.threadId)].reverse()) {
+      if (!m.contextJson) continue
+      try {
+        const ctx = JSON.parse(m.contextJson) as { timeline?: unknown }
+        if (ctx.timeline) {
+          return { timeline: ctx.timeline, storyId: story.id, tracking: story.status === 'active' }
+        }
+      } catch {
+        /* 忽略坏消息 */
+      }
+    }
+    return null
+  })
+
+  ipcMain.handle('stories:setStatus', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(80), status: storyStatusSchema }).safeParse(raw)
+    if (!parsed.success) return null
+    return setStoryStatus(requireStore(), parsed.data.id, parsed.data.status) ?? null
+  })
+
+  ipcMain.handle('stories:list', () => {
+    const store = requireStore()
+    return store.stories.list().map((story) => {
+      // 时间线节点数从评论串最后一条 timeline 消息里取；没生成过就是 0
+      let nodeCount = 0
+      let latestEvent: { title: string; date: string } | undefined
+      if (story.threadId) {
+        for (const m of [...store.chat.messages(story.threadId)].reverse()) {
+          if (!m.contextJson) continue
+          try {
+            const ctx = JSON.parse(m.contextJson) as { timeline?: { phases?: unknown[] } }
+            if (Array.isArray(ctx.timeline?.phases)) {
+              nodeCount = ctx.timeline.phases.length
+              const last = ctx.timeline.phases.at(-1) as { headline?: unknown; date?: unknown } | undefined
+              if (typeof last?.headline === 'string') {
+                latestEvent = {
+                  title: last.headline,
+                  date: typeof last.date === 'string' ? last.date : ''
+                }
+              }
+              break
+            }
+          } catch {
+            /* 忽略坏消息 */
+          }
+        }
+      }
+      return {
+        ...story,
+        itemCount: store.stories.itemIds(story.id).length,
+        nodeCount,
+        latest: store.stories.latestItem(story.id),
+        ...(latestEvent ? { latestEvent } : {})
+      }
+    })
   })
 
   ipcMain.handle('chat:messages', (_e, raw: unknown) => {

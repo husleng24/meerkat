@@ -132,3 +132,20 @@ body {
   box-shadow: 0 12px 30px -22px rgba(79, 70, 229, 0.6);
   transform: translateY(-1px);
 }
+
+/*
+ * macOS 的 hiddenInset 把系统标题栏藏掉了，但没有自动留下可拖动区域：
+ * 不给 -webkit-app-region: drag，窗口就只能靠系统残留的极窄标题栏拖动。
+ * 这条 26px 的透明条从红黄绿右边开始，覆盖侧栏与内容区的顶部留白。
+ */
+.app-drag-strip {
+  position: fixed;
+  top: 0;
+  left: 78px;
+  right: 0;
+  height: 26px;
+  z-index: 60;
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
+}

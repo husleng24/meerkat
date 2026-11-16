@@ -4,7 +4,7 @@
  * 设计取舍：方法全部同步。better-sqlite3 是同步 API，本地单文件库延迟在微秒级，
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
-import type { Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage } from '../domain/types'
+import type { Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story } from '../domain/types'
 
 export interface SourceStore {
   list(): Source[]
@@ -76,11 +76,27 @@ export interface ChatStore {
   get(id: string): ChatThread | undefined
   /** 同一主题同一天的会话（P0：一个位置一段对话） */
   findByDate(topicId: string, briefDate: string): ChatThread | undefined
+  /** 某条新闻的评论串（一个条目一段） */
+  findByItem(topicId: string, itemId: string): ChatThread | undefined
   create(thread: ChatThread): void
   update(id: string, patch: { title?: string; model?: string; updatedAt?: number }): void
   remove(id: string): void
   messages(threadId: string): ChatStoredMessage[]
   addMessage(message: ChatStoredMessage): void
+}
+
+export interface StoryStore {
+  create(story: Story): void
+  get(id: string): Story | undefined
+  list(status?: Story['status']): Story[]
+  byThread(threadId: string): Story | undefined
+  update(id: string, patch: Partial<Pick<Story, 'status' | 'missCount' | 'lastMatchAt' | 'lastPromptAt' | 'updatedAt' | 'title' | 'aliases'>>): void
+  /** 已经挂到这条 story 上的条目 id */
+  itemIds(storyId: string): string[]
+  /** 最新挂上来的素材（跟踪页"最近进展"用） */
+  latestItem(storyId: string): { title: string; at: number } | undefined
+  addItems(storyId: string, itemIds: string[], ts: number): number
+  remove(id: string): void
 }
 
 export interface RunStore {
@@ -109,6 +125,7 @@ export interface Store {
   items: ItemStore
   briefs: BriefStore
   chat: ChatStore
+  stories: StoryStore
   runs: RunStore
   flags: FlagStore
   settings: SettingsStore

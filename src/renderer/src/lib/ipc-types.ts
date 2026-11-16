@@ -4,6 +4,7 @@
  * 只能有一处 `declare global`：多处声明同名属性时 TypeScript 要求类型完全一致，
  * 实际开发中几乎必然漂移（P1-4 与 P1-5 就撞过一次）。
  */
+import type { EventTimeline } from '../../../app/event-timeline'
 import type { BriefTrace, Source } from '../../../core/domain/types'
 
 export interface ProbeProgress {
@@ -140,10 +141,40 @@ export interface AutoLaunchState {
   reason?: string
 }
 
+export interface StoryPayload {
+  id: string
+  title: string
+  query: string
+  aliases: string[]
+  topicId: string
+  itemId?: string
+  threadId?: string
+  status: 'active' | 'paused' | 'archived'
+  missCount: number
+  lastMatchAt?: number
+  lastPromptAt?: number
+  createdAt: number
+  updatedAt: number
+  itemCount: number
+  nodeCount: number
+  latest?: { title: string; at: number }
+  latestEvent?: { title: string; date: string }
+}
+
+export interface StoryReviewPayload {
+  id: string
+  title: string
+  missCount: number
+  status: 'active' | 'paused' | 'archived'
+}
+
 export interface ChatThreadPayload {
   id: string
   title: string
   topicId: string
+  /** brief：当天简报的对话；item：某条新闻的评论串 */
+  scope: 'brief' | 'item'
+  itemId?: string
   briefDate?: string
   model: string
   createdAt: number
@@ -162,6 +193,8 @@ export interface ChatMessagePayload {
   model?: string
   tokensIn?: number
   tokensOut?: number
+  /** 时间线卡等结构化引用（JSON） */
+  contextJson?: string
   createdAt: number
 }
 
@@ -187,6 +220,7 @@ export interface ChatProviderPayload {
 export interface ChatBridge {
   models: () => Promise<ChatModelPayload[]>
   ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
+  ensureItem: (input: { topicId: string; itemId: string; model?: string }) => Promise<ChatThreadPayload | null>
   messages: (threadId: string) => Promise<ChatMessagePayload[]>
   send: (input: {
     threadId: string
@@ -264,6 +298,17 @@ export interface MeerkatBridge {
     open: (url: string) => Promise<{ ok: boolean; error?: string }>
     onAvailable: (cb: (info: UpdateCheckPayload) => void) => () => void
   }
+  stories?: {
+    needsReview: () => Promise<StoryReviewPayload[]>
+    setStatus: (input: { id: string; status: 'active' | 'paused' | 'archived' }) => Promise<StoryReviewPayload | null>
+    list: () => Promise<StoryPayload[]>
+    timeline: (input: { id: string }) => Promise<{
+      timeline: EventTimeline
+      storyId: string
+      tracking: boolean
+    } | null>
+    onReview?: (cb: () => void) => () => void
+  }
   chat?: ChatBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
@@ -290,7 +335,17 @@ export interface MeerkatBridge {
   briefByDate?: (date: string, topicId?: string) => Promise<BriefPayload | null>
   briefList?: (
     topicId?: string
-  ) => Promise<Array<{ date: string; model: string; noChange?: boolean; linkCheck: string; chars: number; createdAt: number }>>
+  ) => Promise<
+    Array<{
+      date: string
+      model: string
+      noChange?: boolean
+      linkCheck: string
+      chars: number
+      summary: string
+      createdAt: number
+    }>
+  >
   sources?: SourcesBridge
   flags?: FlagsBridge
   items?: {

@@ -24,7 +24,9 @@ const api = {
 
   briefList: (
     topicId?: string
-  ): Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>> =>
+  ): Promise<
+    Array<{ date: string; model: string; linkCheck: string; chars: number; summary: string; createdAt: number }>
+  > =>
     ipcRenderer.invoke('brief:list', topicId),
 
   briefByDate: (date: string, topicId?: string): Promise<BriefPayload | null> =>
@@ -107,6 +109,48 @@ const api = {
     }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('schedule:set', cfg)
   },
 
+  stories: {
+    needsReview: (): Promise<Array<{
+      id: string
+      title: string
+      missCount: number
+      status: 'active' | 'paused' | 'archived'
+    }>> => ipcRenderer.invoke('stories:needsReview'),
+    setStatus: (input: {
+      id: string
+      status: 'active' | 'paused' | 'archived'
+    }): Promise<{ id: string; title: string; status: string; missCount: number } | null> =>
+      ipcRenderer.invoke('stories:setStatus', input),
+    list: (): Promise<Array<{
+      id: string
+      title: string
+      query: string
+      aliases: string[]
+      topicId: string
+      itemId?: string
+      threadId?: string
+      status: 'active' | 'paused' | 'archived'
+      missCount: number
+      lastMatchAt?: number
+      createdAt: number
+      updatedAt: number
+      itemCount: number
+      nodeCount: number
+      latest?: { title: string; at: number }
+      latestEvent?: { title: string; date: string }
+    }>> => ipcRenderer.invoke('stories:list'),
+    timeline: (input: { id: string }): Promise<{
+      timeline: unknown
+      storyId: string
+      tracking: boolean
+    } | null> => ipcRenderer.invoke('stories:timeline', input),
+    onReview: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('stories:review', listener)
+      return () => ipcRenderer.removeListener('stories:review', listener)
+    }
+  },
+
   chat: {
     models: (): Promise<Array<{ id: string; label: string; provider: string; contextWindow: number; tier: 'fast' | 'deep' }>> =>
       ipcRenderer.invoke('chat:models'),
@@ -118,6 +162,8 @@ const api = {
       id: string
       title: string
       topicId: string
+      scope: 'brief' | 'item'
+      itemId?: string
       briefDate?: string
       model: string
       createdAt: number
@@ -126,6 +172,23 @@ const api = {
       contextTokens: number
       briefStale: boolean
     } | null> => ipcRenderer.invoke('chat:ensure', input),
+    ensureItem: (input: {
+      topicId: string
+      itemId: string
+      model?: string
+    }): Promise<{
+      id: string
+      title: string
+      topicId: string
+      scope: 'brief' | 'item'
+      itemId?: string
+      model: string
+      createdAt: number
+      updatedAt: number
+      archived: boolean
+      contextTokens: number
+      briefStale: boolean
+    } | null> => ipcRenderer.invoke('chat:ensureItem', input),
     messages: (
       threadId: string
     ): Promise<
@@ -149,8 +212,8 @@ const api = {
       includePrevious?: boolean
     }): Promise<{
       ok: boolean
-      user?: { id: string; role: 'user'; content: string; createdAt: number }
-      assistant?: { id: string; role: 'assistant'; content: string; model?: string; createdAt: number }
+      user?: { id: string; role: 'user'; content: string; contextJson?: string; createdAt: number }
+      assistant?: { id: string; role: 'assistant'; content: string; model?: string; contextJson?: string; createdAt: number }
       error?: string
       estimatedTokens?: number
       model?: string

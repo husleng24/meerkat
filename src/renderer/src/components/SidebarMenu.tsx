@@ -18,7 +18,7 @@ interface Item {
 /**
  * 侧栏底部的全局导航。
  *
- * 四个页面（搜索/时间线/事实源/设置）不再各占一行：一个轻量按钮 + 向上弹出的菜单。
+ * 四个页面（搜索/历史简报/事实源/设置）不再各占一行：一个轻量按钮 + 向上弹出的菜单。
  * 事实源的告警以红点留在按钮上，不把「有源失效」藏进菜单。
  */
 export function SidebarMenu({ active, attentionSources, dateLabel, onNavigate }: Props): React.JSX.Element {
@@ -30,7 +30,7 @@ export function SidebarMenu({ active, attentionSources, dateLabel, onNavigate }:
   const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform)
   const items: Item[] = [
     { id: 'search', label: '搜索', meta: isMac ? '⌘K' : 'Ctrl K', icon: <SearchIcon /> },
-    { id: 'timeline', label: '时间线', meta: dateLabel, icon: <ClockIcon /> },
+    { id: 'timeline', label: '历史简报', meta: dateLabel, icon: <ClockIcon /> },
     {
       id: 'sources',
       label: '事实源',
