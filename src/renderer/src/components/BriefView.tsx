@@ -2,12 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ParsedBrief } from '../lib/parseBrief'
 import type { BriefComparison } from '../lib/compareBriefs'
 import type { FlagsApi } from '../lib/useFlags'
+import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
 
 interface Props {
   brief: ParsedBrief
   flags: FlagsApi
+  /** 这期引用的条目证据；旧简报没有 */
+  trace?: BriefPayload['trace']
   /** 与上一期的对比；没有上一期时为 null */
   comparison: BriefComparison | null
   previousDate: string
@@ -49,6 +52,7 @@ function dateLine(raw: string | undefined): string {
 export function BriefView({
   brief,
   flags,
+  trace,
   comparison,
   previousDate,
   onRefresh,
@@ -56,6 +60,25 @@ export function BriefView({
   topicName
 }: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
+  const traceByUrl = useMemo(
+    () =>
+      new Map(
+        (trace?.cited ?? []).flatMap((entry) =>
+          entry.urls.map((url) => [url, entry] as const)
+        )
+      ),
+    [trace]
+  )
+  const traceFor = useCallback(
+    (item: (typeof allItems)[number]): BriefTraceEntryPayload | undefined => {
+      for (const link of item.links) {
+        const hit = traceByUrl.get(link.url)
+        if (hit) return hit
+      }
+      return undefined
+    },
+    [traceByUrl]
+  )
   const [cursor, setCursor] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -199,6 +222,7 @@ export function BriefView({
                   >
                     <ItemCard
                       item={item}
+                      trace={traceFor(item)}
                       selected={globalIndex === cursor}
                       saved={f.isSaved}
                       hidden={f.isHidden}

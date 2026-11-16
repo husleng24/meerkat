@@ -4,7 +4,7 @@
  * 只能有一处 `declare global`：多处声明同名属性时 TypeScript 要求类型完全一致，
  * 实际开发中几乎必然漂移（P1-4 与 P1-5 就撞过一次）。
  */
-import type { Source } from '../../../core/domain/types'
+import type { BriefTrace, Source } from '../../../core/domain/types'
 
 export interface ProbeProgress {
   id: string
@@ -90,8 +90,12 @@ export interface BriefPayload {
   markdown: string
   model: string
   linkCheck?: string
+  /** 这期明确判定「今天没有变化」 */
+  noChange?: boolean
   /** URL → 条目 id，供界面反查后持久化已读/收藏 */
   urlToId?: Record<string, string>
+  /** 这期引用了哪些条目、各自来源；旧简报没有 */
+  trace?: BriefTrace
   /** 上一期（日期更早的最近一份）；首期为 null，界面据此隐藏「和昨天比」 */
   previous?: { date: string; markdown: string } | null
 }
@@ -101,6 +105,9 @@ export interface ItemFlagState {
   isSaved: boolean
   isHidden: boolean
 }
+
+export type BriefTracePayload = NonNullable<BriefPayload['trace']>
+export type BriefTraceEntryPayload = BriefTracePayload['cited'][number]
 
 export interface FlagsBridge {
   get: (ids: string[]) => Promise<Record<string, ItemFlagState>>
@@ -283,7 +290,7 @@ export interface MeerkatBridge {
   briefByDate?: (date: string, topicId?: string) => Promise<BriefPayload | null>
   briefList?: (
     topicId?: string
-  ) => Promise<Array<{ date: string; model: string; linkCheck: string; chars: number; createdAt: number }>>
+  ) => Promise<Array<{ date: string; model: string; noChange?: boolean; linkCheck: string; chars: number; createdAt: number }>>
   sources?: SourcesBridge
   flags?: FlagsBridge
   items?: {

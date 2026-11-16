@@ -39,6 +39,8 @@ const CSS = `
   .punch { margin-top:28px; background:#111827; color:#f3f4f6; border-radius:14px; padding:18px 22px; }
   .punch .k { font-size:10.5px; letter-spacing:0.18em; color:#9ca3af; margin-bottom:8px; }
   .punch p { margin:0; font-size:15px; line-height:1.75; font-weight:600; }
+  .nochange { background:#fff; border:1px solid var(--rule); border-radius:14px; padding:14px 18px; margin:10px 0; }
+  .nochange p { margin:0; font-size:12.5px; line-height:1.85; color:#39414d; }
   footer { margin-top:32px; color:var(--ink3); font-size:10.5px; }
   @page { margin: 18mm 14mm; }
 `
@@ -50,12 +52,13 @@ export interface BriefDocument {
   text: string
 }
 
-export function renderBriefDocument(brief: ParsedBrief, dateLabel: string): BriefDocument {
+export function renderBriefDocument(brief: ParsedBrief, dateLabel: string, rawMarkdown = ''): BriefDocument {
   const highlights = brief.highlights
     .map((h, i) => `<div><span class="i">${i + 1}</span><p>${esc(h)}</p></div>`)
     .join('')
 
   const sections = brief.sections
+    .filter((s) => s.items.length > 0)
     .map((s) => {
       const heading = s.heading.replace(/^[\u2460-\u2473]\s*/, '')
       const items = s.items
@@ -74,6 +77,21 @@ export function renderBriefDocument(brief: ParsedBrief, dateLabel: string): Brie
     ? `<section class="punch"><div class="k">今日一句</div><p>${esc(brief.punchline)}</p></section>`
     : ''
 
+  // 「无变化」简报没有条目，parseBrief 会把正文丢掉；导出时直接用原始 Markdown 兜底
+  const hasItems = brief.highlights.length > 0 || brief.sections.some((s) => s.items.length > 0)
+  const rawText =
+    !hasItems && rawMarkdown
+      ? rawMarkdown
+          .split(/\r?\n/)
+          .filter((line) => {
+            const t = line.trim()
+            return t && !t.startsWith('>') && !t.startsWith('---') && !/^#\s/.test(t)
+          })
+          .map((line) => line.trim().replace(/^#{2,6}\s*/, ''))
+          .join('\n')
+      : ''
+  const fallback = rawText ? `<section class="nochange"><p>${esc(rawText).replace(/\n/g, '<br>')}</p></section>` : ''
+
   const title = brief.title || `简报 · ${dateLabel}`
   const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -84,6 +102,7 @@ export function renderBriefDocument(brief: ParsedBrief, dateLabel: string): Brie
   <p class="meta">${esc(brief.meta || dateLabel)}</p>
   ${highlights ? `<section class="hl">${highlights}</section>` : ''}
   ${sections}
+  ${fallback}
   ${punch}
   <footer>导出自 Meerkat · ${esc(dateLabel)}</footer>
 </main></body></html>`
@@ -94,12 +113,14 @@ export function renderBriefDocument(brief: ParsedBrief, dateLabel: string): Brie
     '',
     ...brief.highlights.map((h, i) => `${i + 1}. ${h}`),
     '',
-    ...brief.sections.flatMap((s) => [
-      s.heading,
-      ...s.items.map((it) => `- ${it.title}\n  ${it.body}\n  ${it.links.map((l) => l.url).join(' ')}`),
-      ''
-    ]),
-    brief.punchline ? `今日一句：${brief.punchline}` : ''
+    ...brief.sections
+      .filter((s) => s.items.length > 0)
+      .flatMap((s) => [
+        s.heading,
+        ...s.items.map((it) => `- ${it.title}\n  ${it.body}\n  ${it.links.map((l) => l.url).join(' ')}`),
+        ''
+      ]),
+    ...(rawText ? ['', rawText] : []),    brief.punchline ? `今日一句：${brief.punchline}` : ''
   ]
     .filter((x) => x !== undefined)
     .join('\n')

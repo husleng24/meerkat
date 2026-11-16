@@ -178,7 +178,7 @@ export function SettingsPage({
         return
       }
       if (format === 'richtext') {
-        const doc = renderBriefDocument(parseBrief(res.markdown), res.date)
+        const doc = renderBriefDocument(parseBrief(res.markdown), res.date, res.markdown)
         const r = (await api.copyRich?.({ html: doc.html, text: doc.text })) ?? { ok: false }
         setMessage(r.ok ? '已复制为富文本，可直接粘到邮件或文档里' : '复制失败')
         return
@@ -190,7 +190,7 @@ export function SettingsPage({
               format,
               topicId,
               date: res.date,
-              html: renderBriefDocument(parseBrief(res.markdown), res.date).html
+              html: renderBriefDocument(parseBrief(res.markdown), res.date, res.markdown).html
             })
       setMessage(r.ok ? `已导出到 ${r.path}` : (r.error ?? '导出失败'))
     },

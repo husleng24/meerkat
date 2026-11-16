@@ -8,8 +8,17 @@ export type { DB }
  * 打开数据库并跑迁移。
  * - WAL：读写并发更好，崩溃后能从日志恢复
  * - foreign_keys：必须显式开，SQLite 默认关闭
+ *
+ * readOnly 供 CLI/诊断使用：不跑迁移、不写 pragma，文件不存在时也不会创建。
  */
-export function openDatabase(file: string): DB {
+export interface OpenDatabaseOptions {
+  readOnly?: boolean
+}
+
+export function openDatabase(file: string, opts: OpenDatabaseOptions = {}): DB {
+  if (opts.readOnly) {
+    return new Database(file, { readonly: true })
+  }
   const db = new Database(file)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')

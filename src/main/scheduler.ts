@@ -130,14 +130,16 @@ export class Scheduler {
       const out = await this.deps.runOnce(topic.id, signal)
       this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
       this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
-      this.lastSummary = `${topic.name} · ${out.degraded ? '已降级' : '已完成'} · ${out.collect.nKept} 条`
+      this.lastSummary = out.noChange
+        ? `${topic.name} · 今天没有变化`
+        : `${topic.name} · ${out.degraded ? '已降级' : '已完成'} · ${out.collect.nKept} 条`
       log(
         'info',
         `定时任务完成（${topic.name}）：${out.collect.nOk}/${out.collect.nSources} 源 · 入库 ${out.collect.nKept} 条 · ` +
           `去重丢弃 ${out.droppedAsBriefed} · 标记已推送 ${out.markedBriefed} · 落库 ${out.save.reason} · ` +
           `链接 ${out.linkCheck.good}/${out.linkCheck.total}`
       )
-      this.notify(out.title, out.degraded)
+      this.notify(out.title, out.degraded, out.noChange ? '今天没有值得改变判断的变化' : undefined)
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -146,9 +148,12 @@ export class Scheduler {
         log('info', `已取消（${topic.name}）`)
         return
       }
+      // 失败也要记下这个时间点：否则 tick 每 60 秒会重跑同一个主题，
+      // 一小时的断网会变成几百条通知和上万次重试。用户仍可手动重试。
+      this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
       this.lastSummary = `${topic.name} 失败：${msg}`
       log('error', `定时任务失败（${topic.name}）: ${msg}`)
-      this.notify('采集失败', false, `${msg}。可在「源」页查看详情。`)
+      this.notify('采集失败', false, `${msg}。可在「来源」页查看详情。`)
     }
   }
 
@@ -257,8 +262,10 @@ export class Scheduler {
         const out = await this.deps.runOnce(topic.id, handle.controller.signal)
         this.deps.store.settings.set(lastRunKey(topic.id), Date.now())
         this.deps.store.settings.set(LAST_RUN_KEY, Date.now())
-        this.lastSummary = `${topic.name} · 手动 · ${out.collect.nKept} 条`
-        this.notify(out.title, out.degraded)
+        this.lastSummary = out.noChange
+          ? `${topic.name} · 手动 · 今天没有变化`
+          : `${topic.name} · 手动 · ${out.collect.nKept} 条`
+        this.notify(out.title, out.degraded, out.noChange ? '今天没有值得改变判断的变化' : undefined)
       }
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {

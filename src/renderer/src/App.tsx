@@ -11,6 +11,7 @@ import { useSortedSources, useSources } from './lib/useSources'
 import { useFlags } from './lib/useFlags'
 import { useCallback, useEffect } from 'react'
 import { ShortcutHelp } from './components/ShortcutHelp'
+import { NoChangeView } from './components/NoChangeView'
 import { ChatWidget } from './components/ChatWidget'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
@@ -50,7 +51,7 @@ export default function App(): React.JSX.Element {
     if (!topics.some((t) => t.id === activeId)) setActiveId(topics[0]!.id)
   }, [topics, activeId, setActiveId])
 
-  const { brief, loading, urlToId, comparison, previousDate } = useBriefData(
+  const { brief, date: briefDate, loading, urlToId, trace, noChange, comparison, previousDate } = useBriefData(
     viewDate,
     activeId || undefined
   )
@@ -62,6 +63,7 @@ export default function App(): React.JSX.Element {
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState('')
   const [nav, setNav] = useState<string>(() => {
     const head = hashParts[0]
     // 未知路由一律回落到今日，避免深链写错时界面一片空白
@@ -90,14 +92,22 @@ export default function App(): React.JSX.Element {
     const api = window.meerkat?.runNow
     if (!api || refreshing) return
     setRefreshing(true)
+    setRefreshError('')
     try {
-      await api(activeId || undefined)
+      const r = await api(activeId || undefined)
+      if (r && !r.ok) setRefreshError(r.error ?? '更新失败')
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : '更新失败')
     } finally {
       setRefreshing(false)
     }
   }
 
   const dateLabel = brief?.title.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? ''
+
+  useEffect(() => {
+    setRefreshError('')
+  }, [activeId, viewDate, nav])
 
   // ⌘1–9 直接切主题：侧栏是扁平列表，序号就是列表顺序（跨领域也成立）
   useEffect(() => {
@@ -187,10 +197,33 @@ export default function App(): React.JSX.Element {
             </div>
           )}
 
-          {!loading && brief && nav === 'today' && (
+          {nav === 'today' && refreshError && (
+            <div className="mx-auto max-w-[780px] px-9 pt-4">
+              <p className="rounded-lg bg-alert/10 px-3 py-2 text-[11.5px] leading-5 text-alert">
+                {refreshError}
+              </p>
+            </div>
+          )}
+
+          {!loading && noChange && nav === 'today' && (
+            <NoChangeView
+              date={briefDate || new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })}
+              topicName={topics.find((t) => t.id === activeId)?.name}
+              sourceCount={trace?.sourceCount ?? topics.find((t) => t.id === activeId)?.sourceCount ?? 0}
+              failedSources={trace?.failedSources ?? 0}
+              candidates={trace?.candidates ?? 0}
+              droppedAsBriefed={trace?.droppedAsBriefed ?? 0}
+              onRefresh={viewDate ? undefined : () => void refresh()}
+              refreshing={refreshing}
+              onOpenSources={() => go('sources')}
+            />
+          )}
+
+          {!loading && brief && !noChange && nav === 'today' && (
             <BriefView
               brief={brief}
               flags={flags}
+              trace={trace}
               comparison={comparison}
               previousDate={previousDate}
               onRefresh={() => void refresh()}

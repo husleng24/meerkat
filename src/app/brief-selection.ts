@@ -29,40 +29,37 @@ export function extractUrls(markdown: string): string[] {
 /**
  * 找出成稿里被引用的条目 id。
  *
- * 一个条目可能带多个来源链接（同事件合并），任一链接命中即视为被引用。
+ * 模型只看到主 URL；同事件的其他来源名只用于证据展示，不参与引用匹配。
  */
 export function citedItemIds(markdown: string, items: DedupedItem[]): string[] {
   const cited = new Set(extractUrls(markdown))
   const out: string[] = []
   for (const it of items) {
-    if (cited.has(it.url)) {
-      out.push(it.id)
-      continue
-    }
-    // 去重时被合并掉的来源，其 url 也可能出现在成稿里
-    const merged = (it as DedupedItem & { mergedUrls?: string[] }).mergedUrls
-    if (merged && merged.some((u: string) => cited.has(u))) out.push(it.id)
+    if (cited.has(it.url)) out.push(it.id)
   }
   return out
 }
 
 export interface FilterResult {
   items: DedupedItem[]
-  /** 被"昨天推送过"过滤掉的条数 */
+  /** 被"此前推送过"过滤掉的条数 */
   dropped: number
-  /** 是否因为剩得太少而放弃过滤（保护性回退） */
+  /** kept 低于下限；仅用于说明这期偏薄，不再改变 items */
   overridden: boolean
 }
 
-/** 低于这个数量就不做跨天去重了——宁可重复，也不能交一份几乎空的简报 */
+/**
+ * 低于这个数量时标记 overridden。以前调用方会把旧闻重新摆一遍；
+ * 现在交给「今天没有变化」处理，绝不为了凑条数重复推送。
+ */
 export const MIN_AFTER_FILTER = 8
 
 /**
  * 过滤掉已推送过的条目。
  *
- * 注意回退条件用的是"剩余比例与绝对数量"双重判断：
- * 如果今天就是没有新东西，硬撑着只推 3 条会让简报显得残缺，
- * 不如把昨天的再列一遍——用户会认出来，但不会觉得坏了。
+ * 「只剩很少」不再回退到完整列表：那会把昨天/今天早些时候推过的内容
+ * 重新摆上来，正是 no-change 要消灭的假日报。调用方拿到 kept 后再决定
+ * 是正常成稿还是「今天没有变化」。
  */
 export function filterAlreadyBriefed(items: DedupedItem[], briefedIds: Set<string>): FilterResult {
   if (briefedIds.size === 0) return { items, dropped: 0, overridden: false }
@@ -71,6 +68,5 @@ export function filterAlreadyBriefed(items: DedupedItem[], briefedIds: Set<strin
   if (dropped === 0) return { items, dropped: 0, overridden: false }
 
   const floor = Math.max(MIN_AFTER_FILTER, Math.ceil(items.length * 0.3))
-  if (kept.length < floor) return { items, dropped: 0, overridden: true }
-  return { items: kept, dropped, overridden: false }
+  return { items: kept, dropped, overridden: kept.length < floor }
 }

@@ -1,4 +1,5 @@
 import type { BriefItem, BriefLink } from '../lib/parseBrief'
+import type { BriefTraceEntryPayload } from '../lib/ipc-types'
 
 /**
  * 同一来源常被引用多次（模型给的是不同 URL）。
@@ -17,6 +18,8 @@ function groupLinks(links: BriefLink[]): Array<{ label: string; url: string; cou
 
 interface Props {
   item: BriefItem
+  /** 这期引用到的来源证据；旧简报没有 */
+  trace?: BriefTraceEntryPayload
   selected: boolean
   saved: boolean
   hidden: boolean
@@ -36,6 +39,7 @@ interface Props {
  */
 export function ItemCard({
   item,
+  trace,
   selected,
   saved,
   hidden,
@@ -122,8 +126,43 @@ export function ItemCard({
           {item.dateLabel && <span className="tabular-nums tracking-[0.04em]">{item.dateLabel}</span>}
         </span>
       </footer>
+
+      {trace && (
+        <details
+          className="mt-2 border-t border-cream/70 pt-2 text-[11px] leading-5 text-ink-2"
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelect()
+          }}
+        >
+          <summary className="cursor-pointer select-none text-ink-2 hover:text-ink">来源依据</summary>
+          <p className="mt-1.5">
+            {trace.sourceName}（{tierLabel(trace.tier)}）· {relativeTime(trace.publishedAt)}
+            {trace.alsoIn.length > 0
+              ? ` · 另有 ${trace.alsoIn.length} 个来源合并：${trace.alsoIn.join('、')}`
+              : ' · 单一来源'}
+          </p>
+          <p className="mt-0.5 text-ink-2">这是它进入候选池的来源；最终取舍由本期编辑重点决定。</p>
+        </details>
+      )}
     </article>
   )
+}
+
+function tierLabel(tier: number): string {
+  if (tier === 1) return '官方/一手'
+  if (tier === 2) return '行业媒体'
+  if (tier === 3) return '社区'
+  if (tier === 4) return '聚合'
+  return '来源'
+}
+
+function relativeTime(ts: number | undefined): string {
+  if (ts === undefined) return '时间未知'
+  const hours = Math.max(0, (Date.now() - ts) / 3_600_000)
+  if (hours < 1) return '刚刚'
+  if (hours < 24) return `${Math.floor(hours)} 小时前`
+  return `${Math.floor(hours / 24)} 天前`
 }
 
 function IconButton({

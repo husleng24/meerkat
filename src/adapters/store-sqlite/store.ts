@@ -738,8 +738,15 @@ function ensureDefaultTopic(store: Store): Store {
   return store
 }
 
-export function createStore(file: string): Store {
-  return ensureDefaultTopic(ensureDefaultDomain(new SqliteStore(openDatabase(file))))
+export interface StoreOptions {
+  /** CLI 用：只读打开，不迁移、不 seed 默认主题 */
+  readOnly?: boolean
+}
+
+export function createStore(file: string, opts: StoreOptions = {}): Store {
+  const store = new SqliteStore(openDatabase(file, opts))
+  if (opts.readOnly) return store
+  return ensureDefaultTopic(ensureDefaultDomain(store))
 }
 
 /** 测试用：内存库 */

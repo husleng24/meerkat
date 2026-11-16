@@ -16,6 +16,7 @@ import { summarizeProbe, type ProbeResult } from '../app/source-health'
 import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { applyImport, buildPack, parsePack, planImport } from '../app/source-pack'
+import { parseBriefTrace } from '../app/brief-trace'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
@@ -282,13 +283,16 @@ export function registerIpc(): void {
     for (const it of s.items.since(b.createdAt - 7 * 86_400_000, 1000)) urlToId[it.url] = it.id
     // 上一期＝同一主题里日期更早的最近一份；首期没有就是 null
     const prev = s.briefs.list(60, b.topicId).find((x) => x.date < b.date)
+    const trace = parseBriefTrace(b.irJson)
     return {
       date: b.date,
       topicId: b.topicId,
       markdown: b.markdown,
       model: b.model,
       linkCheck: b.linkCheck,
+      noChange: b.model === 'no-change' || trace?.noChange === true,
       urlToId,
+      trace,
       previous: prev ? { date: prev.date, markdown: prev.markdown } : null
     }
   }
@@ -315,13 +319,17 @@ export function registerIpc(): void {
     if (!parsed.success) return []
     return requireStore()
       .briefs.list(60, parsed.data)
-      .map((b) => ({
-        date: b.date,
-        model: b.model,
-        linkCheck: b.linkCheck ?? '',
-        chars: b.markdown.length,
-        createdAt: b.createdAt
-      }))
+      .map((b) => {
+        const trace = parseBriefTrace(b.irJson)
+        return {
+          date: b.date,
+          model: b.model,
+          noChange: b.model === 'no-change' || trace?.noChange === true,
+          linkCheck: b.linkCheck ?? '',
+          chars: b.markdown.length,
+          createdAt: b.createdAt
+        }
+      })
   })
 
   ipcMain.handle('flags:get', (_e, raw: unknown) => {

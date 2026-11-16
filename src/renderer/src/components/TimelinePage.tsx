@@ -10,6 +10,7 @@ interface Props {
 interface Row {
   date: string
   model: string
+  noChange?: boolean
   linkCheck: string
   chars: number
   createdAt: number
@@ -71,7 +72,6 @@ export function TimelinePage({ current, onOpen, topicId }: Props): React.JSX.Ele
       <div className="overflow-hidden card">
         {rows.map((r) => {
           const isCurrent = r.date === current
-          const degraded = r.model === 'none'
           return (
             <button
               key={r.date}
@@ -86,7 +86,9 @@ export function TimelinePage({ current, onOpen, topicId }: Props): React.JSX.Ele
               <span className="flex-1 text-[11.5px] text-ink/60">
                 {r.chars} 字符 · 链接校验 {r.linkCheck || '—'}
               </span>
-              {degraded ? (
+              {r.noChange ? (
+                <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] text-ink-3">无变化</span>
+              ) : r.model === 'none' ? (
                 <span className="rounded bg-alert/10 px-1.5 py-0.5 text-[10px] text-alert">降级</span>
               ) : (
                 <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] text-ink/60">{r.model}</span>
