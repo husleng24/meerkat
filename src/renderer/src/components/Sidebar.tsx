@@ -54,10 +54,14 @@ export function Sidebar({
   const submit = async (): Promise<void> => {
     const name = draft.trim()
     if (!name || !onCreateTopic) return
-    const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
-    setCreating(false)
-    setDraft('')
-    if (id) onPickTopic(id)
+    try {
+      const id = await onCreateTopic({ id: `t-${Date.now().toString(36)}`, name })
+      if (id) onPickTopic(id)
+    } finally {
+      // 创建失败、请求超时、或用户已经点到别处，都不能把输入框留在原地
+      setCreating(false)
+      setDraft('')
+    }
   }
 
   const topicButton = (t: TopicPayload): React.JSX.Element => {
@@ -146,6 +150,11 @@ export function Sidebar({
                 setCreating(false)
                 setDraft('')
               }
+            }}
+            onBlur={() => {
+              // 点击侧栏其他地方等于放弃这次输入；不要把空输入框留在界面上
+              setCreating(false)
+              setDraft('')
             }}
             placeholder="主题名，回车创建"
             className="mt-1 w-full rounded-lg border border-accent/40 bg-white px-2 py-1 text-[12px] outline-none"

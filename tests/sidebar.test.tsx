@@ -122,6 +122,22 @@ describe('侧栏：扁平主题列表', () => {
 
     expect(created).toHaveBeenCalledWith(expect.objectContaining({ name: 'Agent 与工具' }))
     expect(onPick).toHaveBeenCalledWith('t-new')
+    expect(el.querySelector('input')).toBeNull()
+  })
+
+  it('新建主题输入框失焦后复位', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
+    const add = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('新建主题'))!
+    await act(async () => add.click())
+    const input = el.querySelector('input')!
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+    await act(async () => {
+      setter.call(input, '写了一半')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => input.blur())
+    expect(el.querySelector('input')).toBeNull()
+    expect(el.textContent).toContain('新建主题')
   })
 
   it('没有今日导航，也没有数据来源文案', async () => {
