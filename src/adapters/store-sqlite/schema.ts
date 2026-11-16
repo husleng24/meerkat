@@ -249,6 +249,14 @@ export const MIGRATIONS: Migration[] = [
       -- 旧库升级时丢掉这张表；简报正文与主题数据不受影响。
       DROP TABLE IF EXISTS domain_briefs;
     `
+  },
+  {
+    version: 7,
+    name: 'topic_editorial_focus',
+    up: `
+      -- 每个主题自己的编辑重点：只影响选题与解读，不改变简报格式。
+      ALTER TABLE topics ADD COLUMN editorial_focus TEXT;
+    `
   }
 ]
 

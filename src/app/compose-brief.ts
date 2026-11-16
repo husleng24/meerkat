@@ -40,6 +40,8 @@ export interface ComposeBriefContext {
   weekday: string
   /** 主题名：决定标题与降级稿归属（多主题下不能写死「AI 简报」） */
   topicName: string
+  /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
+  editorialFocus?: string
   sourceStats: BriefSourceStats[]
   /** 本次消耗的 wall time，由调用方传 */
   elapsedMs?: number
@@ -160,6 +162,7 @@ function toComposeInput(items: BriefItem[], ctx: ComposeBriefContext): ComposeIn
     dateLabel: ctx.dateLabel,
     weekday: ctx.weekday,
     topicName: ctx.topicName,
+    ...(ctx.editorialFocus ? { editorialFocus: ctx.editorialFocus } : {}),
     windowHours: ctx.windowHours,
     bucketLabels: PROMPT_BUCKET_LABEL,
     items: items.map((it) => ({

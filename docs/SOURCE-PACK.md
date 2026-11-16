@@ -27,6 +27,7 @@
       "name": "机器人",
       "domainId": "ai",
       "enabled": true,
+      "focus": "只保留机器人公司的融资、裁员与产品发布；论文只取 cs.RO",
       "sources": ["arxiv-org-api", "therobotreport-com-feed"]
     }
   ],
@@ -61,6 +62,7 @@
 ### topic 字段
 
 `id`、`name`、`domainId`、`sources`（源 id 数组）；`enabled` 可选。主题引用的每个源必须出现在同一包的 `sources` 里。
+`focus` 可选，是该主题的编辑重点（最多 200 字）；只影响选题与解读，不改变简报格式，导入时随同名主题一起覆盖。
 
 ## 三、导入规则：覆盖同名
 

@@ -29,6 +29,8 @@ export function isDegradedBrief(b: Pick<Brief, 'model'>): boolean {
 
 export interface IncomingBrief {
   degraded: boolean
+  /** 这期是「今天没有变化」，不是正常简报 */
+  noChange?: boolean
   /** 引用条数，用于"两份都正常时谁更好"的次要判断 */
   citedCount?: number
 }
@@ -39,13 +41,29 @@ export function decideSave(existing: Brief | undefined, incoming: IncomingBrief)
   }
 
   const existingDegraded = isDegradedBrief(existing)
+  const existingNoChange = existing.model === 'no-change'
+  const incomingNoChange = incoming.noChange === true
 
+  // 正常简报永远不能被「今天没有变化」覆盖；反过来，正常版可以替换无变化版
+  if (incomingNoChange && !existingNoChange) {
+    return {
+      write: false,
+      reason: 'kept-existing',
+      detail: '新版本是「无变化」，已保留当天已有的正常简报'
+    }
+  }
+
+  // 降级版不能覆盖任何非降级版，包括「今天没有变化」——后者也是明确结论
   if (incoming.degraded && !existingDegraded) {
     return {
       write: false,
       reason: 'kept-existing',
       detail: '新版本是降级（未接模型），已保留原有的完整简报'
     }
+  }
+
+  if (!incomingNoChange && existingNoChange) {
+    return { write: true, reason: 'upgraded', detail: '用正常简报替换了已有的无变化版' }
   }
 
   if (!incoming.degraded && existingDegraded) {

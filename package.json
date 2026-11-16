@@ -15,6 +15,7 @@
         "verify:electron": "node scripts/run-electron.cjs scripts/hello.cjs",
         "rebuild:native": "electron-builder install-app-deps",
         "run-once": "tsx scripts/run-once.ts",
+        "brief": "tsx scripts/brief.ts",
         "prep-schedule": "tsx scripts/prep-schedule.ts",
         "seed": "tsx scripts/run-once.ts",
         "compose-once": "tsx scripts/compose-once.ts",

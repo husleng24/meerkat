@@ -121,6 +121,39 @@ export interface Brief {
   createdAt: number
 }
 
+/** 简报里每条内容对应的来源证据；用于回答「为什么给我看这条」 */
+export interface BriefTraceEntry {
+  itemId: string
+  title: string
+  /** 主链接；urls 用于匹配简报里出现的链接 */
+  url: string
+  urls: string[]
+  sourceName: string
+  /** 1 官方/一手，2 行业媒体，3 社区，4 聚合 */
+  tier: number
+  publishedAt?: number
+  score: number
+  /** 同一事件的其他来源名 */
+  alsoIn: string[]
+}
+
+export interface BriefTrace {
+  version: 1
+  cited: BriefTraceEntry[]
+  /** 进入成稿候选池的条数 */
+  candidates: number
+  /** 这期实际检查的信息源数；旧 trace 没有 */
+  sourceCount?: number
+  /** 这期抓取失败的源数；旧 trace 没有 */
+  failedSources?: number
+  /** 因为「以前推过」被过滤掉的条数 */
+  droppedAsBriefed: number
+  /** 候选太少时是否放弃了跨天去重 */
+  filterOverridden: boolean
+  /** 这是一期「今天没有变化」，不是采访/降级 */
+  noChange?: boolean
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string
@@ -143,6 +176,8 @@ export interface Topic {
   /** 本地时间的触发点 */
   hour: number
   minute: number
+  /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
+  editorialFocus?: string
   createdAt: number
   updatedAt: number
 }

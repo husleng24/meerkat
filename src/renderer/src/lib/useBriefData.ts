@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import sampleMd from '../assets/brief-sample.md?raw'
 import { parseBrief, type ParsedBrief } from '../lib/parseBrief'
 import { compareBriefs, type BriefComparison } from './compareBriefs'
-import type {} from './ipc-types'
+import type { BriefPayload } from './ipc-types'
 
 export interface BriefData {
   brief: ParsedBrief | null
@@ -14,6 +14,12 @@ export interface BriefData {
   bridgeAvailable: boolean
   /** URL → 条目 id；预览模式下为空，已读/收藏只在会话内有效 */
   urlToId: Record<string, string>
+  /** 这期简报自己的日期；无变化页不能拿“今天”冒充历史 */
+  date: string
+  /** 这期引用的条目证据；旧简报没有 */
+  trace: BriefPayload['trace']
+  /** 这期明确判定「今天没有变化」 */
+  noChange: boolean
   /** 与上一期的对比；首期或没有上一期时为 null */
   comparison: BriefComparison | null
   /** 上一期的日期，界面上写作「和 10-28 比」 */
@@ -30,6 +36,9 @@ export interface BriefData {
 export function useBriefData(date?: string | null, topicId?: string): BriefData {
   const [raw, setRaw] = useState('')
   const [urlToId, setUrlToId] = useState<Record<string, string>>({})
+  const [briefDate, setBriefDate] = useState('')
+  const [trace, setTrace] = useState<BriefPayload['trace']>(undefined)
+  const [noChange, setNoChange] = useState(false)
   const [loading, setLoading] = useState(true)
   const [origin, setOrigin] = useState<'ipc' | 'sample'>('sample')
   const [previous, setPrevious] = useState<{ date: string; markdown: string } | null>(null)
@@ -50,7 +59,10 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
           : await api?.briefLatest?.(topicId)
         if (!cancelled && res?.markdown) {
           setRaw(res.markdown)
+          setBriefDate(res.date ?? '')
           setUrlToId(res.urlToId ?? {})
+          setTrace(res.trace)
+          setNoChange(res.noChange === true)
           setPrevious(res.previous ?? null)
           setOrigin('ipc')
           setLoading(false)
@@ -61,7 +73,10 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
         // 会看到一份不属于自己的"今日简报"。
         if (!cancelled && hasBridge) {
           setRaw('')
+          setBriefDate('')
           setUrlToId({})
+          setTrace(undefined)
+          setNoChange(false)
           setPrevious(null)
           setOrigin('ipc')
           setLoading(false)
@@ -72,7 +87,10 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
       }
       if (!cancelled) {
         setRaw(sampleMd)
+        setBriefDate('')
         setUrlToId({})
+        setTrace(undefined)
+        setNoChange(false)
         setPrevious(null)
         setOrigin('sample')
         setLoading(false)
@@ -103,10 +121,13 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
   return {
     brief,
     raw,
+    date: briefDate,
     loading,
     origin,
     bridgeAvailable,
     urlToId,
+    trace,
+    noChange,
     comparison,
     previousDate: previous?.date ?? '',
     reload

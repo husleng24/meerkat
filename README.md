@@ -1,4 +1,4 @@
-﻿# Meerkat
+# Meerkat
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 412 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 429 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -125,6 +125,20 @@ pnpm dist         # Windows NSIS installer (see electron-builder.yml)
 # macOS local check: pnpm exec electron-builder --mac --dir
 ```
 
+### Terminal / scripts
+
+The same SQLite database is readable without Electron:
+
+```bash
+pnpm brief list --topic ai
+pnpm brief show --topic ai --date 2026-11-16
+pnpm brief export --topic ai --date 2026-11-16 --out ./brief.md
+pnpm brief search "LangChain"
+```
+
+`--json` is available for `list` and `search`; `--db` overrides the default userData path.
+The CLI only reads data and does not write to the app database.
+
 ### First launch
 
 Pick a few topics in onboarding → topics are created with default sources → one collection runs
@@ -208,13 +222,14 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **412 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **429 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |
 
 Common commands: `pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `pnpm dist` /
-`pnpm run-once` (collect once) / `pnpm compose-once` (compose once) / `pnpm prep-schedule` (seed schedule data).
+`pnpm brief` (read/export briefs from the terminal) / `pnpm run-once` (collect once) /
+`pnpm compose-once` (compose once) / `pnpm prep-schedule` (seed schedule data).
 
 ## Known limitations
 

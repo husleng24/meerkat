@@ -16,6 +16,7 @@ import { summarizeProbe, type ProbeResult } from '../app/source-health'
 import { isValidSchedule } from '../app/schedule'
 import { validateNewSource, validateSourceUpdate } from '../app/source-edit'
 import { applyImport, buildPack, parsePack, planImport } from '../app/source-pack'
+import { parseBriefTrace } from '../app/brief-trace'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { topicStats } from '../app/topic-stats'
@@ -121,7 +122,8 @@ const topicCreateSchema = z.object({
   /** 所属领域；不传落到默认领域 */
   domainId: z.string().min(1).max(40).optional(),
   /** 新主题默认收录的源；不传就是全部 */
-  sourceIds: z.array(z.string().min(1)).max(200).optional()
+  sourceIds: z.array(z.string().min(1)).max(200).optional(),
+  editorialFocus: z.string().max(200).optional()
 })
 const domainCreateSchema = z.object({
   id: z.string().min(1).max(40).optional(),
@@ -134,7 +136,8 @@ const domainRenameSchema = z.object({
 const topicUpdateSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(30).optional(),
-  enabled: z.boolean().optional()
+  enabled: z.boolean().optional(),
+  editorialFocus: z.string().max(200).optional()
 })
 const scheduleSetSchema = z.object({
   topicId: z.string().min(1).max(40),
@@ -280,13 +283,16 @@ export function registerIpc(): void {
     for (const it of s.items.since(b.createdAt - 7 * 86_400_000, 1000)) urlToId[it.url] = it.id
     // 上一期＝同一主题里日期更早的最近一份；首期没有就是 null
     const prev = s.briefs.list(60, b.topicId).find((x) => x.date < b.date)
+    const trace = parseBriefTrace(b.irJson)
     return {
       date: b.date,
       topicId: b.topicId,
       markdown: b.markdown,
       model: b.model,
       linkCheck: b.linkCheck,
+      noChange: b.model === 'no-change' || trace?.noChange === true,
       urlToId,
+      trace,
       previous: prev ? { date: prev.date, markdown: prev.markdown } : null
     }
   }
@@ -313,13 +319,17 @@ export function registerIpc(): void {
     if (!parsed.success) return []
     return requireStore()
       .briefs.list(60, parsed.data)
-      .map((b) => ({
-        date: b.date,
-        model: b.model,
-        linkCheck: b.linkCheck ?? '',
-        chars: b.markdown.length,
-        createdAt: b.createdAt
-      }))
+      .map((b) => {
+        const trace = parseBriefTrace(b.irJson)
+        return {
+          date: b.date,
+          model: b.model,
+          noChange: b.model === 'no-change' || trace?.noChange === true,
+          linkCheck: b.linkCheck ?? '',
+          chars: b.markdown.length,
+          createdAt: b.createdAt
+        }
+      })
   })
 
   ipcMain.handle('flags:get', (_e, raw: unknown) => {
@@ -622,6 +632,9 @@ export function registerIpc(): void {
       enabled: true,
       hour: 8,
       minute: 30,
+      ...(parsed.data.editorialFocus?.trim()
+        ? { editorialFocus: parsed.data.editorialFocus.trim() }
+        : {}),
       createdAt: now,
       updatedAt: now
     })
@@ -644,6 +657,13 @@ export function registerIpc(): void {
       ...topic,
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
       ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
+      ...(parsed.data.editorialFocus !== undefined
+        ? {
+            editorialFocus: parsed.data.editorialFocus.trim()
+              ? parsed.data.editorialFocus.trim()
+              : undefined
+          }
+        : {}),
       updatedAt: Date.now()
     })
     return { ok: true }

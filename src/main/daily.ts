@@ -5,7 +5,7 @@
  * 这样端到端脚本可以在普通 Node 里跑完整流程，包括"连跑两天"验证跨天去重。
  *
  * 两条保护性规则都在这里落地：
- *  - 跨天去重（brief-selection）：昨天推过的不再推，但剩得太少时放弃过滤
+ *  - 跨天去重（brief-selection）：此前推过的不再推；新条目不足时交给 no-change
  *  - 覆盖保护（brief-save）：降级版不得覆盖完整版
  *
  * 另外提供 `recomposeDaily`：不重新抓取，只用库里已有的素材重新成稿。
@@ -16,6 +16,8 @@ import { fetchSource } from '../adapters/sources'
 import { createChatComposer, createNoopComposer } from '../adapters/llm/chat-composer'
 import { createProviderInstance, type ComposeTarget } from './providers'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../app/compose-brief'
+import { buildBriefTrace, buildNoChangeTrace } from '../app/brief-trace'
+import { allSourcesFailed, renderNoChangeBrief, shouldSkipBrief } from '../app/no-change'
 import { briefTitle } from '../app/brief-identity'
 import { runCollect, COLLECT_DEFAULTS, type CollectResult } from '../app/run-collect'
 import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
@@ -37,10 +39,12 @@ export interface DailyOutcome {
   collect: CollectResult
   briefOk: boolean
   degraded: boolean
+  /** 这期是明确的「今天没有变化」 */
+  noChange: boolean
   title: string
   /** 跨天去重丢掉的条数 */
   droppedAsBriefed: number
-  /** 去重被回退（剩太少） */
+  /** kept 低于下限；只用于说明这期偏薄，不再改变 items */
   filterOverridden: boolean
   /** 落库决策 */
   save: SaveDecision
@@ -195,52 +199,107 @@ interface FinishInput {
 async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): Promise<DailyOutcome> {
   const { topic, items, now } = input
   const dateLabel = new Date(now).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
-  const target = deps.compose
-  const provider = target ? createProviderInstance(target.provider, target.key) : null
-  const composer =
-    target && provider
-      ? createChatComposer({
-          provider,
-          model: target.model,
-          systemPrompt: deps.promptText,
-          maxTokens: 32_000
-        })
-      : createNoopComposer()
 
   let out
-  try {
-    out = await composeBrief(
-      composer,
-      items,
-      {
-        now,
-        windowHours: input.windowHours,
+  const sourceCount =
+    input.kind === 'recompose'
+      ? store.topics.sourceIds(topic.id).length
+      : input.sourceStats.length
+  const failedSources = input.sourceStats.filter((s) => !s.ok).length
+  if (input.kind !== 'recompose' && input.sourceStats.length === 0) {
+    throw new Error('这个主题没有启用的信息源，先添加事实源再运行')
+  }
+  if (allSourcesFailed(input.sourceStats)) {
+    throw new Error('所有信息源采集失败，无法判断今天是否有变化')
+  }
+  if (shouldSkipBrief(items)) {
+    // 没有足够素材时不调模型：明确说「今天没有变化」，比硬凑一篇更像判断工具
+    out = {
+      markdown: renderNoChangeBrief({
+        topicName: topic.name,
         dateLabel,
         weekday: weekdayOf(now),
-        topicName: topic.name,
-        sourceStats: input.sourceStats,
-        elapsedMs: input.elapsedMs
-      },
-      input.signal
-    )
-  } catch (e) {
-    if (isAbortError(e)) throw new RunCancelledError('compose')
-    throw e
+        windowHours: input.windowHours,
+        sourceCount,
+        failedSources,
+        candidates: items.length,
+        droppedAsBriefed: input.droppedAsBriefed
+      }),
+      degraded: false,
+      linkCheck: { good: 0, total: 0, rate: 0, passed: false },
+      usage: { input: 0, output: 0 },
+      model: 'no-change',
+      nItems: 0,
+      truncated: false,
+      issues: [] as string[]
+    }
+  } else {
+    const target = deps.compose
+    const provider = target ? createProviderInstance(target.provider, target.key) : null
+    const composer =
+      target && provider
+        ? createChatComposer({
+            provider,
+            model: target.model,
+            systemPrompt: deps.promptText,
+            maxTokens: 32_000
+          })
+        : createNoopComposer()
+
+    try {
+      out = await composeBrief(
+        composer,
+        items,
+        {
+          now,
+          windowHours: input.windowHours,
+          dateLabel,
+          weekday: weekdayOf(now),
+          topicName: topic.name,
+          ...(topic.editorialFocus ? { editorialFocus: topic.editorialFocus } : {}),
+          sourceStats: input.sourceStats,
+          elapsedMs: input.elapsedMs
+        },
+        input.signal
+      )
+    } catch (e) {
+      if (isAbortError(e)) throw new RunCancelledError('compose')
+      throw e
+    }
+    if (input.signal?.aborted) throw new RunCancelledError('compose')
   }
-  if (input.signal?.aborted) throw new RunCancelledError('compose')
 
   // 通知标题与简报 H1 用同一个函数：多主题同一天各跑一次时，用户要能分清是哪一份
   const title = briefTitle(topic.name, dateLabel, weekdayOf(now))
+  const noChange = out.model === 'no-change'
   log(
     'info',
-    `简报生成：${out.degraded ? '降级（未接模型）' : out.model} · ${out.markdown.length} 字符 · ` +
-      `链接校验 ${out.linkCheck.good}/${out.linkCheck.total}` +
-      (out.issues.length > 0 ? ` · 结构问题：${out.issues.join('；')}` : '')
+    noChange
+      ? `简报生成：今天没有变化 · 候选 ${items.length} 条 · ${input.sourceStats.length} 个源`
+      : `简报生成：${out.degraded ? '降级（未接模型）' : out.model} · ${out.markdown.length} 字符 · ` +
+          `链接校验 ${out.linkCheck.good}/${out.linkCheck.total}` +
+          (out.issues.length > 0 ? ` · 结构问题：${out.issues.join('；')}` : '')
   )
 
   // ── 覆盖保护 ──────────────────────────────────────────
   const existing = store.briefs.byDate(dateLabel, topic.id)
-  const save = decideSave(existing, { degraded: out.degraded })
+  const cited = noChange ? [] : citedItemIds(out.markdown, items)
+  const trace = noChange
+    ? buildNoChangeTrace({
+        candidates: items.length,
+        sourceCount,
+        failedSources,
+        droppedAsBriefed: input.droppedAsBriefed,
+        filterOverridden: input.filterOverridden
+      })
+    : buildBriefTrace(items, cited, store.sources.list(), {
+        candidates: items.length,
+        sourceCount,
+        failedSources,
+        droppedAsBriefed: input.droppedAsBriefed,
+        filterOverridden: input.filterOverridden
+      })
+  const save = decideSave(existing, { degraded: out.degraded, noChange, citedCount: cited.length })
 
   let markedBriefed = 0
   if (save.write) {
@@ -250,15 +309,15 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
       date: dateLabel,
       topicId: topic.id,
       markdown: out.markdown,
+      irJson: JSON.stringify(trace),
       model: out.model,
       tokensIn: out.usage.input,
       tokensOut: out.usage.output,
-      linkCheck: `${out.linkCheck.good}/${out.linkCheck.total}`,
+      linkCheck: noChange ? '' : `${out.linkCheck.good}/${out.linkCheck.total}`,
       createdAt: now
     })
 
     // 只把成稿里真正引用的条目记为已推送——模型看过但没选的留到明天
-    const cited = citedItemIds(out.markdown, items)
     if (cited.length > 0) {
       store.items.markBriefed(cited, now, topic.id)
       markedBriefed = cited.length
@@ -272,6 +331,8 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
     collect: input.collect,
     briefOk: !out.degraded,
     degraded: out.degraded,
+    // 没写进去的「无变化」不算本期结论：例如当天已有正常简报时会被覆盖保护拦住
+    noChange: noChange && save.write,
     title,
     droppedAsBriefed: input.droppedAsBriefed,
     filterOverridden: input.filterOverridden,

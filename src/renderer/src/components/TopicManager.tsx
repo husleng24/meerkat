@@ -30,6 +30,8 @@ export function TopicManager({
   const [draftDomain, setDraftDomain] = useState(domains[0]?.id ?? 'ai')
   const [rename, setRename] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
+  const [focusEditing, setFocusEditing] = useState<string | null>(null)
+  const [focusDraft, setFocusDraft] = useState('')
   const [note, setNote] = useState('')
 
   const api = window.meerkat?.topics
@@ -70,8 +72,16 @@ export function TopicManager({
     }
   }
 
-  const remove = async (t: TopicPayload): Promise<void> => {
-    if (!window.confirm(`删除主题「${t.name}」？它的简报与事实源归属会一起删掉，事实源本身不受影响。`)) return
+  const saveFocus = async (t: TopicPayload): Promise<void> => {
+    const res = await api.update({ id: t.id, editorialFocus: focusDraft.trim() })
+    setNote(res.ok ? `已更新「${t.name}」的编辑重点` : (res.error ?? '保存失败'))
+    if (res.ok) {
+      setFocusEditing(null)
+      onChanged()
+    }
+  }
+
+  const remove = async (t: TopicPayload): Promise<void> => {    if (!window.confirm(`删除主题「${t.name}」？它的简报与事实源归属会一起删掉，事实源本身不受影响。`)) return
     const res = await api.remove(t.id)
     setNote(res.ok ? `已删除「${t.name}」` : (res.error ?? '删除失败'))
     if (res.ok) {
@@ -163,6 +173,16 @@ export function TopicManager({
                       )}
                       <button
                         onClick={() => {
+                          setFocusEditing(t.id)
+                          setFocusDraft(t.editorialFocus ?? '')
+                        }}
+                        title="只影响选题与解读，不改变简报格式"
+                        className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink/60 transition-colors hover:border-accent hover:text-ink"
+                      >
+                        编辑重点
+                      </button>
+                      <button
+                        onClick={() => {
                           setEditing(t.id)
                           setRename(t.name)
                         }}
@@ -178,6 +198,46 @@ export function TopicManager({
                         删除
                       </button>
                     </span>
+
+                    {focusEditing === t.id ? (
+                      <div className="w-full">
+                        <textarea
+                          autoFocus
+                          rows={2}
+                          maxLength={200}
+                          value={focusDraft}
+                          onChange={(e) => setFocusDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') setFocusEditing(null)
+                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void saveFocus(t)
+                          }}
+                          placeholder="例如：只保留 AI/Agent 创业公司：融资、估值、裁员、倒闭、转型、负面；不要大公司模型发布。"
+                          className="mt-1 w-full resize-y rounded-lg border border-accent/40 bg-white px-2.5 py-1.5 text-[11.5px] leading-relaxed outline-none"
+                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          <button
+                            onClick={() => void saveFocus(t)}
+                            className="rounded bg-ink px-2 py-1 text-[10.5px] text-paper transition-opacity hover:opacity-90"
+                          >
+                            保存
+                          </button>
+                          <button
+                            onClick={() => setFocusEditing(null)}
+                            className="rounded border border-cream px-2 py-1 text-[10.5px] text-ink-3 hover:text-ink"
+                          >
+                            取消
+                          </button>
+                          <span className="text-[10px] tabular-nums text-ink-3">{focusDraft.length}/200</span>
+                          <span className="text-[10px] text-ink-3">只影响选题与解读，不改简报格式</span>
+                        </div>
+                      </div>
+                    ) : (
+                      t.editorialFocus && (
+                        <p className="w-full truncate text-[10.5px] text-ink-3" title={t.editorialFocus}>
+                          编辑重点：{t.editorialFocus}
+                        </p>
+                      )
+                    )}
                   </div>
                 )
               })}

@@ -37,6 +37,7 @@ describe('source pack：导出', () => {
       enabled: true,
       hour: 9,
       minute: 15,
+      editorialFocus: '只关注人形机器人融资与失败',
       createdAt: 1,
       updatedAt: 1
     })
@@ -45,6 +46,7 @@ describe('source pack：导出', () => {
     const p = buildPack(store, { kind: 'topic', topicId: 'robotics' })
     expect(p.sources.map((s) => s.id)).toEqual(['a'])
     expect(p.topics).toHaveLength(1)
+    expect(p.topics[0]?.focus).toBe('只关注人形机器人融资与失败')
     expect(p.topics[0]).not.toHaveProperty('hour')
     expect(p.topics[0]).not.toHaveProperty('minute')
     expect(p.sources[0]).not.toHaveProperty('failStreak')

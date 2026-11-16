@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { parseBrief } from '../src/renderer/src/lib/parseBrief'
 import { renderBriefDocument } from '../src/renderer/src/lib/briefHtml'
 import type { ParsedBrief } from '../src/renderer/src/lib/parseBrief'
 
@@ -68,6 +69,25 @@ describe('renderBriefDocument：导出用的 HTML', () => {
     expect(risky.html).not.toContain('<script>alert(1)</script>')
     expect(risky.html).toContain('&lt;script&gt;')
     expect(risky.html).toContain('a &lt; b &amp; c &gt; d')
+  })
+
+  it('无变化简报没有条目时，仍把结论正文导出', () => {
+    const raw = [
+      '# AI 创业公司 简报 · 2026-11-16（周一）',
+      '',
+      '> 覆盖最近 48 小时 · 8 个信息源',
+      '',
+      '## 今天没有值得改变判断的变化',
+      '',
+      '本期检查了 8 个信息源，得到 2 条候选；不足 3 条。',
+      '',
+      '这不是抓取失败。'
+    ].join('\n')
+    const d = renderBriefDocument(parseBrief(raw), '2026-11-16', raw)
+    expect(d.html).toContain('今天没有值得改变判断的变化')
+    expect(d.html).toContain('本期检查了 8 个信息源')
+    expect(d.text).toContain('这不是抓取失败')
+    expect(d.text.match(/今天没有值得改变判断的变化/g)).toHaveLength(1)
   })
 
   it('纯文本版本包含标题与链接，供剪贴板 text/plain 回退', () => {

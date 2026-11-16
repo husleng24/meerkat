@@ -1,4 +1,4 @@
-﻿# Meerkat
+# Meerkat
 
 [English](README.md) · **简体中文**
 
@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 412 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 429 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -118,6 +118,20 @@ pnpm dist         # Windows NSIS 安装包（配置见 electron-builder.yml）
 # macOS 本机验证可用：pnpm exec electron-builder --mac --dir
 ```
 
+### 终端 / 脚本
+
+同一份 SQLite 数据库不需要启动 Electron 也能读：
+
+```bash
+pnpm brief list --topic ai
+pnpm brief show --topic ai --date 2026-11-16
+pnpm brief export --topic ai --date 2026-11-16 --out ./brief.md
+pnpm brief search "LangChain"
+```
+
+`list` / `search` 支持 `--json`；`--db` 可覆盖默认 userData 路径。CLI 只读打开数据库，
+不跑迁移、不写库。
+
 ### 首次启动
 
 引导页选几个主题 → 自动建主题并挂上默认源 → 立即采集一次（约 1–2 分钟）。
@@ -195,13 +209,14 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**412 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**429 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
 
 常用命令：`pnpm dev` / `pnpm test` / `pnpm typecheck` / `pnpm build` / `pnpm dist` /
-`pnpm run-once`（采集一次）/ `pnpm compose-once`（成稿一次）/ `pnpm prep-schedule`（造排程数据）。
+`pnpm brief`（终端读取/导出简报）/ `pnpm run-once`（采集一次）/ `pnpm compose-once`（成稿一次）/
+`pnpm prep-schedule`（造排程数据）。
 
 ## 已知限制
 

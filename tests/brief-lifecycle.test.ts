@@ -67,12 +67,12 @@ describe('filterAlreadyBriefed', () => {
     expect(r.items.map((i) => i.id)).not.toContain('i0')
   })
 
-  it('剩得太少时放弃过滤（宁可重复也不交空简报）', () => {
+  it('剩得太少时保留新条目，由调用方决定是否无变化', () => {
     const briefed = new Set(many.slice(0, 18).map((i) => i.id))
     const r = filterAlreadyBriefed(many, briefed)
     expect(r.overridden).toBe(true)
-    expect(r.items).toHaveLength(20)
-    expect(r.dropped).toBe(0)
+    expect(r.items).toHaveLength(2)
+    expect(r.dropped).toBe(18)
   })
 
   it('剩余数量刚好到下限时仍然过滤', () => {
@@ -82,16 +82,17 @@ describe('filterAlreadyBriefed', () => {
     expect(r.items).toHaveLength(MIN_AFTER_FILTER)
   })
 
-  it('全部推送过时回退到完整列表', () => {
+  it('全部推送过时返回空列表', () => {
     const r = filterAlreadyBriefed(many, new Set(many.map((i) => i.id)))
     expect(r.overridden).toBe(true)
-    expect(r.items).toHaveLength(20)
+    expect(r.items).toHaveLength(0)
+    expect(r.dropped).toBe(20)
   })
 
-  it('小样本（不足下限）即使全推过也只回退，不会返回空数组', () => {
+  it('小样本（不足下限）全推过时返回空列表', () => {
     const few = many.slice(0, 5)
     const r = filterAlreadyBriefed(few, new Set(few.map((i) => i.id)))
-    expect(r.items.length).toBeGreaterThan(0)
+    expect(r.items).toHaveLength(0)
   })
 })
 
@@ -131,6 +132,27 @@ describe('decideSave：降级版不得覆盖完整版', () => {
 
   it('两份都降级：覆盖（没有更好的可保）', () => {
     expect(decideSave(bad, { degraded: true }).write).toBe(true)
+  })
+
+  it('正常简报不能被「今天没有变化」覆盖', () => {
+    const d = decideSave(good, { degraded: false, noChange: true })
+    expect(d.write).toBe(false)
+    expect(d.reason).toBe('kept-existing')
+    expect(d.detail).toContain('无变化')
+  })
+
+  it('正常简报可以替换已有的无变化版', () => {
+    const empty: Brief = { ...good, model: 'no-change', markdown: '# 无变化' }
+    const d = decideSave(empty, { degraded: false })
+    expect(d.write).toBe(true)
+    expect(d.reason).toBe('upgraded')
+  })
+
+  it('降级版不能覆盖已有的无变化版', () => {
+    const empty: Brief = { ...good, model: 'no-change', markdown: '# 无变化' }
+    const d = decideSave(empty, { degraded: true })
+    expect(d.write).toBe(false)
+    expect(d.reason).toBe('kept-existing')
   })
 
   it('isDegradedBrief 以 model === none 判定', () => {

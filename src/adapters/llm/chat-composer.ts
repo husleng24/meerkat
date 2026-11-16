@@ -30,6 +30,7 @@ export function createChatComposer(opts: ChatComposerOptions): Composer {
         .replace(/\{topic\}/g, input.topicName)
         .replace(/\{date\}/g, input.dateLabel)
         .replace(/\{weekday\}/g, input.weekday)
+        .replace(/\{editorialFocus\}/g, input.editorialFocus?.trim() || '（未设置，按通用编辑标准）')
 
       const res = await opts.provider.chat(
         {

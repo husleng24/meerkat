@@ -181,15 +181,16 @@ const api = {
         enabled: boolean
         hour: number
         minute: number
+        editorialFocus?: string
         sourceCount: number
         hasBrief: boolean
         todayCount: number
         unreadCount: number
       }>
     > => ipcRenderer.invoke('topics:list'),
-    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[] }): Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }> =>
+    create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[]; editorialFocus?: string }): Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }> =>
       ipcRenderer.invoke('topics:create', input),
-    update: (input: { id: string; name?: string; enabled?: boolean }): Promise<{ ok: boolean; error?: string }> =>
+    update: (input: { id: string; name?: string; enabled?: boolean; editorialFocus?: string }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:update', input),
     remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('topics:remove', id),
     sourceIds: (id: string): Promise<string[]> => ipcRenderer.invoke('topics:sourceIds', id),
