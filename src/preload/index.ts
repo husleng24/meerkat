@@ -268,6 +268,8 @@ const api = {
       createdAt: number
       updatedAt: number
     } | null> => ipcRenderer.invoke('videos:getReport', videoId),
+    export: (videoId: string): Promise<{ ok: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke('videos:export', videoId),
     generate: (input: {
       creatorId: string
       videoId: string

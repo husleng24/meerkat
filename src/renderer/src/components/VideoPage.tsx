@@ -145,6 +145,12 @@ export function VideoPage(): React.JSX.Element {
     }
   }
 
+  const exportMd = async (): Promise<void> => {
+    if (!api || !report) return
+    const r = await api.export(report.videoId)
+    setMsg(r.ok ? `Markdown 已导出到 ${r.path}` : (r.error ?? '导出失败'))
+  }
+
   if (!api) {
     return <div className="px-10 py-16 text-[13px] text-ink-3">预览模式下不可用：需要在桌面应用内运行。</div>
   }
@@ -259,8 +265,11 @@ export function VideoPage(): React.JSX.Element {
                   {report.language ? `字幕 ${report.language} · ` : ''}
                   {report.durationSec ? `${Math.round(report.durationSec / 60)} 分钟` : ''}
                 </span>
-                <button onClick={() => void copy()} className="ml-auto rounded border border-cream px-2 py-1 text-[11px] text-ink-2 hover:border-accent">
+                <button onClick={() => void copy()} className="rounded border border-cream px-2 py-1 text-[11px] text-ink-2 hover:border-accent">
                   复制 Markdown
+                </button>
+                <button onClick={() => void exportMd()} className="rounded border border-cream px-2 py-1 text-[11px] text-ink-2 hover:border-accent">
+                  导出 .md
                 </button>
               </div>
               <ChatMarkdown text={report.summaryMd} />

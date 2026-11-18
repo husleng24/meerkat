@@ -1139,6 +1139,24 @@ export function registerIpc(): void {
     return requireStore().videos.getReport(parsed.data) ?? null
   })
 
+  ipcMain.handle('videos:export', (_e, raw: unknown) => {
+    const parsed = z.string().min(5).max(30).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const report = requireStore().videos.getReport(parsed.data)
+    if (!report) return { ok: false, error: '还没有生成这期解读' }
+    try {
+      const dir = join(app.getPath('documents'), 'Meerkat', '视频解读')
+      mkdirSync(dir, { recursive: true })
+      const safeTitle = report.title.replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+      const file = join(dir, `${safeTitle || 'video'}-${report.videoId}.md`)
+      writeFileSync(file, `${report.summaryMd}\n\n---\n\n${report.transcriptMd}\n`, 'utf8')
+      shell.showItemInFolder(file)
+      return { ok: true, path: file }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
   ipcMain.handle('videos:generate', async (_e, raw: unknown) => {
     const parsed = videoGenerateSchema.safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }

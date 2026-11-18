@@ -118,7 +118,8 @@ deferred to P2.
 Add a YouTube creator (`@handle` or channel URL), pick one of their latest 12 videos, and get a local
 Markdown report: a "worth watching / clips only / skip" verdict, key points with timestamps, chapters,
 and the complete caption transcript. Only videos with captions are supported; there is no ASR fallback,
-and the report never rewrites the caption text with the model.
+and the report never rewrites the caption text with the model. Reports can be copied or exported as
+Markdown under `Documents/Meerkat/视频解读/`.
 
 ### Update notice
 

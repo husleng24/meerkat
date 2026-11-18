@@ -266,6 +266,7 @@ export interface VideosBridge {
     error?: string
   }>
   getReport: (videoId: string) => Promise<VideoReportPayload | null>
+  export: (videoId: string) => Promise<{ ok: boolean; path?: string; error?: string }>
   generate: (input: {
     creatorId: string
     videoId: string
