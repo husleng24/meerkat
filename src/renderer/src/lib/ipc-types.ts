@@ -217,6 +217,65 @@ export interface ChatProviderPayload {
   hasKey: boolean
 }
 
+export interface VideoCreatorPayload {
+  id: string
+  channelId: string
+  name: string
+  handle?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface VideoEntryPayload {
+  videoId: string
+  title: string
+  url: string
+  publishedAt?: number
+  hasReport: boolean
+}
+
+export interface VideoReportPayload {
+  id: string
+  creatorId: string
+  videoId: string
+  title: string
+  url: string
+  publishedAt?: number
+  durationSec?: number
+  language?: string
+  transcriptMd: string
+  summaryMd: string
+  model: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface VideosBridge {
+  creators: () => Promise<VideoCreatorPayload[]>
+  addCreator: (input: string) => Promise<{
+    ok: boolean
+    creator?: VideoCreatorPayload
+    videos?: VideoEntryPayload[]
+    error?: string
+  }>
+  removeCreator: (id: string) => Promise<{ ok: boolean; error?: string }>
+  list: (creatorId: string) => Promise<{
+    ok: boolean
+    creator?: VideoCreatorPayload
+    videos?: VideoEntryPayload[]
+    error?: string
+  }>
+  getReport: (videoId: string) => Promise<VideoReportPayload | null>
+  generate: (input: {
+    creatorId: string
+    videoId: string
+    title: string
+    url: string
+    publishedAt?: number
+  }) => Promise<{ ok: boolean; report?: VideoReportPayload; error?: string }>
+  removeReport: (videoId: string) => Promise<{ ok: boolean; error?: string }>
+}
+
 export interface ChatBridge {
   models: () => Promise<ChatModelPayload[]>
   ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
@@ -310,6 +369,7 @@ export interface MeerkatBridge {
     onReview?: (cb: () => void) => () => void
   }
   chat?: ChatBridge
+  videos?: VideosBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

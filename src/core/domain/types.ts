@@ -154,6 +154,37 @@ export interface BriefTrace {
   noChange?: boolean
 }
 
+/** 用户指定的 YouTube 博主 */
+export interface VideoCreator {
+  id: string
+  channelId: string
+  name: string
+  /** 用户输入/@handle，便于显示 */
+  handle?: string
+  createdAt: number
+  updatedAt: number
+}
+
+/** 一期视频的字幕与解读，按 videoId 缓存 */
+export interface VideoReport {
+  id: string
+  creatorId: string
+  videoId: string
+  title: string
+  url: string
+  publishedAt?: number
+  durationSec?: number
+  /** 字幕语言，例如 en / zh-Hans */
+  language?: string
+  /** 原始字幕转成的 Markdown，不由模型改写 */
+  transcriptMd: string
+  /** 总结/章节/值不值得看 */
+  summaryMd: string
+  model: string
+  createdAt: number
+  updatedAt: number
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string

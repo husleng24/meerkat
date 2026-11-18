@@ -4,7 +4,10 @@
  * 设计取舍：方法全部同步。better-sqlite3 是同步 API，本地单文件库延迟在微秒级，
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
-import type { Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story } from '../domain/types'
+import type {
+  Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story,
+  VideoCreator, VideoReport
+} from '../domain/types'
 
 export interface SourceStore {
   list(): Source[]
@@ -118,6 +121,17 @@ export interface SettingsStore {
   all(): Record<string, unknown>
 }
 
+export interface VideoStore {
+  listCreators(): VideoCreator[]
+  getCreator(id: string): VideoCreator | undefined
+  upsertCreator(creator: VideoCreator): void
+  removeCreator(id: string): void
+  listReports(creatorId?: string): VideoReport[]
+  getReport(videoId: string): VideoReport | undefined
+  saveReport(report: VideoReport): void
+  removeReport(videoId: string): void
+}
+
 export interface Store {
   sources: SourceStore
   domains: DomainStore
@@ -129,6 +143,7 @@ export interface Store {
   runs: RunStore
   flags: FlagStore
   settings: SettingsStore
+  videos: VideoStore
   /** 当前 schema 版本，便于诊断包记录 */
   schemaVersion(): number
   /** 在单个事务里执行；导入配置这类多步写入必须原子完成 */

@@ -38,6 +38,10 @@ import {
   type ChatDeps
 } from './chat'
 import { composeTarget, modelOverrideKey, readModelOverrides, type ProviderKeys } from './providers'
+import { createProviderInstance } from './providers'
+import { fetchCreator, fetchCreatorVideos } from '../adapters/youtube/creator'
+import { fetchVideoTranscript, transcriptToMarkdown } from '../adapters/youtube/transcript'
+import { renderVideoSummary, summarizeVideo } from '../app/video-summary'
 import { markStoryPrompted, setStoryStatus, storiesToReview } from '../app/story-tracking'
 import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
@@ -1072,5 +1076,133 @@ export function registerIpc(): void {
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) }
     }
+  })
+
+  // ── 视频解读：指定博主 + 最近 12 条 + 手动选一期 ──────────────
+  const videoCreatorSchema = z.object({ input: z.string().min(1).max(300) })
+  const videoGenerateSchema = z.object({
+    creatorId: z.string().min(1).max(100),
+    videoId: z.string().min(5).max(30),
+    title: z.string().min(1).max(500),
+    url: z.string().url().max(500),
+    publishedAt: z.number().optional()
+  })
+
+  ipcMain.handle('videos:creators', () => requireStore().videos.listCreators())
+
+  ipcMain.handle('videos:addCreator', async (_e, raw: unknown) => {
+    const parsed = videoCreatorSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '请输入博主地址' }
+    try {
+      const { creator, videos } = await fetchCreator(parsed.data.input)
+      const now = Date.now()
+      const existing = requireStore().videos.getCreator(creator.channelId)
+      const record = {
+        id: creator.channelId,
+        channelId: creator.channelId,
+        name: creator.name,
+        ...(creator.handle ? { handle: creator.handle } : {}),
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now
+      }
+      requireStore().videos.upsertCreator(record)
+      return { ok: true, creator: record, videos }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('videos:removeCreator', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(100).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().videos.removeCreator(parsed.data)
+    return { ok: true }
+  })
+
+  ipcMain.handle('videos:list', async (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(100).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const creator = requireStore().videos.getCreator(parsed.data)
+    if (!creator) return { ok: false, error: '博主不存在' }
+    try {
+      const videos = await fetchCreatorVideos(creator.channelId)
+      const reports = new Set(requireStore().videos.listReports(creator.id).map((r) => r.videoId))
+      return { ok: true, creator, videos: videos.map((v) => ({ ...v, hasReport: reports.has(v.videoId) })) }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('videos:getReport', (_e, raw: unknown) => {
+    const parsed = z.string().min(5).max(30).safeParse(raw)
+    if (!parsed.success) return null
+    return requireStore().videos.getReport(parsed.data) ?? null
+  })
+
+  ipcMain.handle('videos:generate', async (_e, raw: unknown) => {
+    const parsed = videoGenerateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    const creator = store.videos.getCreator(parsed.data.creatorId)
+    if (!creator) return { ok: false, error: '博主不存在' }
+    const cached = store.videos.getReport(parsed.data.videoId)
+    if (cached) return { ok: true, report: cached }
+
+    const keys: ProviderKeys = {}
+    for (const p of availableProviders()) keys[p.id] = p.key
+    const target = composeTarget(keys, readModelOverrides(store))
+    if (!target) return { ok: false, error: '还没有配置模型。先到设置 → 模型与密钥配置 DeepSeek 或 OpenAI。' }
+    const provider = createProviderInstance(target.provider, target.key)
+    if (!provider) return { ok: false, error: '模型供应商不可用' }
+
+    try {
+      const transcript = await fetchVideoTranscript(parsed.data.videoId)
+      const meta = {
+        title: parsed.data.title,
+        creatorName: creator.name,
+        videoId: parsed.data.videoId,
+        url: parsed.data.url,
+        ...(parsed.data.publishedAt !== undefined ? { publishedAt: parsed.data.publishedAt } : {}),
+        durationSec: transcript.durationSec,
+        ...(transcript.language ? { language: transcript.language } : {})
+      }
+      const { summary } = await summarizeVideo(provider, target.model, meta, transcript.paragraphs)
+      const transcriptMd = transcriptToMarkdown({
+        title: meta.title,
+        creatorName: creator.name,
+        videoId: meta.videoId,
+        ...(meta.publishedAt !== undefined ? { publishedAt: meta.publishedAt } : {}),
+        language: transcript.language,
+        paragraphs: transcript.paragraphs
+      })
+      const summaryMd = renderVideoSummary(summary, meta)
+      const now = Date.now()
+      const report = {
+        id: `video-${parsed.data.videoId}`,
+        creatorId: creator.id,
+        videoId: parsed.data.videoId,
+        title: meta.title,
+        url: meta.url,
+        ...(meta.publishedAt !== undefined ? { publishedAt: meta.publishedAt } : {}),
+        durationSec: transcript.durationSec,
+        ...(transcript.language ? { language: transcript.language } : {}),
+        transcriptMd,
+        summaryMd,
+        model: target.model,
+        createdAt: now,
+        updatedAt: now
+      }
+      store.videos.saveReport(report)
+      return { ok: true, report }
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
+  })
+
+  ipcMain.handle('videos:removeReport', (_e, raw: unknown) => {
+    const parsed = z.string().min(5).max(30).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().videos.removeReport(parsed.data)
+    return { ok: true }
   })
 }

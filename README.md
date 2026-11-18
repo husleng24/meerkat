@@ -113,6 +113,13 @@ deferred to P2.
 
 ![AI chat over the day's brief](docs/assets/ui-chat.png)
 
+### Video reports
+
+Add a YouTube creator (`@handle` or channel URL), pick one of their latest 12 videos, and get a local
+Markdown report: a "worth watching / clips only / skip" verdict, key points with timestamps, chapters,
+and the complete caption transcript. Only videos with captions are supported; there is no ASR fallback,
+and the report never rewrites the caption text with the model.
+
 ### Update notice
 
 On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
@@ -241,7 +248,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **479 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **491 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

@@ -46,7 +46,14 @@ export function parseViews(s: string): number {
   return Math.round(Number(m[1]) * mult)
 }
 
-export function parseYoutubePage(html: string, source: Source, now: number): RawItem[] {
+export interface YoutubePageOptions {
+  /** 频道页默认只取 3 条给日报；博主视频页取 12 条 */
+  limit?: number
+  /** 默认按 AI 关键词过滤；博主视频列表需要看全部 */
+  aiFilter?: boolean
+}
+
+export function parseYoutubePage(html: string, source: Source, now: number, opts: YoutubePageOptions = {}): RawItem[] {
   const m = /var ytInitialData = (\{[\s\S]*?\});<\/script>/.exec(html)
   if (!m) return []
   let data: unknown
@@ -74,7 +81,7 @@ export function parseYoutubePage(html: string, source: Source, now: number): Raw
     if (publishedAt === undefined) continue // 时间解析不出来就不收，避免把老视频当新内容
 
     // 非官方频道做 AI 关键词过滤，避免访谈类频道把无关内容带进来
-    if (!source.alwaysKeep && !/ai|llm|gpt|claude|gemini|model|agent|neural|robot/i.test(title)) continue
+    if (opts.aiFilter !== false && !source.alwaysKeep && !/ai|llm|gpt|claude|gemini|model|agent|neural|robot/i.test(title)) continue
 
     const views = parts.map(parseViews).reduce((a, b) => Math.max(a, b), 0)
     out.push({
@@ -88,7 +95,7 @@ export function parseYoutubePage(html: string, source: Source, now: number): Raw
   }
 
   out.sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
-  return out.slice(0, 3)
+  return out.slice(0, opts.limit ?? 3)
 }
 
 export const youtubeFetcher: Fetcher = {

@@ -2,11 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore
+  DomainStore, ChatStore, StoryStore, VideoStore
 } from '../../core/ports/store'
 import type {
   Domain,
-  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story
+  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
+  VideoCreator, VideoReport
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -49,6 +50,18 @@ interface StoryRow {
   topic_id: string; item_id: string | null; thread_id: string | null
   status: string; miss_count: number; last_match_at: number | null
   last_prompt_at: number | null; created_at: number; updated_at: number
+}
+
+interface VideoCreatorRow {
+  id: string; channel_id: string; name: string; handle: string | null
+  created_at: number; updated_at: number
+}
+
+interface VideoReportRow {
+  id: string; creator_id: string; video_id: string; title: string; url: string
+  published_at: number | null; duration_sec: number | null; language: string | null
+  transcript_md: string; summary_md: string; model: string
+  created_at: number; updated_at: number
 }
 
 interface ChatMessageRow {
@@ -143,6 +156,31 @@ const toStory = (r: StoryRow): Story => ({
   missCount: r.miss_count,
   ...(r.last_match_at !== null ? { lastMatchAt: r.last_match_at } : {}),
   ...(r.last_prompt_at !== null ? { lastPromptAt: r.last_prompt_at } : {}),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toVideoCreator = (r: VideoCreatorRow): VideoCreator => ({
+  id: r.id,
+  channelId: r.channel_id,
+  name: r.name,
+  ...(r.handle !== null ? { handle: r.handle } : {}),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toVideoReport = (r: VideoReportRow): VideoReport => ({
+  id: r.id,
+  creatorId: r.creator_id,
+  videoId: r.video_id,
+  title: r.title,
+  url: r.url,
+  ...(r.published_at !== null ? { publishedAt: r.published_at } : {}),
+  ...(r.duration_sec !== null ? { durationSec: r.duration_sec } : {}),
+  ...(r.language !== null ? { language: r.language } : {}),
+  transcriptMd: r.transcript_md,
+  summaryMd: r.summary_md,
+  model: r.model,
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -811,6 +849,90 @@ class SqliteStoryStore implements StoryStore {
   }
 }
 
+class SqliteVideoStore implements VideoStore {
+  constructor(private db: DB) {}
+
+  listCreators(): VideoCreator[] {
+    const rows = this.db.prepare('SELECT * FROM video_creators ORDER BY created_at ASC').all() as VideoCreatorRow[]
+    return rows.map(toVideoCreator)
+  }
+
+  getCreator(id: string): VideoCreator | undefined {
+    const r = this.db.prepare('SELECT * FROM video_creators WHERE id = ?').get(id) as VideoCreatorRow | undefined
+    return r ? toVideoCreator(r) : undefined
+  }
+
+  upsertCreator(creator: VideoCreator): void {
+    this.db
+      .prepare(
+        `INSERT INTO video_creators (id,channel_id,name,handle,created_at,updated_at)
+         VALUES (@id,@channel_id,@name,@handle,@created_at,@updated_at)
+         ON CONFLICT(id) DO UPDATE SET channel_id=excluded.channel_id, name=excluded.name,
+           handle=excluded.handle, updated_at=excluded.updated_at`
+      )
+      .run({
+        id: creator.id,
+        channel_id: creator.channelId,
+        name: creator.name,
+        handle: creator.handle ?? null,
+        created_at: creator.createdAt,
+        updated_at: creator.updatedAt
+      })
+  }
+
+  removeCreator(id: string): void {
+    this.db.prepare('DELETE FROM video_creators WHERE id = ?').run(id)
+  }
+
+  listReports(creatorId?: string): VideoReport[] {
+    const rows = (
+      creatorId
+        ? this.db
+            .prepare('SELECT * FROM video_reports WHERE creator_id = ? ORDER BY published_at DESC, created_at DESC')
+            .all(creatorId)
+        : this.db.prepare('SELECT * FROM video_reports ORDER BY published_at DESC, created_at DESC').all()
+    ) as VideoReportRow[]
+    return rows.map(toVideoReport)
+  }
+
+  getReport(videoId: string): VideoReport | undefined {
+    const r = this.db.prepare('SELECT * FROM video_reports WHERE video_id = ?').get(videoId) as VideoReportRow | undefined
+    return r ? toVideoReport(r) : undefined
+  }
+
+  saveReport(report: VideoReport): void {
+    this.db
+      .prepare(
+        `INSERT INTO video_reports
+         (id,creator_id,video_id,title,url,published_at,duration_sec,language,transcript_md,summary_md,model,created_at,updated_at)
+         VALUES (@id,@creator_id,@video_id,@title,@url,@published_at,@duration_sec,@language,@transcript_md,@summary_md,@model,@created_at,@updated_at)
+         ON CONFLICT(video_id) DO UPDATE SET creator_id=excluded.creator_id, title=excluded.title,
+           url=excluded.url, published_at=excluded.published_at, duration_sec=excluded.duration_sec,
+           language=excluded.language, transcript_md=excluded.transcript_md, summary_md=excluded.summary_md,
+           model=excluded.model, updated_at=excluded.updated_at`
+      )
+      .run({
+        id: report.id,
+        creator_id: report.creatorId,
+        video_id: report.videoId,
+        title: report.title,
+        url: report.url,
+        published_at: report.publishedAt ?? null,
+        duration_sec: report.durationSec ?? null,
+        language: report.language ?? null,
+        transcript_md: report.transcriptMd,
+        summary_md: report.summaryMd,
+        model: report.model,
+        created_at: report.createdAt,
+        updated_at: report.updatedAt
+      })
+  }
+
+  removeReport(videoId: string): void {
+    this.db.prepare('DELETE FROM video_reports WHERE video_id = ?').run(videoId)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -822,6 +944,7 @@ class SqliteStore implements Store {
   readonly runs: RunStore
   readonly flags: FlagStore
   readonly settings: SettingsStore
+  readonly videos: VideoStore
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
@@ -834,6 +957,7 @@ class SqliteStore implements Store {
     this.runs = new SqliteRunStore(db)
     this.flags = new SqliteFlagStore(db)
     this.settings = new SqliteSettingsStore(db)
+    this.videos = new SqliteVideoStore(db)
   }
 
   schemaVersion(): number {

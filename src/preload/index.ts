@@ -235,6 +235,68 @@ const api = {
       ipcRenderer.invoke('chat:setModel', input)
   },
 
+  videos: {
+    creators: (): Promise<
+      Array<{ id: string; channelId: string; name: string; handle?: string; createdAt: number; updatedAt: number }>
+    > => ipcRenderer.invoke('videos:creators'),
+    addCreator: (input: string): Promise<{
+      ok: boolean
+      creator?: { id: string; channelId: string; name: string; handle?: string; createdAt: number; updatedAt: number }
+      videos?: Array<{ videoId: string; title: string; url: string; publishedAt?: number; hasReport: boolean }>
+      error?: string
+    }> => ipcRenderer.invoke('videos:addCreator', { input }),
+    removeCreator: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('videos:removeCreator', id),
+    list: (creatorId: string): Promise<{
+      ok: boolean
+      creator?: { id: string; channelId: string; name: string; handle?: string; createdAt: number; updatedAt: number }
+      videos?: Array<{ videoId: string; title: string; url: string; publishedAt?: number; hasReport: boolean }>
+      error?: string
+    }> => ipcRenderer.invoke('videos:list', creatorId),
+    getReport: (videoId: string): Promise<{
+      id: string
+      creatorId: string
+      videoId: string
+      title: string
+      url: string
+      publishedAt?: number
+      durationSec?: number
+      language?: string
+      transcriptMd: string
+      summaryMd: string
+      model: string
+      createdAt: number
+      updatedAt: number
+    } | null> => ipcRenderer.invoke('videos:getReport', videoId),
+    generate: (input: {
+      creatorId: string
+      videoId: string
+      title: string
+      url: string
+      publishedAt?: number
+    }): Promise<{
+      ok: boolean
+      report?: {
+        id: string
+        creatorId: string
+        videoId: string
+        title: string
+        url: string
+        publishedAt?: number
+        durationSec?: number
+        language?: string
+        transcriptMd: string
+        summaryMd: string
+        model: string
+        createdAt: number
+        updatedAt: number
+      }
+      error?: string
+    }> => ipcRenderer.invoke('videos:generate', input),
+    removeReport: (videoId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('videos:removeReport', videoId)
+  },
+
   topics: {
     list: (): Promise<
       Array<{

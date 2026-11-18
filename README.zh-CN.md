@@ -103,6 +103,12 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 
 ![基于当天简报的 AI 对话](docs/assets/ui-chat.png)
 
+### 视频解读
+
+指定一个 YouTube 博主（`@handle` 或频道链接），从最近 12 条里手动选一期，生成一份本地 Markdown：
+值不值得看、带时间戳的核心观点、章节，以及完整字幕对话记录。只支持有字幕的视频，不做 ASR；
+对话记录保留字幕原文，模型只负责摘要，不改写原话。
+
 ### 升级提醒
 
 启动时查一次 GitHub 最新 Release（24 小时内不重复），有新版本时**侧栏底部**出现一条
@@ -224,7 +230,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**479 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**491 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

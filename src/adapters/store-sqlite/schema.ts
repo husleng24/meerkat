@@ -300,6 +300,39 @@ export const MIGRATIONS: Migration[] = [
         FOREIGN KEY (item_id)  REFERENCES items(id)   ON DELETE CASCADE
       );
     `
+  },
+  {
+    version: 10,
+    name: 'video_reports',
+    up: `
+      -- 用户指定 YouTube 博主；报告按视频缓存，避免重复烧模型。
+      CREATE TABLE video_creators (
+        id         TEXT PRIMARY KEY,
+        channel_id TEXT NOT NULL UNIQUE,
+        name       TEXT NOT NULL,
+        handle     TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE TABLE video_reports (
+        id           TEXT PRIMARY KEY,
+        creator_id   TEXT NOT NULL,
+        video_id     TEXT NOT NULL UNIQUE,
+        title        TEXT NOT NULL,
+        url          TEXT NOT NULL,
+        published_at INTEGER,
+        duration_sec INTEGER,
+        language     TEXT,
+        transcript_md TEXT NOT NULL,
+        summary_md    TEXT NOT NULL,
+        model        TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL,
+        FOREIGN KEY (creator_id) REFERENCES video_creators(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_video_reports_creator ON video_reports(creator_id, published_at DESC);
+    `
   }
 ]
 
