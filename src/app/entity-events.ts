@@ -60,6 +60,27 @@ export interface EntityPeriod {
   previousByEvent: Record<EntityEvent, number>
 }
 
+export interface EventTimelineItem {
+  id: string
+  title: string
+  url: string
+  summary: string
+  at: number
+  sourceName: string
+  event: EntityEvent
+}
+
+export interface EntityEventCluster {
+  /** 稳定 key：实体 + 事件类型 + 最早一条的日期；新内容进来但窗口不分裂时不变 */
+  key: string
+  title: string
+  event: EntityEvent
+  items: EventTimelineItem[]
+  sourceCount: number
+  latestAt: number
+  earliestAt: number
+}
+
 function emptyByEvent(): Record<EntityEvent, number> {
   return {
     funding: 0,
@@ -91,4 +112,65 @@ export function entityPeriods(items: Array<{ at: number; event: EntityEvent }>, 
     }
   }
   return { current, previous, currentByEvent, previousByEvent }
+}
+
+function dateOf(ts: number): string {
+  return new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
+}
+
+const STOP_TOKENS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'over', 'after', 'about',
+  'openai', 'anthropic', 'google', 'deepmind', 'microsoft', 'meta', 'nvidia', 'alibaba',
+  'introducing', 'introduces', 'announcing', 'announces', 'launch', 'launches', 'releases',
+  'release', 'update', 'updates', 'model', 'models', 'chatgpt', 'claude', 'gemini', 'llama',
+  'says', 'said', 'new', 'now', 'can', 'will', 'its', 'their', 'more', 'most', 'than',
+  'company', 'companies', 'year', 'week', 'today', 'report', 'reports'
+])
+
+function titleTokens(title: string): string[] {
+  return [...new Set((title.toLowerCase().match(/[a-z0-9][a-z0-9.+-]*/g) ?? []).filter((t) => t.length >= 3 && !STOP_TOKENS.has(t)))]
+}
+
+function sharesToken(a: string, b: string): boolean {
+  const at = titleTokens(a)
+  const bt = new Set(titleTokens(b))
+  return at.some((t) => bt.has(t))
+}
+
+/**
+ * 事件页：同一实体、同一事件类型、间隔不超过 3 天，且标题有共同实词的内容归为一组。
+ * 加实词重叠是为了避免把「ChatGPT for Accounting」「ChatGPT for Sales」合并成同一个事件。
+ */
+export function buildEntityEventClusters(
+  entityId: string,
+  items: EventTimelineItem[],
+  gapMs = 3 * 86_400_000
+): EntityEventCluster[] {
+  const sorted = [...items].sort((a, b) => b.at - a.at)
+  const byEvent = new Map<EntityEvent, EventTimelineItem[][]>()
+  for (const item of sorted) {
+    const groups = byEvent.get(item.event) ?? []
+    const target = groups.find(
+      (g) => g[0]!.at - item.at <= gapMs && (sharesToken(g[0]!.title, item.title) || titleTokens(g[0]!.title).length === 0)
+    )
+    if (target) target.push(item)
+    else groups.push([item])
+    byEvent.set(item.event, groups)
+  }
+  const groups = [...byEvent.values()].flat().sort((a, b) => b[0]!.at - a[0]!.at)
+  return groups.map((group) => {
+    const newest = group[0]!
+    const oldest = group[group.length - 1]!
+    const sources = new Set(group.map((i) => i.sourceName))
+    const anchor = titleTokens(oldest.title)[0] ?? oldest.id.slice(0, 8)
+    return {
+      key: `${entityId}:${newest.event}:${dateOf(oldest.at)}:${anchor}`,
+      title: newest.title,
+      event: newest.event,
+      items: group,
+      sourceCount: sources.size,
+      latestAt: newest.at,
+      earliestAt: oldest.at
+    }
+  })
 }

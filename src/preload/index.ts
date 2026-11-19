@@ -424,7 +424,67 @@ const api = {
         previousByEvent: Record<string, number>
       }
     }> => ipcRenderer.invoke('entities:timeline', input),
-    rebuild: (): Promise<{ ok: boolean; linked: number }> => ipcRenderer.invoke('entities:rebuild')
+    rebuild: (): Promise<{ ok: boolean; linked: number }> => ipcRenderer.invoke('entities:rebuild'),
+    create: (input: {
+      name: string
+      kind: 'company' | 'person' | 'org' | 'technology'
+      aliases: string[]
+    }): Promise<{ ok: boolean; entity?: unknown; error?: string }> => ipcRenderer.invoke('entities:create', input),
+    update: (input: {
+      id: string
+      name: string
+      kind: 'company' | 'person' | 'org' | 'technology'
+      aliases: string[]
+    }): Promise<{ ok: boolean; entity?: unknown; error?: string }> => ipcRenderer.invoke('entities:update', input),
+    remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('entities:remove', id)
+  },
+
+  events: {
+    list: (input: { entityId: string }): Promise<
+      Array<{
+        key: string
+        title: string
+        event: 'funding' | 'product' | 'layoff' | 'regulation' | 'security' | 'research' | 'partnership' | 'other'
+        items: Array<{
+          id: string
+          title: string
+          url: string
+          summary: string
+          at: number
+          sourceName: string
+          event: 'funding' | 'product' | 'layoff' | 'regulation' | 'security' | 'research' | 'partnership' | 'other'
+        }>
+        sourceCount: number
+        latestAt: number
+        earliestAt: number
+      }>
+    > => ipcRenderer.invoke('events:list', input),
+    get: (input: { entityId: string; key: string }): Promise<{
+      key: string
+      title: string
+      event: 'funding' | 'product' | 'layoff' | 'regulation' | 'security' | 'research' | 'partnership' | 'other'
+      items: Array<{
+        id: string
+        title: string
+        url: string
+        summary: string
+        at: number
+        sourceName: string
+        event: 'funding' | 'product' | 'layoff' | 'regulation' | 'security' | 'research' | 'partnership' | 'other'
+      }>
+      sourceCount: number
+      latestAt: number
+      earliestAt: number
+      decisions: Array<{ itemId: string; note: string; verifyAt?: number; createdAt: number; updatedAt: number }>
+      note: { eventKey: string; note: string; createdAt: number; updatedAt: number } | null
+    } | null> => ipcRenderer.invoke('events:get', input),
+    noteSave: (input: { eventKey: string; note: string }): Promise<{
+      ok: boolean
+      note?: { eventKey: string; note: string; createdAt: number; updatedAt: number }
+      error?: string
+    }> => ipcRenderer.invoke('events:noteSave', input),
+    noteRemove: (eventKey: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('events:noteRemove', eventKey)
   },
 
   topics: {

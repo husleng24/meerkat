@@ -206,6 +206,14 @@ export interface Entity {
   updatedAt: number
 }
 
+/** 事件页上的判断，按稳定的 eventKey 存 */
+export interface EventNote {
+  eventKey: string
+  note: string
+  createdAt: number
+  updatedAt: number
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string

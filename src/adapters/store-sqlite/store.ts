@@ -2,12 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore
+  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore, EventNoteStore
 } from '../../core/ports/store'
 import type {
   Domain,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
-  VideoCreator, VideoReport, DecisionNote, Entity
+  VideoCreator, VideoReport, DecisionNote, Entity, EventNote
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -72,6 +72,10 @@ interface DecisionRow {
 interface EntityRow {
   id: string; name: string; kind: string; aliases_json: string
   created_at: number; updated_at: number
+}
+
+interface EventNoteRow {
+  event_key: string; note: string; created_at: number; updated_at: number
 }
 
 interface ChatMessageRow {
@@ -208,6 +212,13 @@ const toEntity = (r: EntityRow): Entity => ({
   name: r.name,
   kind: r.kind as Entity['kind'],
   aliases: safeParseArray(r.aliases_json),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toEventNote = (r: EventNoteRow): EventNote => ({
+  eventKey: r.event_key,
+  note: r.note,
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -1089,6 +1100,34 @@ class SqliteEntityStore implements EntityStore {
   }
 }
 
+class SqliteEventNoteStore implements EventNoteStore {
+  constructor(private db: DB) {}
+
+  get(eventKey: string): EventNote | undefined {
+    const r = this.db.prepare('SELECT * FROM event_notes WHERE event_key = ?').get(eventKey) as EventNoteRow | undefined
+    return r ? toEventNote(r) : undefined
+  }
+
+  upsert(note: EventNote): void {
+    this.db
+      .prepare(
+        `INSERT INTO event_notes (event_key,note,created_at,updated_at)
+         VALUES (@event_key,@note,@created_at,@updated_at)
+         ON CONFLICT(event_key) DO UPDATE SET note=excluded.note, updated_at=excluded.updated_at`
+      )
+      .run({
+        event_key: note.eventKey,
+        note: note.note,
+        created_at: note.createdAt,
+        updated_at: note.updatedAt
+      })
+  }
+
+  remove(eventKey: string): void {
+    this.db.prepare('DELETE FROM event_notes WHERE event_key = ?').run(eventKey)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -1103,6 +1142,7 @@ class SqliteStore implements Store {
   readonly videos: VideoStore
   readonly decisions: DecisionStore
   readonly entities: EntityStore
+  readonly eventNotes: EventNoteStore
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
@@ -1118,6 +1158,7 @@ class SqliteStore implements Store {
     this.videos = new SqliteVideoStore(db)
     this.decisions = new SqliteDecisionStore(db)
     this.entities = new SqliteEntityStore(db)
+    this.eventNotes = new SqliteEventNoteStore(db)
   }
 
   schemaVersion(): number {

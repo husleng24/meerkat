@@ -372,6 +372,20 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_item_entities_item ON item_entities(item_id);
     `
+  },
+  {
+    version: 13,
+    name: 'event_notes',
+    up: `
+      -- 事件页上的判断；key 由实体 + 事件类型 + 起始日期生成，不依赖模型重跑。
+      CREATE TABLE event_notes (
+        event_key  TEXT PRIMARY KEY,
+        note       TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_event_notes_updated ON event_notes(updated_at DESC);
+    `
   }
 ]
 

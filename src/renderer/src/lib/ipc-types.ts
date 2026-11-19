@@ -376,10 +376,45 @@ export interface EntityTimelinePayload {
   period: EntityPeriodPayload
 }
 
+export interface EntityInputPayload {
+  name: string
+  kind: EntityPayload['kind']
+  aliases: string[]
+}
+
+export interface EventClusterPayload {
+  key: string
+  title: string
+  event: EntityEvent
+  items: EntityTimelineItemPayload[]
+  sourceCount: number
+  latestAt: number
+  earliestAt: number
+}
+
+export interface EventDetailPayload extends EventClusterPayload {
+  decisions: DecisionNotePayload[]
+  note: { eventKey: string; note: string; createdAt: number; updatedAt: number } | null
+}
+
+export interface EventsBridge {
+  list: (input: { entityId: string }) => Promise<EventClusterPayload[]>
+  get: (input: { entityId: string; key: string }) => Promise<EventDetailPayload | null>
+  noteSave: (input: { eventKey: string; note: string }) => Promise<{
+    ok: boolean
+    note?: { eventKey: string; note: string; createdAt: number; updatedAt: number }
+    error?: string
+  }>
+  noteRemove: (eventKey: string) => Promise<{ ok: boolean; error?: string }>
+}
+
 export interface EntitiesBridge {
   list: () => Promise<EntityPayload[]>
   items: (input: { id: string; limit?: number }) => Promise<EntityItemPayload[]>
   timeline: (input: { id: string; limit?: number }) => Promise<EntityTimelinePayload>
+  create: (input: EntityInputPayload) => Promise<{ ok: boolean; entity?: EntityPayload; error?: string }>
+  update: (input: EntityInputPayload & { id: string }) => Promise<{ ok: boolean; entity?: EntityPayload; error?: string }>
+  remove: (id: string) => Promise<{ ok: boolean; error?: string }>
   rebuild: () => Promise<{ ok: boolean; linked: number }>
 }
 
@@ -509,6 +544,7 @@ export interface MeerkatBridge {
   email?: EmailBridge
   share?: ShareBridge
   entities?: EntitiesBridge
+  events?: EventsBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

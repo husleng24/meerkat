@@ -130,3 +130,66 @@ export function bootstrapEntities(store: Store): number {
   if (added > 0 || store.entities.linkCount() === 0) rebuildEntityIndex(store)
   return added
 }
+
+export interface EntityInput {
+  name: string
+  kind: EntityKind
+  aliases: string[]
+}
+
+function cleanAliases(name: string, aliases: string[]): string[] {
+  return [...new Set([name, ...aliases.map((a) => a.trim()).filter(Boolean)])].slice(0, 30)
+}
+
+function makeEntityId(store: Store, name: string): string {
+  const base = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32)
+  let id = `custom-${base || Date.now().toString(36)}`
+  let n = 2
+  while (store.entities.get(id)) id = `custom-${base || 'entity'}-${n++}`
+  return id
+}
+
+export function createEntity(store: Store, input: EntityInput): { ok: boolean; entity?: Entity; error?: string } {
+  const name = input.name.trim()
+  if (name.length < 2 || name.length > 60) return { ok: false, error: '实体名需要 2–60 个字符' }
+  if (store.entities.list().some((e) => e.name.toLowerCase() === name.toLowerCase())) {
+    return { ok: false, error: '同名实体已存在' }
+  }
+  const now = Date.now()
+  const entity: Entity = {
+    id: makeEntityId(store, name),
+    name,
+    kind: input.kind,
+    aliases: cleanAliases(name, input.aliases),
+    createdAt: now,
+    updatedAt: now
+  }
+  store.entities.upsert(entity)
+  rebuildEntityIndex(store)
+  return { ok: true, entity }
+}
+
+export function updateEntity(store: Store, id: string, input: EntityInput): { ok: boolean; entity?: Entity; error?: string } {
+  const old = store.entities.get(id)
+  if (!old) return { ok: false, error: '实体不存在' }
+  const name = input.name.trim()
+  if (name.length < 2 || name.length > 60) return { ok: false, error: '实体名需要 2–60 个字符' }
+  if (store.entities.list().some((e) => e.id !== id && e.name.toLowerCase() === name.toLowerCase())) {
+    return { ok: false, error: '同名实体已存在' }
+  }
+  const entity: Entity = {
+    ...old,
+    name,
+    kind: input.kind,
+    aliases: cleanAliases(name, input.aliases),
+    updatedAt: Date.now()
+  }
+  store.entities.upsert(entity)
+  rebuildEntityIndex(store)
+  return { ok: true, entity }
+}
+

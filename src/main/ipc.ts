@@ -21,8 +21,8 @@ import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { seedVideoTopic } from '../app/seed-video-topic'
 import { bootstrapEntities } from '../app/entities'
-import { rebuildEntityIndex } from '../app/entities'
-import { classifyEntityEvent, entityPeriods } from '../app/entity-events'
+import { createEntity, updateEntity, rebuildEntityIndex } from '../app/entities'
+import { buildEntityEventClusters, classifyEntityEvent, entityPeriods } from '../app/entity-events'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -1419,6 +1419,28 @@ export function registerIpc(): void {
   })
 
   // ── 实体记忆：公司/人物与内容的倒排 ──────────────────────────
+  const timelineFor = (id: string) => {
+    const store = requireStore()
+    const sources = new Map(store.sources.list().map((s) => [s.id, s.name]))
+    return store.entities
+      .itemIds(id)
+      .slice(0, 1000)
+      .map((itemId) => store.items.get(itemId))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x))
+      .map((i) => {
+        const at = i.publishedAt ?? i.fetchedAt
+        return {
+          id: i.id,
+          title: i.title,
+          url: i.url,
+          summary: i.summary,
+          at,
+          sourceName: sources.get(i.sourceId) ?? i.sourceId,
+          event: classifyEntityEvent(i.title, i.summary)
+        }
+      })
+  }
+
   ipcMain.handle('entities:list', () => {
     const store = requireStore()
     const counts = new Map(store.entities.counts().map((c) => [c.entityId, c]))
@@ -1461,28 +1483,89 @@ export function registerIpc(): void {
   ipcMain.handle('entities:timeline', (_e, raw: unknown) => {
     const parsed = z.object({ id: z.string().min(1).max(100), limit: z.number().int().min(1).max(300).optional() }).safeParse(raw)
     if (!parsed.success) return { items: [], period: entityPeriods([]) }
-    const store = requireStore()
-    const sources = new Map(store.sources.list().map((s) => [s.id, s.name]))
-    const mapped = store.entities
-      .itemIds(parsed.data.id)
-      .slice(0, 1000)
-      .map((id) => store.items.get(id))
-      .filter((x): x is NonNullable<typeof x> => Boolean(x))
-      .map((i) => {
-        const at = i.publishedAt ?? i.fetchedAt
-        return {
-          id: i.id,
-          title: i.title,
-          url: i.url,
-          summary: i.summary,
-          at,
-          sourceName: sources.get(i.sourceId) ?? i.sourceId,
-          event: classifyEntityEvent(i.title, i.summary)
-        }
-      })
+    const mapped = timelineFor(parsed.data.id)
     return {
       items: mapped.slice(0, parsed.data.limit ?? 120),
       period: entityPeriods(mapped)
     }
+  })
+
+  ipcMain.handle('entities:create', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ name: z.string().min(1).max(80), kind: z.enum(['company', 'person', 'org', 'technology']), aliases: z.array(z.string().max(80)).max(30) })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return createEntity(requireStore(), parsed.data)
+  })
+
+  ipcMain.handle('entities:update', (_e, raw: unknown) => {
+    const parsed = z
+      .object({
+        id: z.string().min(1).max(100),
+        name: z.string().min(1).max(80),
+        kind: z.enum(['company', 'person', 'org', 'technology']),
+        aliases: z.array(z.string().max(80)).max(30)
+      })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return updateEntity(requireStore(), parsed.data.id, parsed.data)
+  })
+
+  ipcMain.handle('entities:remove', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(100).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    if (!store.entities.get(parsed.data)) return { ok: false, error: '实体不存在' }
+    store.entities.remove(parsed.data)
+    return { ok: true }
+  })
+
+  // ── 事件页：由实体 + 事件类型 + 3 天窗口聚合 ────────────────
+  ipcMain.handle('events:list', (_e, raw: unknown) => {
+    const parsed = z.object({ entityId: z.string().min(1).max(100) }).safeParse(raw)
+    if (!parsed.success) return []
+    // 「其他」是兜底桶，不适合作为事件卡；事件页只展示有明确类型的内容。
+    return buildEntityEventClusters(parsed.data.entityId, timelineFor(parsed.data.entityId))
+      .filter((c) => c.event !== 'other')
+      .sort((a, b) => b.items.length - a.items.length || b.latestAt - a.latestAt)
+  })
+
+  ipcMain.handle('events:get', (_e, raw: unknown) => {
+    const parsed = z.object({ entityId: z.string().min(1).max(100), key: z.string().min(1).max(200) }).safeParse(raw)
+    if (!parsed.success) return null
+    const store = requireStore()
+    const cluster = buildEntityEventClusters(parsed.data.entityId, timelineFor(parsed.data.entityId)).find(
+      (c) => c.key === parsed.data.key
+    )
+    if (!cluster) return null
+    const ids = cluster.items.map((i) => i.id)
+    return {
+      ...cluster,
+      decisions: store.decisions.listByIds(ids),
+      note: store.eventNotes.get(cluster.key) ?? null
+    }
+  })
+
+  ipcMain.handle('events:noteSave', (_e, raw: unknown) => {
+    const parsed = z.object({ eventKey: z.string().min(1).max(200), note: z.string().trim().min(1).max(2000) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    const old = store.eventNotes.get(parsed.data.eventKey)
+    const now = Date.now()
+    const note = {
+      eventKey: parsed.data.eventKey,
+      note: parsed.data.note,
+      createdAt: old?.createdAt ?? now,
+      updatedAt: now
+    }
+    store.eventNotes.upsert(note)
+    return { ok: true, note }
+  })
+
+  ipcMain.handle('events:noteRemove', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(200).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().eventNotes.remove(parsed.data)
+    return { ok: true }
   })
 }

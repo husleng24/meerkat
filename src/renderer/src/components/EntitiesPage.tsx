@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { EntityEvent, EntityPayload, EntityTimelinePayload } from '../lib/ipc-types'
+import type { EntityEvent, EntityInputPayload, EntityPayload, EntityTimelinePayload, EventClusterPayload } from '../lib/ipc-types'
+import { EventPage } from './EventPage'
 
 const KIND_LABEL: Record<EntityPayload['kind'], string> = {
   company: '公司',
@@ -30,20 +31,31 @@ const EVENT_STYLE: Record<EntityEvent, string> = {
   other: 'bg-cream text-ink-2'
 }
 
+interface EditorState {
+  id?: string
+  name: string
+  kind: EntityPayload['kind']
+  aliases: string
+}
+
 function day(ts: number | undefined): string {
   return ts ? new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' }) : '时间未知'
 }
 
-/** 实体页：把「一条条内容」按公司/人物重新聚合，再按事件类型切开。 */
+/** 实体页：公司/人物档案、事件卡、事件页入口、手动维护实体。 */
 export function EntitiesPage(): React.JSX.Element {
   const [entities, setEntities] = useState<EntityPayload[] | null>(null)
   const [selected, setSelected] = useState('')
   const [timeline, setTimeline] = useState<EntityTimelinePayload | null>(null)
+  const [events, setEvents] = useState<EventClusterPayload[]>([])
+  const [eventKey, setEventKey] = useState('')
   const [query, setQuery] = useState('')
   const [eventFilter, setEventFilter] = useState<EntityEvent | 'all'>('all')
   const [loadingItems, setLoadingItems] = useState(false)
+  const [editor, setEditor] = useState<EditorState | null>(null)
+  const [editorError, setEditorError] = useState('')
 
-  const load = async (): Promise<void> => {
+  const load = async (pick?: string): Promise<void> => {
     const api = window.meerkat?.entities
     if (!api) {
       setEntities([])
@@ -51,7 +63,7 @@ export function EntitiesPage(): React.JSX.Element {
     }
     const rows = await api.list()
     setEntities(rows)
-    setSelected((prev) => prev || rows[0]?.id || '')
+    setSelected((prev) => pick ?? (prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id || ''))
   }
 
   useEffect(() => {
@@ -61,17 +73,28 @@ export function EntitiesPage(): React.JSX.Element {
   useEffect(() => {
     if (!selected) {
       setTimeline(null)
+      setEvents([])
       return
     }
     let cancelled = false
     setLoadingItems(true)
     setEventFilter('all')
-    void window.meerkat?.entities
-      ?.timeline({ id: selected, limit: 150 })
-      .then((r) => {
-        if (!cancelled) setTimeline(r)
+    setEventKey('')
+    void Promise.all([
+      window.meerkat?.entities?.timeline({ id: selected, limit: 150 }),
+      window.meerkat?.events?.list({ entityId: selected })
+    ])
+      .then(([t, e]) => {
+        if (cancelled) return
+        setTimeline(t ?? null)
+        setEvents(e ?? [])
       })
-      .catch(() => setTimeline(null))
+      .catch(() => {
+        if (!cancelled) {
+          setTimeline(null)
+          setEvents([])
+        }
+      })
       .finally(() => {
         if (!cancelled) setLoadingItems(false)
       })
@@ -103,10 +126,41 @@ export function EntitiesPage(): React.JSX.Element {
     return [...map.entries()]
   }, [items])
 
+  const saveEntity = async (): Promise<void> => {
+    const api = window.meerkat?.entities
+    if (!api || !editor) return
+    const input: EntityInputPayload = {
+      name: editor.name,
+      kind: editor.kind,
+      aliases: editor.aliases
+        .split(/[,，、\n]/)
+        .map((a) => a.trim())
+        .filter(Boolean)
+    }
+    const r = editor.id ? await api.update({ ...input, id: editor.id }) : await api.create(input)
+    if (!r.ok || !r.entity) {
+      setEditorError(r.error ?? '保存失败')
+      return
+    }
+    const id = (r.entity as EntityPayload).id
+    setEditor(null)
+    setEditorError('')
+    await load(id)
+  }
+
+  const removeEntity = async (): Promise<void> => {
+    if (!current || !window.confirm(`删除实体「${current.name}」？相关判断仍会保留。`)) return
+    const r = await window.meerkat?.entities?.remove(current.id)
+    if (!r?.ok) return
+    setSelected('')
+    await load()
+  }
+
+  if (eventKey && selected) return <EventPage entityId={selected} eventKey={eventKey} onBack={() => setEventKey('')} />
+  if (entities === null) return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
+
   const period = timeline?.period
   const delta = period ? period.current - period.previous : 0
-
-  if (entities === null) return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
 
   return (
     <div className="mx-auto flex max-w-[1100px] gap-5 px-8 pb-24 pt-7">
@@ -117,13 +171,22 @@ export function EntitiesPage(): React.JSX.Element {
             公司、人物与内容的关系。基于本地词表匹配，不靠模型编造。
           </p>
         </div>
+        <button
+          onClick={() => {
+            setEditorError('')
+            setEditor({ name: '', kind: 'company', aliases: '' })
+          }}
+          className="mb-2 w-full rounded-lg border border-cream px-3 py-1.5 text-[11px] text-ink-2 hover:border-accent"
+        >
+          ＋ 新增实体
+        </button>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="搜索公司 / 人物"
           className="mb-2 w-full rounded-lg border border-cream bg-white px-3 py-1.5 text-[11.5px] outline-none focus:border-accent"
         />
-        <div className="max-h-[calc(100vh-220px)] space-y-1 overflow-y-auto pr-1">
+        <div className="max-h-[calc(100vh-280px)] space-y-1 overflow-y-auto pr-1">
           {filtered.map((e) => (
             <button
               key={e.id}
@@ -156,6 +219,20 @@ export function EntitiesPage(): React.JSX.Element {
                 <h2 className="text-[26px] font-bold tracking-[-0.03em] text-ink">{current.name}</h2>
                 <span className="rounded-full bg-cream px-2 py-0.5 text-[10px] text-ink-2">{KIND_LABEL[current.kind]}</span>
                 <span className="text-[11px] text-ink-3">{current.count} 条相关</span>
+                <span className="ml-auto flex gap-2 text-[10.5px]">
+                  <button
+                    onClick={() => {
+                      setEditorError('')
+                      setEditor({ id: current.id, name: current.name, kind: current.kind, aliases: current.aliases.join('、') })
+                    }}
+                    className="text-ink-3 hover:text-accent"
+                  >
+                    编辑
+                  </button>
+                  <button onClick={() => void removeEntity()} className="text-ink-3 hover:text-alert">
+                    删除
+                  </button>
+                </span>
               </div>
               <p className="mt-1 text-[11px] text-ink-3">
                 别名：{current.aliases.join('、')}
@@ -181,6 +258,29 @@ export function EntitiesPage(): React.JSX.Element {
                   </p>
                 </div>
               </div>
+            )}
+
+            {events.length > 0 && (
+              <section className="mb-4">
+                <h3 className="mb-2 text-[11px] font-semibold text-ink-3">事件</h3>
+                <div className="grid gap-1.5 sm:grid-cols-2">
+                  {events.slice(0, 8).map((e) => (
+                    <button
+                      key={e.key}
+                      onClick={() => setEventKey(e.key)}
+                      className="card px-3 py-2 text-left transition-colors hover:border-accent/40"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className={`rounded px-1.5 py-0.5 text-[9px] ${EVENT_STYLE[e.event]}`}>{EVENT_LABEL[e.event]}</span>
+                        <span className="text-[9.5px] text-ink-3">
+                          {day(e.earliestAt)} · {e.items.length} 条 · {e.sourceCount} 来源
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-[11.5px] font-medium leading-4 text-ink">{e.title}</p>
+                    </button>
+                  ))}
+                </div>
+              </section>
             )}
 
             <div className="mb-4 flex flex-wrap gap-1.5">
@@ -246,6 +346,54 @@ export function EntitiesPage(): React.JSX.Element {
           <div className="card px-5 py-10 text-center text-[12px] text-ink-3">选择一个实体查看它的内容时间线。</div>
         )}
       </main>
+
+      {editor && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/20 px-4" onClick={() => setEditor(null)}>
+          <div className="w-full max-w-[420px] rounded-2xl bg-paper p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-[15px] font-semibold text-ink">{editor.id ? '编辑实体' : '新增实体'}</h2>
+            <label className="mt-3 block text-[10.5px] text-ink-3">
+              名称
+              <input
+                autoFocus
+                value={editor.name}
+                onChange={(e) => setEditor({ ...editor, name: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <label className="mt-2 block text-[10.5px] text-ink-3">
+              类型
+              <select
+                value={editor.kind}
+                onChange={(e) => setEditor({ ...editor, kind: e.target.value as EntityPayload['kind'] })}
+                className="mt-1 w-full rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
+              >
+                <option value="company">公司</option>
+                <option value="person">人物</option>
+                <option value="org">机构</option>
+                <option value="technology">技术</option>
+              </select>
+            </label>
+            <label className="mt-2 block text-[10.5px] text-ink-3">
+              别名（用逗号分隔）
+              <input
+                value={editor.aliases}
+                onChange={(e) => setEditor({ ...editor, aliases: e.target.value })}
+                placeholder="例如 GPT-6.2、ChatGPT"
+                className="mt-1 w-full rounded-lg border border-cream bg-white px-3 py-1.5 text-[12px] text-ink outline-none focus:border-accent"
+              />
+            </label>
+            {editorError && <p className="mt-2 text-[10.5px] text-alert">{editorError}</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setEditor(null)} className="rounded-lg border border-cream px-3 py-1.5 text-[11px] text-ink-2">
+                取消
+              </button>
+              <button onClick={() => void saveEntity()} className="rounded-lg bg-ink px-3 py-1.5 text-[11px] text-paper">
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
