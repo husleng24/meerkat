@@ -249,7 +249,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **491 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **493 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

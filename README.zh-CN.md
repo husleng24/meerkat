@@ -231,7 +231,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**491 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**493 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

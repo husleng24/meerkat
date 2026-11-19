@@ -19,6 +19,7 @@ import { applyImport, buildPack, parsePack, planImport } from '../app/source-pac
 import { parseBriefTrace } from '../app/brief-trace'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
+import { seedVideoTopic } from '../app/seed-video-topic'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -272,6 +273,8 @@ export function initStore(dbPath: string): Store {
   seedSources(store)
   // 首次运行：把 35 个源挂到默认主题上（只做一次，用户删掉的不会复活）
   seedDefaultMembership(store)
+  // 预置「YouTube 博主」主题；在默认归属之后执行，避免新源被挂进 AI 综合
+  seedVideoTopic(store)
   return store
 }
 

@@ -366,8 +366,11 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
   })
 
   it('topics:remove 拒绝删掉最后一个主题', () => {
-    // 现在有 ai 和 chip；先删 chip，再删 ai 必须被拦住
-    expect(call('topics:remove', 'chip')).toEqual({ ok: true })
+    // 测试库现在还预置了 YouTube 博主；先清掉 ai 以外的主题，再删 ai 必须被拦住
+    const before = call('topics:list') as Array<{ id: string }>
+    for (const t of before) {
+      if (t.id !== 'ai') expect(call('topics:remove', t.id)).toEqual({ ok: true })
+    }
     expect(call('topics:remove', 'ai')).toEqual({ ok: false, error: '至少要保留一个主题' })
   })
 
