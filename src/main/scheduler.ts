@@ -14,6 +14,7 @@ import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 import { beginRun, cancelRun, endRun, isRunning } from './run-control'
 import type { DailyOutcome } from './daily'
+import { deliverBriefPush } from './push'
 
 const CHECK_INTERVAL_MS = 60_000
 const LAST_RUN_KEY = 'schedule.lastRunAt'
@@ -140,6 +141,15 @@ export class Scheduler {
           `链接 ${out.linkCheck.good}/${out.linkCheck.total}`
       )
       this.notify(out.title, out.degraded, out.noChange ? '今天没有值得改变判断的变化' : undefined)
+      const latest = out.save.write ? this.deps.store.briefs.latest(topic.id) : undefined
+      if (latest) {
+        void deliverBriefPush(this.deps.store, topic.name, latest.date, latest.markdown, out.noChange)
+          .then((r) => {
+            if (!r.ok && !r.skipped) log('warn', `推送失败（${topic.name}）：${r.error ?? '未知错误'}`)
+            else if (r.ok) log('info', `推送已发送（${topic.name}）`)
+          })
+          .catch((e) => log('warn', `推送异常（${topic.name}）：${e instanceof Error ? e.message : String(e)}`))
+      }
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)

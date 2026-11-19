@@ -332,6 +332,24 @@ const api = {
       ipcRenderer.invoke('decisions:remove', itemId)
   },
 
+  push: {
+    get: (): Promise<{
+      enabled: boolean
+      webhookUrl: string
+      platform: 'feishu' | 'slack' | 'discord' | 'generic'
+      lastAt?: number
+      lastError?: string
+    }> => ipcRenderer.invoke('push:get'),
+    set: (config: {
+      enabled: boolean
+      webhookUrl: string
+      platform: 'feishu' | 'slack' | 'discord' | 'generic'
+    }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('push:set', config),
+    test: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('push:test'),
+    detect: (url: string): Promise<{ platform: 'feishu' | 'slack' | 'discord' | 'generic' }> =>
+      ipcRenderer.invoke('push:detect', url)
+  },
+
   topics: {
     list: (): Promise<
       Array<{

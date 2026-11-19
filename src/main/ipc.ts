@@ -29,6 +29,16 @@ import { extractBriefSummary } from '../app/brief-summary'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
+  buildPushText,
+  detectPlatform,
+  isValidWebhook,
+  readPushConfig,
+  readPushState,
+  savePushConfig,
+  sendPush,
+  type PushPlatform
+} from './push'
+import {
   chatModels,
   defaultChatModel,
   ensureItemThread,
@@ -1292,5 +1302,48 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     requireStore().decisions.remove(parsed.data)
     return { ok: true }
+  })
+
+  // ── 推送：每日简报 -> 飞书/Slack/Discord webhook ────────────
+  const pushConfigSchema = z.object({
+    enabled: z.boolean(),
+    webhookUrl: z.string().max(2000),
+    platform: z.enum(['feishu', 'slack', 'discord', 'generic'])
+  })
+
+  ipcMain.handle('push:get', () => readPushState(requireStore()))
+
+  ipcMain.handle('push:set', (_e, raw: unknown) => {
+    const parsed = pushConfigSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    if (parsed.data.enabled && !isValidWebhook(parsed.data.webhookUrl)) {
+      return { ok: false, error: '请填写 http(s) webhook 地址' }
+    }
+    savePushConfig(requireStore(), parsed.data)
+    return { ok: true }
+  })
+
+  ipcMain.handle('push:test', async () => {
+    const store = requireStore()
+    const config = readPushConfig(store)
+    if (!config.webhookUrl) return { ok: false, error: '还没有配置 webhook' }
+    const text = `Meerkat 推送测试 · ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n连通性正常，今天的简报会在完成后送到这里。`
+    const result = await sendPush(config, text)
+    store.settings.set('push.lastAt', Date.now())
+    store.settings.set('push.lastError', result.ok ? '' : (result.error ?? '推送失败'))
+    return result
+  })
+
+  ipcMain.handle('push:detect', (_e, raw: unknown) => {
+    const parsed = z.string().max(2000).safeParse(raw)
+    if (!parsed.success) return { platform: 'generic' as PushPlatform }
+    return { platform: detectPlatform(parsed.data) }
+  })
+
+  // 供内部/测试：生成一条预览文本，不发送
+  ipcMain.handle('push:preview', (_e, raw: unknown) => {
+    const parsed = z.object({ topicName: z.string(), date: z.string(), markdown: z.string(), noChange: z.boolean() }).safeParse(raw)
+    if (!parsed.success) return ''
+    return buildPushText(parsed.data.topicName, parsed.data.date, parsed.data.markdown, parsed.data.noChange)
   })
 }

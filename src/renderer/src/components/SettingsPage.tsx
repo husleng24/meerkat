@@ -5,6 +5,7 @@ import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
 import { TopicManager } from './TopicManager'
+import { PushPanel } from './PushPanel'
 import { ChatMarkdown } from './ChatMarkdown'
 import { DomainManager } from './DomainManager'
 import type { DomainPayload, TopicPayload, UpdateCheckPayload } from '../lib/ipc-types'
@@ -301,6 +302,14 @@ export function SettingsPage({
             </span>
           </div>
         </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">每日推送</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          简报完成后把三句话速览发到飞书、Slack 或 Discord；没有变化也会发一条，让你知道「今天不用看」。
+        </p>
+        <PushPanel />
       </section>
 
       <section ref={sourcesRef} className="mb-8 scroll-mt-6">

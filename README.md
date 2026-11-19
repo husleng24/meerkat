@@ -127,6 +127,12 @@ On any brief item, write a short local note: what it changes, what you plan to d
 prove you wrong. The weekly review collects the last seven days of notes alongside brief/no-change
 counts, so the product is not only a reading surface but a decision log. Notes stay in local SQLite.
 
+### Daily push
+
+The settings page can deliver each scheduled brief to a Feishu, Slack, Discord, or generic webhook:
+three highlights when something changed, one honest line when nothing did. Webhook URLs stay in the
+local SQLite database; there is no mail server or account.
+
 ### Update notice
 
 On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
@@ -255,7 +261,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **495 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **501 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

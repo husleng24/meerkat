@@ -277,6 +277,23 @@ export interface DecisionsBridge {
   remove: (itemId: string) => Promise<{ ok: boolean; error?: string }>
 }
 
+export type PushPlatform = 'feishu' | 'slack' | 'discord' | 'generic'
+
+export interface PushStatePayload {
+  enabled: boolean
+  webhookUrl: string
+  platform: PushPlatform
+  lastAt?: number
+  lastError?: string
+}
+
+export interface PushBridge {
+  get: () => Promise<PushStatePayload>
+  set: (config: { enabled: boolean; webhookUrl: string; platform: PushPlatform }) => Promise<{ ok: boolean; error?: string }>
+  test: () => Promise<{ ok: boolean; error?: string }>
+  detect: (url: string) => Promise<{ platform: PushPlatform }>
+}
+
 export interface VideosBridge {
   creators: () => Promise<VideoCreatorPayload[]>
   addCreator: (input: string) => Promise<{
@@ -399,6 +416,7 @@ export interface MeerkatBridge {
   chat?: ChatBridge
   videos?: VideosBridge
   decisions?: DecisionsBridge
+  push?: PushBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>
