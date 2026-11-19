@@ -344,9 +344,42 @@ export interface EntityItemPayload {
   sourceName: string
 }
 
+export type EntityEvent =
+  | 'funding'
+  | 'product'
+  | 'layoff'
+  | 'regulation'
+  | 'security'
+  | 'research'
+  | 'partnership'
+  | 'other'
+
+export interface EntityTimelineItemPayload {
+  id: string
+  title: string
+  url: string
+  summary: string
+  at: number
+  sourceName: string
+  event: EntityEvent
+}
+
+export interface EntityPeriodPayload {
+  current: number
+  previous: number
+  currentByEvent: Record<EntityEvent, number>
+  previousByEvent: Record<EntityEvent, number>
+}
+
+export interface EntityTimelinePayload {
+  items: EntityTimelineItemPayload[]
+  period: EntityPeriodPayload
+}
+
 export interface EntitiesBridge {
   list: () => Promise<EntityPayload[]>
   items: (input: { id: string; limit?: number }) => Promise<EntityItemPayload[]>
+  timeline: (input: { id: string; limit?: number }) => Promise<EntityTimelinePayload>
   rebuild: () => Promise<{ ok: boolean; linked: number }>
 }
 

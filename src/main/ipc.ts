@@ -22,6 +22,7 @@ import { seedDefaultMembership } from '../app/topics'
 import { seedVideoTopic } from '../app/seed-video-topic'
 import { bootstrapEntities } from '../app/entities'
 import { rebuildEntityIndex } from '../app/entities'
+import { classifyEntityEvent, entityPeriods } from '../app/entity-events'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -1455,5 +1456,33 @@ export function registerIpc(): void {
     const store = requireStore()
     const n = rebuildEntityIndex(store)
     return { ok: true, linked: n }
+  })
+
+  ipcMain.handle('entities:timeline', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(100), limit: z.number().int().min(1).max(300).optional() }).safeParse(raw)
+    if (!parsed.success) return { items: [], period: entityPeriods([]) }
+    const store = requireStore()
+    const sources = new Map(store.sources.list().map((s) => [s.id, s.name]))
+    const mapped = store.entities
+      .itemIds(parsed.data.id)
+      .slice(0, 1000)
+      .map((id) => store.items.get(id))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x))
+      .map((i) => {
+        const at = i.publishedAt ?? i.fetchedAt
+        return {
+          id: i.id,
+          title: i.title,
+          url: i.url,
+          summary: i.summary,
+          at,
+          sourceName: sources.get(i.sourceId) ?? i.sourceId,
+          event: classifyEntityEvent(i.title, i.summary)
+        }
+      })
+    return {
+      items: mapped.slice(0, parsed.data.limit ?? 120),
+      period: entityPeriods(mapped)
+    }
   })
 }

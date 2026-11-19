@@ -407,6 +407,23 @@ const api = {
         sourceName: string
       }>
     > => ipcRenderer.invoke('entities:items', input),
+    timeline: (input: { id: string; limit?: number }): Promise<{
+      items: Array<{
+        id: string
+        title: string
+        url: string
+        summary: string
+        at: number
+        sourceName: string
+        event: 'funding' | 'product' | 'layoff' | 'regulation' | 'security' | 'research' | 'partnership' | 'other'
+      }>
+      period: {
+        current: number
+        previous: number
+        currentByEvent: Record<string, number>
+        previousByEvent: Record<string, number>
+      }
+    }> => ipcRenderer.invoke('entities:timeline', input),
     rebuild: (): Promise<{ ok: boolean; linked: number }> => ipcRenderer.invoke('entities:rebuild')
   },
 

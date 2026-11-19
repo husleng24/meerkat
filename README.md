@@ -145,7 +145,9 @@ expires after 30 minutes or when sharing stops. Nothing is uploaded.
 **Entities** groups the archive by company/person instead of by day: OpenAI, Anthropic, NVIDIA,
 Sam Altman, Jensen Huang, and 34 more. Matching uses a local alias catalogue, not model extraction;
 the page shows a dated timeline of related items and their sources. The index is rebuilt on first
-launch and incremented after each daily run.
+launch and incremented after each daily run. Items are also tagged by rule-based event type
+(funding/product/layoff/regulation/security/research/partnership), with a this-week-vs-last-week
+count.
 
 ### Update notice
 
@@ -275,7 +277,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **510 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **514 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

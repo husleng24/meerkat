@@ -131,7 +131,8 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 
 「实体」按公司/人物而不是按天重新聚合档案：OpenAI、Anthropic、NVIDIA、Sam Altman、Jensen Huang
 等 40 个实体。匹配使用本地别名词表，不靠模型抽取；页面显示按日期排列的相关内容和来源。
-首次启动回填历史，日报完成后增量索引。
+首次启动回填历史，日报完成后增量索引。内容还会按规则打上融资/产品/裁员/监管/安全/研究/合作标签，
+并给出本周 vs 上周的数量对比。
 
 ### 升级提醒
 
@@ -254,7 +255,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**510 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**514 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |
