@@ -2,12 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore, VideoStore
+  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore
 } from '../../core/ports/store'
 import type {
   Domain,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
-  VideoCreator, VideoReport
+  VideoCreator, VideoReport, DecisionNote
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -61,6 +61,11 @@ interface VideoReportRow {
   id: string; creator_id: string; video_id: string; title: string; url: string
   published_at: number | null; duration_sec: number | null; language: string | null
   transcript_md: string; summary_md: string; model: string
+  created_at: number; updated_at: number
+}
+
+interface DecisionRow {
+  item_id: string; note: string; verify_at: number | null
   created_at: number; updated_at: number
 }
 
@@ -181,6 +186,14 @@ const toVideoReport = (r: VideoReportRow): VideoReport => ({
   transcriptMd: r.transcript_md,
   summaryMd: r.summary_md,
   model: r.model,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toDecision = (r: DecisionRow): DecisionNote => ({
+  itemId: r.item_id,
+  note: r.note,
+  ...(r.verify_at !== null ? { verifyAt: r.verify_at } : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -933,6 +946,52 @@ class SqliteVideoStore implements VideoStore {
   }
 }
 
+class SqliteDecisionStore implements DecisionStore {
+  constructor(private db: DB) {}
+
+  get(itemId: string): DecisionNote | undefined {
+    const r = this.db.prepare('SELECT * FROM decision_notes WHERE item_id = ?').get(itemId) as DecisionRow | undefined
+    return r ? toDecision(r) : undefined
+  }
+
+  listByIds(itemIds: string[]): DecisionNote[] {
+    if (itemIds.length === 0) return []
+    const placeholders = itemIds.map(() => '?').join(',')
+    const rows = this.db
+      .prepare(`SELECT * FROM decision_notes WHERE item_id IN (${placeholders})`)
+      .all(...itemIds) as DecisionRow[]
+    return rows.map(toDecision)
+  }
+
+  recent(sinceTs: number, limit = 200): DecisionNote[] {
+    const rows = this.db
+      .prepare('SELECT * FROM decision_notes WHERE updated_at >= ? ORDER BY updated_at DESC LIMIT ?')
+      .all(sinceTs, limit) as DecisionRow[]
+    return rows.map(toDecision)
+  }
+
+  upsert(note: DecisionNote): void {
+    this.db
+      .prepare(
+        `INSERT INTO decision_notes (item_id,note,verify_at,created_at,updated_at)
+         VALUES (@item_id,@note,@verify_at,@created_at,@updated_at)
+         ON CONFLICT(item_id) DO UPDATE SET note=excluded.note, verify_at=excluded.verify_at,
+           updated_at=excluded.updated_at`
+      )
+      .run({
+        item_id: note.itemId,
+        note: note.note,
+        verify_at: note.verifyAt ?? null,
+        created_at: note.createdAt,
+        updated_at: note.updatedAt
+      })
+  }
+
+  remove(itemId: string): void {
+    this.db.prepare('DELETE FROM decision_notes WHERE item_id = ?').run(itemId)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -945,6 +1004,7 @@ class SqliteStore implements Store {
   readonly flags: FlagStore
   readonly settings: SettingsStore
   readonly videos: VideoStore
+  readonly decisions: DecisionStore
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
@@ -958,6 +1018,7 @@ class SqliteStore implements Store {
     this.flags = new SqliteFlagStore(db)
     this.settings = new SqliteSettingsStore(db)
     this.videos = new SqliteVideoStore(db)
+    this.decisions = new SqliteDecisionStore(db)
   }
 
   schemaVersion(): number {

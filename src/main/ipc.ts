@@ -1226,4 +1226,71 @@ export function registerIpc(): void {
     requireStore().videos.removeReport(parsed.data)
     return { ok: true }
   })
+
+  // ── 决策笔记：把「看过」变成「判断过」 ──────────────────────
+  const decisionSaveSchema = z.object({
+    itemId: z.string().min(1).max(200),
+    note: z.string().trim().min(1).max(2000),
+    verifyAt: z.number().optional()
+  })
+
+  ipcMain.handle('decisions:get', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(200).safeParse(raw)
+    if (!parsed.success) return null
+    return requireStore().decisions.get(parsed.data) ?? null
+  })
+
+  ipcMain.handle('decisions:list', (_e, raw: unknown) => {
+    const parsed = z.array(z.string().min(1).max(200)).max(500).safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore().decisions.listByIds(parsed.data)
+  })
+
+  ipcMain.handle('decisions:recent', (_e, raw: unknown) => {
+    const parsed = z.object({ days: z.number().int().min(1).max(30).optional() }).safeParse(raw ?? {})
+    if (!parsed.success) return []
+    const days = parsed.data.days ?? 7
+    const store = requireStore()
+    const since = Date.now() - days * 86_400_000
+    const sources = new Map(store.sources.list().map((s) => [s.id, s.name]))
+    return store.decisions.recent(since).map((d) => {
+      const item = store.items.get(d.itemId)
+      return {
+        ...d,
+        ...(item
+          ? {
+              title: item.title,
+              url: item.url,
+              sourceName: sources.get(item.sourceId) ?? item.sourceId,
+              ...(item.publishedAt !== undefined ? { publishedAt: item.publishedAt } : {})
+            }
+          : {})
+      }
+    })
+  })
+
+  ipcMain.handle('decisions:save', (_e, raw: unknown) => {
+    const parsed = decisionSaveSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    if (!store.items.get(parsed.data.itemId)) return { ok: false, error: '条目不存在' }
+    const existing = store.decisions.get(parsed.data.itemId)
+    const now = Date.now()
+    const decision = {
+      itemId: parsed.data.itemId,
+      note: parsed.data.note,
+      ...(parsed.data.verifyAt !== undefined ? { verifyAt: parsed.data.verifyAt } : {}),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    }
+    store.decisions.upsert(decision)
+    return { ok: true, decision }
+  })
+
+  ipcMain.handle('decisions:remove', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(200).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().decisions.remove(parsed.data)
+    return { ok: true }
+  })
 }

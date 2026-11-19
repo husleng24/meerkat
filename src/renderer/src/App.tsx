@@ -5,6 +5,7 @@ import { SourcesPage } from './components/SourcesPage'
 import { Onboarding } from './components/Onboarding'
 import { SettingsPage } from './components/SettingsPage'
 import { VideoPage } from './components/VideoPage'
+import { ReviewPage } from './components/ReviewPage'
 import { TimelinePage } from './components/TimelinePage'
 import { SearchPage } from './components/SearchPage'
 import { useBriefData } from './lib/useBriefData'
@@ -31,6 +32,7 @@ const TITLES: Record<string, string> = {
   timeline: '历史简报',
   stories: '跟踪',
   videos: '视频解读',
+  review: '周回顾',
   onboarding: '开始使用'
 }
 
@@ -70,7 +72,7 @@ export default function App(): React.JSX.Element {
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
-  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'videos', 'settings', 'onboarding']
+  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'videos', 'review', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -191,7 +193,9 @@ export default function App(): React.JSX.Element {
                         ? '持续关注的事件'
                         : nav === 'videos'
                           ? '指定博主，选一期生成解读'
-                          : ''}
+                          : nav === 'review'
+                            ? '过去 7 天写下的判断'
+                            : ''}
             </span>
           </header>
         )}
@@ -253,6 +257,7 @@ export default function App(): React.JSX.Element {
           {nav === 'search' && <SearchPage />}
 
           {nav === 'videos' && <VideoPage />}
+          {nav === 'review' && <ReviewPage onGoToday={() => go('today')} />}
 
           {nav === 'sources' && (
             <SourcesPage

@@ -121,6 +121,12 @@ and the complete caption transcript. Only videos with captions are supported; th
 and the report never rewrites the caption text with the model. Reports can be copied or exported as
 Markdown under `Documents/Meerkat/视频解读/`.
 
+### Decision notes and weekly review
+
+On any brief item, write a short local note: what it changes, what you plan to do, what signal would
+prove you wrong. The weekly review collects the last seven days of notes alongside brief/no-change
+counts, so the product is not only a reading surface but a decision log. Notes stay in local SQLite.
+
 ### Update notice
 
 On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
@@ -249,7 +255,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **493 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **495 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

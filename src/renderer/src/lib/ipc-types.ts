@@ -250,6 +250,33 @@ export interface VideoReportPayload {
   updatedAt: number
 }
 
+export interface DecisionNotePayload {
+  itemId: string
+  note: string
+  verifyAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface DecisionRecentPayload extends DecisionNotePayload {
+  title?: string
+  url?: string
+  sourceName?: string
+  publishedAt?: number
+}
+
+export interface DecisionsBridge {
+  get: (itemId: string) => Promise<DecisionNotePayload | null>
+  list: (itemIds: string[]) => Promise<DecisionNotePayload[]>
+  recent: (days?: number) => Promise<DecisionRecentPayload[]>
+  save: (input: { itemId: string; note: string; verifyAt?: number }) => Promise<{
+    ok: boolean
+    decision?: DecisionNotePayload
+    error?: string
+  }>
+  remove: (itemId: string) => Promise<{ ok: boolean; error?: string }>
+}
+
 export interface VideosBridge {
   creators: () => Promise<VideoCreatorPayload[]>
   addCreator: (input: string) => Promise<{
@@ -371,6 +398,7 @@ export interface MeerkatBridge {
   }
   chat?: ChatBridge
   videos?: VideosBridge
+  decisions?: DecisionsBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

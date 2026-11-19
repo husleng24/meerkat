@@ -6,7 +6,7 @@
  */
 import type {
   Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story,
-  VideoCreator, VideoReport
+  VideoCreator, VideoReport, DecisionNote
 } from '../domain/types'
 
 export interface SourceStore {
@@ -132,6 +132,14 @@ export interface VideoStore {
   removeReport(videoId: string): void
 }
 
+export interface DecisionStore {
+  get(itemId: string): DecisionNote | undefined
+  listByIds(itemIds: string[]): DecisionNote[]
+  recent(sinceTs: number, limit?: number): DecisionNote[]
+  upsert(note: DecisionNote): void
+  remove(itemId: string): void
+}
+
 export interface Store {
   sources: SourceStore
   domains: DomainStore
@@ -144,6 +152,7 @@ export interface Store {
   flags: FlagStore
   settings: SettingsStore
   videos: VideoStore
+  decisions: DecisionStore
   /** 当前 schema 版本，便于诊断包记录 */
   schemaVersion(): number
   /** 在单个事务里执行；导入配置这类多步写入必须原子完成 */

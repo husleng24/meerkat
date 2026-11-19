@@ -333,6 +333,22 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_video_reports_creator ON video_reports(creator_id, published_at DESC);
     `
+  },
+  {
+    version: 11,
+    name: 'decision_notes',
+    up: `
+      -- 用户对某条内容的判断。周回顾靠它把「看过」变成「判断过」。
+      CREATE TABLE decision_notes (
+        item_id    TEXT PRIMARY KEY,
+        note       TEXT NOT NULL,
+        verify_at  INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_decision_notes_updated ON decision_notes(updated_at DESC);
+    `
   }
 ]
 

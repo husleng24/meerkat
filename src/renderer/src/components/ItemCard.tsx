@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import type { BriefItem, BriefLink } from '../lib/parseBrief'
-import type { BriefTraceEntryPayload } from '../lib/ipc-types'
+import type { BriefTraceEntryPayload, DecisionNotePayload } from '../lib/ipc-types'
 
 /**
  * 同一来源常被引用多次（模型给的是不同 URL）。
@@ -20,6 +21,10 @@ interface Props {
   item: BriefItem
   /** 这期引用到的来源证据；旧简报没有 */
   trace?: BriefTraceEntryPayload
+  /** 用户写下的判断；没有就是还没判断过 */
+  decision?: DecisionNotePayload
+  onSaveDecision?: (note: string) => Promise<{ ok: boolean; error?: string }>
+  onRemoveDecision?: () => Promise<void>
   selected: boolean
   saved: boolean
   hidden: boolean
@@ -42,6 +47,9 @@ interface Props {
 export function ItemCard({
   item,
   trace,
+  decision,
+  onSaveDecision,
+  onRemoveDecision,
   selected,
   saved,
   hidden,
@@ -53,6 +61,26 @@ export function ItemCard({
   onOpen,
   onComment
 }: Props): React.JSX.Element {
+  const [editingDecision, setEditingDecision] = useState(false)
+  const [decisionDraft, setDecisionDraft] = useState('')
+  const [decisionError, setDecisionError] = useState('')
+
+  const submitDecision = async (): Promise<void> => {
+    const note = decisionDraft.trim()
+    if (!note) {
+      setDecisionError('写一句你的判断')
+      return
+    }
+    if (!onSaveDecision) return
+    const r = await onSaveDecision(note)
+    if (r.ok) {
+      setEditingDecision(false)
+      setDecisionError('')
+    } else {
+      setDecisionError(r.error ?? '保存失败')
+    }
+  }
+
   if (hidden) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-dashed border-rule bg-white/60 px-4 py-2.5 text-[12px] text-ink-3">
@@ -152,6 +180,78 @@ export function ItemCard({
           </p>
           <p className="mt-0.5 text-ink-2">这是它进入候选池的来源；最终取舍由本期编辑重点决定。</p>
         </details>
+      )}
+
+      {(onSaveDecision || decision) && (
+        <div
+          className="mt-2 border-t border-cream/70 pt-2 text-[11px] leading-5 text-ink-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {editingDecision ? (
+            <div>
+              <textarea
+                autoFocus
+                rows={2}
+                maxLength={2000}
+                value={decisionDraft}
+                onChange={(e) => setDecisionDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setEditingDecision(false)
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void submitDecision()
+                }}
+                placeholder="我的判断：这件事会改变什么？我准备做什么？"
+                className="w-full resize-y rounded-lg border border-accent/40 bg-white px-2.5 py-1.5 text-[11.5px] leading-relaxed outline-none"
+              />
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() => void submitDecision()}
+                  className="rounded bg-ink px-2 py-1 text-[10.5px] text-paper hover:opacity-90"
+                >
+                  保存判断
+                </button>
+                <button onClick={() => setEditingDecision(false)} className="text-[10.5px] text-ink-3 hover:text-ink">
+                  取消
+                </button>
+                {decision && onRemoveDecision && (
+                  <button
+                    onClick={() => {
+                      void onRemoveDecision()
+                      setEditingDecision(false)
+                    }}
+                    className="ml-auto text-[10.5px] text-ink-3 hover:text-alert"
+                  >
+                    删除
+                  </button>
+                )}
+                {decisionError && <span className="text-alert">{decisionError}</span>}
+              </div>
+            </div>
+          ) : decision ? (
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 font-medium text-accent">我的判断</span>
+              <span className="min-w-0 flex-1 whitespace-pre-wrap text-ink-2">{decision.note}</span>
+              <button
+                onClick={() => {
+                  setDecisionDraft(decision.note)
+                  setEditingDecision(true)
+                }}
+                className="shrink-0 text-[10.5px] text-ink-3 hover:text-accent"
+              >
+                编辑
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setDecisionDraft('')
+                setEditingDecision(true)
+              }}
+              className="text-[10.5px] text-ink-3 hover:text-accent"
+            >
+              ＋ 记下我的判断
+            </button>
+          )}
+        </div>
       )}
     </article>
   )

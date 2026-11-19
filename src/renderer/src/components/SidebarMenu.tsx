@@ -38,6 +38,7 @@ export function SidebarMenu({ active, attentionSources, dateLabel, onNavigate }:
       icon: <LayersIcon />
     },
     { id: 'videos', label: '视频解读', icon: <VideoIcon /> },
+    { id: 'review', label: '周回顾', icon: <ReviewIcon /> },
     { id: 'settings', label: '设置', icon: <GearIcon /> }
   ]
   const inMenu = items.some((i) => i.id === active)
@@ -204,6 +205,15 @@ function VideoIcon(): React.JSX.Element {
     <svg {...iconProps}>
       <rect x="2.5" y="4" width="11" height="8" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
       <path d="M6.5 6.4l3.5 2-3.5 2V6.4z" fill="currentColor" />
+    </svg>
+  )
+}
+
+function ReviewIcon(): React.JSX.Element {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="2.5" width="10" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
     </svg>
   )
 }

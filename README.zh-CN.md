@@ -110,6 +110,12 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 对话记录保留字幕原文，模型只负责摘要，不改写原话。报告可复制或导出到
 `文档/Meerkat/视频解读/` 下的 Markdown 文件。
 
+### 决策笔记与周回顾
+
+在任意一条简报内容下可以写一句本地判断：这件事会改变什么、我准备做什么、什么信号说明我判断错了。
+「周回顾」把过去 7 天的判断连同简报/无变化天数摆在一起；产品不再只是阅读界面，而是决策记录。
+判断只存在本机 SQLite。
+
 ### 升级提醒
 
 启动时查一次 GitHub 最新 Release（24 小时内不重复），有新版本时**侧栏底部**出现一条
@@ -231,7 +237,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**493 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**495 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

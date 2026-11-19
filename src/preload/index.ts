@@ -299,6 +299,39 @@ const api = {
       ipcRenderer.invoke('videos:removeReport', videoId)
   },
 
+  decisions: {
+    get: (itemId: string): Promise<{
+      itemId: string
+      note: string
+      verifyAt?: number
+      createdAt: number
+      updatedAt: number
+    } | null> => ipcRenderer.invoke('decisions:get', itemId),
+    list: (itemIds: string[]): Promise<
+      Array<{ itemId: string; note: string; verifyAt?: number; createdAt: number; updatedAt: number }>
+    > => ipcRenderer.invoke('decisions:list', itemIds),
+    recent: (days?: number): Promise<
+      Array<{
+        itemId: string
+        note: string
+        verifyAt?: number
+        createdAt: number
+        updatedAt: number
+        title?: string
+        url?: string
+        sourceName?: string
+        publishedAt?: number
+      }>
+    > => ipcRenderer.invoke('decisions:recent', { days }),
+    save: (input: { itemId: string; note: string; verifyAt?: number }): Promise<{
+      ok: boolean
+      decision?: { itemId: string; note: string; verifyAt?: number; createdAt: number; updatedAt: number }
+      error?: string
+    }> => ipcRenderer.invoke('decisions:save', input),
+    remove: (itemId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('decisions:remove', itemId)
+  },
+
   topics: {
     list: (): Promise<
       Array<{

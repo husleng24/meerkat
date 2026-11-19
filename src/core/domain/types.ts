@@ -185,6 +185,15 @@ export interface VideoReport {
   updatedAt: number
 }
 
+/** 用户对一条内容的判断；周回顾按它聚合 */
+export interface DecisionNote {
+  itemId: string
+  note: string
+  verifyAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string

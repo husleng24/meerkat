@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ParsedBrief } from '../lib/parseBrief'
 import type { BriefComparison } from '../lib/compareBriefs'
 import type { FlagsApi } from '../lib/useFlags'
+import { useDecisions } from '../lib/useDecisions'
 import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
@@ -60,6 +61,11 @@ export function BriefView({
   topicName
 }: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
+  const decisionIds = useMemo(
+    () => [...new Set(allItems.map((item) => flags.idOf(item.key)).filter((x): x is string => Boolean(x)))],
+    [allItems, flags]
+  )
+  const decisions = useDecisions(decisionIds)
   const traceByUrl = useMemo(
     () =>
       new Map(
@@ -225,6 +231,16 @@ export function BriefView({
                     <ItemCard
                       item={item}
                       trace={traceFor(item)}
+                      decision={decisions.of(flags.idOf(item.key))}
+                      onSaveDecision={async (note) => {
+                        const id = flags.idOf(item.key)
+                        if (!id) return { ok: false, error: '这条内容无法映射到来源条目' }
+                        return decisions.save(id, note)
+                      }}
+                      onRemoveDecision={async () => {
+                        const id = flags.idOf(item.key)
+                        if (id) await decisions.remove(id)
+                      }}
                       selected={globalIndex === cursor}
                       saved={f.isSaved}
                       hidden={f.isHidden}
