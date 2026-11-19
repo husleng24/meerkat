@@ -326,6 +326,30 @@ export interface ShareBridge {
   stop: () => Promise<{ ok: boolean }>
 }
 
+export interface EntityPayload {
+  id: string
+  name: string
+  kind: 'company' | 'person' | 'org' | 'technology'
+  aliases: string[]
+  count: number
+  latestAt: number
+}
+
+export interface EntityItemPayload {
+  id: string
+  title: string
+  url: string
+  summary: string
+  publishedAt?: number
+  sourceName: string
+}
+
+export interface EntitiesBridge {
+  list: () => Promise<EntityPayload[]>
+  items: (input: { id: string; limit?: number }) => Promise<EntityItemPayload[]>
+  rebuild: () => Promise<{ ok: boolean; linked: number }>
+}
+
 export interface VideosBridge {
   creators: () => Promise<VideoCreatorPayload[]>
   addCreator: (input: string) => Promise<{
@@ -451,6 +475,7 @@ export interface MeerkatBridge {
   push?: PushBridge
   email?: EmailBridge
   share?: ShareBridge
+  entities?: EntitiesBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

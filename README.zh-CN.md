@@ -127,6 +127,12 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 今日简报页的「手机阅读」会启动一个临时局域网 HTTP 服务，带随机 token 和移动端适配的简报快照。
 手机和电脑在同一 Wi-Fi 时打开链接即可；30 分钟后自动失效，点「停止」也会立即关闭。不上传任何内容。
 
+### 实体
+
+「实体」按公司/人物而不是按天重新聚合档案：OpenAI、Anthropic、NVIDIA、Sam Altman、Jensen Huang
+等 40 个实体。匹配使用本地别名词表，不靠模型抽取；页面显示按日期排列的相关内容和来源。
+首次启动回填历史，日报完成后增量索引。
+
 ### 升级提醒
 
 启动时查一次 GitHub 最新 Release（24 小时内不重复），有新版本时**侧栏底部**出现一条
@@ -248,7 +254,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**507 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**510 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

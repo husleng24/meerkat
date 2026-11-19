@@ -6,7 +6,7 @@
  */
 import type {
   Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story,
-  VideoCreator, VideoReport, DecisionNote
+  VideoCreator, VideoReport, DecisionNote, Entity
 } from '../domain/types'
 
 export interface SourceStore {
@@ -42,6 +42,8 @@ export interface ItemStore {
   markBriefed(ids: string[], ts: number, topicId?: string): void
   /** 全文检索；空查询返回空数组 */
   search(query: string, opts?: SearchOptions): Item[]
+  /** 按发布时间倒序取所有条目（有上限，防止诊断页一次拉爆） */
+  all(limit?: number): Item[]
   count(): number
 }
 
@@ -140,6 +142,19 @@ export interface DecisionStore {
   remove(itemId: string): void
 }
 
+export interface EntityStore {
+  list(): Entity[]
+  get(id: string): Entity | undefined
+  upsert(entity: Entity): void
+  remove(id: string): void
+  /** 批量建立「实体 → 条目」关系；重复插入忽略 */
+  link(entityId: string, itemIds: string[]): void
+  clearLinks(): void
+  itemIds(entityId: string): string[]
+  counts(): Array<{ entityId: string; count: number; latestAt: number }>
+  linkCount(): number
+}
+
 export interface Store {
   sources: SourceStore
   domains: DomainStore
@@ -153,6 +168,7 @@ export interface Store {
   settings: SettingsStore
   videos: VideoStore
   decisions: DecisionStore
+  entities: EntityStore
   /** 当前 schema 版本，便于诊断包记录 */
   schemaVersion(): number
   /** 在单个事务里执行；导入配置这类多步写入必须原子完成 */

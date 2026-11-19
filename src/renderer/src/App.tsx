@@ -6,6 +6,7 @@ import { Onboarding } from './components/Onboarding'
 import { SettingsPage } from './components/SettingsPage'
 import { VideoPage } from './components/VideoPage'
 import { ReviewPage } from './components/ReviewPage'
+import { EntitiesPage } from './components/EntitiesPage'
 import { TimelinePage } from './components/TimelinePage'
 import { SearchPage } from './components/SearchPage'
 import { useBriefData } from './lib/useBriefData'
@@ -33,6 +34,7 @@ const TITLES: Record<string, string> = {
   stories: '跟踪',
   videos: '视频解读',
   review: '周回顾',
+  entities: '实体',
   onboarding: '开始使用'
 }
 
@@ -72,7 +74,7 @@ export default function App(): React.JSX.Element {
   const sourceState = useSources()
   const { sorted, summary } = useSortedSources(sourceState.sources)
   // 用 hash 做初始路由：便于深链，也便于无头浏览器直接截某一页
-  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'videos', 'review', 'settings', 'onboarding']
+  const KNOWN_ROUTES = ['today', 'search', 'timeline', 'stories', 'sources', 'videos', 'review', 'entities', 'settings', 'onboarding']
   const hashParts = (typeof location !== 'undefined' ? location.hash : '').replace(/^#+/, '').split('/')
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -195,7 +197,9 @@ export default function App(): React.JSX.Element {
                           ? '指定博主，选一期生成解读'
                           : nav === 'review'
                             ? '过去 7 天写下的判断'
-                            : ''}
+                            : nav === 'entities'
+                              ? '公司、人物与内容的时间线'
+                              : ''}
             </span>
           </header>
         )}
@@ -259,6 +263,7 @@ export default function App(): React.JSX.Element {
 
           {nav === 'videos' && <VideoPage />}
           {nav === 'review' && <ReviewPage onGoToday={() => go('today')} />}
+          {nav === 'entities' && <EntitiesPage />}
 
           {nav === 'sources' && (
             <SourcesPage

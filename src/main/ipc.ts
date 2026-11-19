@@ -20,6 +20,8 @@ import { parseBriefTrace } from '../app/brief-trace'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { seedVideoTopic } from '../app/seed-video-topic'
+import { bootstrapEntities } from '../app/entities'
+import { rebuildEntityIndex } from '../app/entities'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -295,6 +297,8 @@ export function initStore(dbPath: string): Store {
   seedDefaultMembership(store)
   // 预置「YouTube 博主」主题；在默认归属之后执行，避免新源被挂进 AI 综合
   seedVideoTopic(store)
+  // 实体词表与倒排：首次启动回填历史条目，之后只有新条目增量索引
+  bootstrapEntities(store)
   return store
 }
 
@@ -1411,5 +1415,45 @@ export function registerIpc(): void {
   ipcMain.handle('share:stop', () => {
     stopShare()
     return { ok: true }
+  })
+
+  // ── 实体记忆：公司/人物与内容的倒排 ──────────────────────────
+  ipcMain.handle('entities:list', () => {
+    const store = requireStore()
+    const counts = new Map(store.entities.counts().map((c) => [c.entityId, c]))
+    return store.entities
+      .list()
+      .map((e) => ({
+        ...e,
+        count: counts.get(e.id)?.count ?? 0,
+        latestAt: counts.get(e.id)?.latestAt ?? 0
+      }))
+      .sort((a, b) => b.count - a.count || b.latestAt - a.latestAt || a.name.localeCompare(b.name))
+  })
+
+  ipcMain.handle('entities:items', (_e, raw: unknown) => {
+    const parsed = z.object({ id: z.string().min(1).max(100), limit: z.number().int().min(1).max(200).optional() }).safeParse(raw)
+    if (!parsed.success) return []
+    const store = requireStore()
+    const sources = new Map(store.sources.list().map((s) => [s.id, s.name]))
+    return store.entities
+      .itemIds(parsed.data.id)
+      .slice(0, parsed.data.limit ?? 80)
+      .map((id) => store.items.get(id))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x))
+      .map((i) => ({
+        id: i.id,
+        title: i.title,
+        url: i.url,
+        summary: i.summary,
+        ...(i.publishedAt !== undefined ? { publishedAt: i.publishedAt } : {}),
+        sourceName: sources.get(i.sourceId) ?? i.sourceId
+      }))
+  })
+
+  ipcMain.handle('entities:rebuild', () => {
+    const store = requireStore()
+    const n = rebuildEntityIndex(store)
+    return { ok: true, linked: n }
   })
 }

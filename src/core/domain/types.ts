@@ -194,6 +194,18 @@ export interface DecisionNote {
   updatedAt: number
 }
 
+/** 公司/人物/机构等实体；别名词表用于本地匹配，不靠模型编造 */
+export type EntityKind = 'company' | 'person' | 'org' | 'technology'
+
+export interface Entity {
+  id: string
+  name: string
+  kind: EntityKind
+  aliases: string[]
+  createdAt: number
+  updatedAt: number
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string

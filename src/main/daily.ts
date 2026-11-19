@@ -18,6 +18,7 @@ import { createProviderInstance, type ComposeTarget } from './providers'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../app/compose-brief'
 import { buildBriefTrace, buildNoChangeTrace } from '../app/brief-trace'
 import { allSourcesFailed, renderNoChangeBrief, shouldSkipBrief } from '../app/no-change'
+import { indexEntityItems } from '../app/entities'
 import { briefTitle } from '../app/brief-identity'
 import { runCollect, COLLECT_DEFAULTS, type CollectResult } from '../app/run-collect'
 import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
@@ -332,6 +333,14 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
     runStoriesAfterCollect(store)
   } catch (e) {
     log('warn', `刷新跟踪失败：${e instanceof Error ? e.message : String(e)}`)
+  }
+
+  // 实体倒排只增量索引最近条目；历史由启动时 bootstrap 回填
+  try {
+    const recent = store.items.since(now - 7 * 86_400_000, 3000)
+    indexEntityItems(store, recent.map((i) => i.id))
+  } catch (e) {
+    log('warn', `实体索引失败：${e instanceof Error ? e.message : String(e)}`)
   }
 
   return {

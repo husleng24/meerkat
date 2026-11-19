@@ -39,6 +39,7 @@ export function SidebarMenu({ active, attentionSources, dateLabel, onNavigate }:
     },
     { id: 'videos', label: '视频解读', icon: <VideoIcon /> },
     { id: 'review', label: '周回顾', icon: <ReviewIcon /> },
+    { id: 'entities', label: '实体', icon: <EntityIcon /> },
     { id: 'settings', label: '设置', icon: <GearIcon /> }
   ]
   const inMenu = items.some((i) => i.id === active)
@@ -214,6 +215,17 @@ function ReviewIcon(): React.JSX.Element {
     <svg {...iconProps}>
       <rect x="3" y="2.5" width="10" height="11" rx="1.6" stroke="currentColor" strokeWidth="1.2" />
       <path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function EntityIcon(): React.JSX.Element {
+  return (
+    <svg {...iconProps}>
+      <circle cx="8" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M3.5 13c.4-2.4 2.1-3.8 4.5-3.8s4.1 1.4 4.5 3.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="12.2" cy="5.5" r="1.3" stroke="currentColor" strokeWidth="1" />
+      <path d="M11 9.6c1.7.1 3 1.1 3.4 3" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
     </svg>
   )
 }

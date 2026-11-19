@@ -140,6 +140,13 @@ The today page's **Phone reading** button starts a temporary LAN-only HTTP serve
 token and a mobile-friendly snapshot of the brief. Open the URL on a phone on the same Wi-Fi; it
 expires after 30 minutes or when sharing stops. Nothing is uploaded.
 
+### Entities
+
+**Entities** groups the archive by company/person instead of by day: OpenAI, Anthropic, NVIDIA,
+Sam Altman, Jensen Huang, and 34 more. Matching uses a local alias catalogue, not model extraction;
+the page shows a dated timeline of related items and their sources. The index is rebuilt on first
+launch and incremented after each daily run.
+
 ### Update notice
 
 On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
@@ -268,7 +275,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **507 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **510 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

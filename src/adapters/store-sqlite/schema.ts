@@ -349,6 +349,29 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_decision_notes_updated ON decision_notes(updated_at DESC);
     `
+  },
+  {
+    version: 12,
+    name: 'entity_memory',
+    up: `
+      -- 公司/人物/事件实体；item_entities 是「这条内容提到了谁」的倒排。
+      CREATE TABLE entities (
+        id           TEXT PRIMARY KEY,
+        name         TEXT NOT NULL,
+        kind         TEXT NOT NULL,
+        aliases_json TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL
+      );
+      CREATE TABLE item_entities (
+        entity_id TEXT NOT NULL,
+        item_id   TEXT NOT NULL,
+        PRIMARY KEY (entity_id, item_id),
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+        FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
+      );
+      CREATE INDEX idx_item_entities_item ON item_entities(item_id);
+    `
   }
 ]
 

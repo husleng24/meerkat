@@ -2,12 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore
+  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore
 } from '../../core/ports/store'
 import type {
   Domain,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
-  VideoCreator, VideoReport, DecisionNote
+  VideoCreator, VideoReport, DecisionNote, Entity
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -66,6 +66,11 @@ interface VideoReportRow {
 
 interface DecisionRow {
   item_id: string; note: string; verify_at: number | null
+  created_at: number; updated_at: number
+}
+
+interface EntityRow {
+  id: string; name: string; kind: string; aliases_json: string
   created_at: number; updated_at: number
 }
 
@@ -194,6 +199,15 @@ const toDecision = (r: DecisionRow): DecisionNote => ({
   itemId: r.item_id,
   note: r.note,
   ...(r.verify_at !== null ? { verifyAt: r.verify_at } : {}),
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toEntity = (r: EntityRow): Entity => ({
+  id: r.id,
+  name: r.name,
+  kind: r.kind as Entity['kind'],
+  aliases: safeParseArray(r.aliases_json),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -450,6 +464,13 @@ class SqliteItemStore implements ItemStore {
       WHERE items_fts MATCH ?${where}
       ORDER BY ${order} LIMIT ?`
     const rows = this.db.prepare(sql).all(ftsPhrase(q), ...filterArgs, limit) as ItemRow[]
+    return rows.map(toItem)
+  }
+
+  all(limit = 5000): Item[] {
+    const rows = this.db
+      .prepare('SELECT * FROM items ORDER BY COALESCE(published_at, fetched_at) DESC LIMIT ?')
+      .all(limit) as ItemRow[]
     return rows.map(toItem)
   }
 
@@ -992,6 +1013,82 @@ class SqliteDecisionStore implements DecisionStore {
   }
 }
 
+class SqliteEntityStore implements EntityStore {
+  constructor(private db: DB) {}
+
+  list(): Entity[] {
+    return (this.db.prepare('SELECT * FROM entities ORDER BY name ASC').all() as EntityRow[]).map(toEntity)
+  }
+
+  get(id: string): Entity | undefined {
+    const r = this.db.prepare('SELECT * FROM entities WHERE id = ?').get(id) as EntityRow | undefined
+    return r ? toEntity(r) : undefined
+  }
+
+  upsert(entity: Entity): void {
+    this.db
+      .prepare(
+        `INSERT INTO entities (id,name,kind,aliases_json,created_at,updated_at)
+         VALUES (@id,@name,@kind,@aliases_json,@created_at,@updated_at)
+         ON CONFLICT(id) DO UPDATE SET name=excluded.name, kind=excluded.kind,
+           aliases_json=excluded.aliases_json, updated_at=excluded.updated_at`
+      )
+      .run({
+        id: entity.id,
+        name: entity.name,
+        kind: entity.kind,
+        aliases_json: JSON.stringify(entity.aliases),
+        created_at: entity.createdAt,
+        updated_at: entity.updatedAt
+      })
+  }
+
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM entities WHERE id = ?').run(id)
+  }
+
+  link(entityId: string, itemIds: string[]): void {
+    if (itemIds.length === 0) return
+    const stmt = this.db.prepare('INSERT OR IGNORE INTO item_entities (entity_id,item_id) VALUES (?,?)')
+    this.db.transaction((ids: string[]) => {
+      for (const id of ids) stmt.run(entityId, id)
+    })(itemIds)
+  }
+
+  clearLinks(): void {
+    this.db.prepare('DELETE FROM item_entities').run()
+  }
+
+  itemIds(entityId: string): string[] {
+    const rows = this.db
+      .prepare(
+        `SELECT ie.item_id FROM item_entities ie
+         JOIN items i ON i.id = ie.item_id
+         WHERE ie.entity_id = ?
+         ORDER BY COALESCE(i.published_at, i.fetched_at) DESC`
+      )
+      .all(entityId) as Array<{ item_id: string }>
+    return rows.map((r) => r.item_id)
+  }
+
+  counts(): Array<{ entityId: string; count: number; latestAt: number }> {
+    return (
+      this.db
+        .prepare(
+          `SELECT ie.entity_id, COUNT(*) AS count,
+                  MAX(COALESCE(i.published_at, i.fetched_at)) AS latest_at
+           FROM item_entities ie JOIN items i ON i.id = ie.item_id
+           GROUP BY ie.entity_id`
+        )
+        .all() as Array<{ entity_id: string; count: number; latest_at: number }>
+    ).map((r) => ({ entityId: r.entity_id, count: int(r.count), latestAt: int(r.latest_at) }))
+  }
+
+  linkCount(): number {
+    return int((this.db.prepare('SELECT COUNT(*) c FROM item_entities').get() as { c: number }).c)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -1005,6 +1102,7 @@ class SqliteStore implements Store {
   readonly settings: SettingsStore
   readonly videos: VideoStore
   readonly decisions: DecisionStore
+  readonly entities: EntityStore
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
@@ -1019,6 +1117,7 @@ class SqliteStore implements Store {
     this.settings = new SqliteSettingsStore(db)
     this.videos = new SqliteVideoStore(db)
     this.decisions = new SqliteDecisionStore(db)
+    this.entities = new SqliteEntityStore(db)
   }
 
   schemaVersion(): number {

@@ -386,6 +386,30 @@ const api = {
     stop: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('share:stop')
   },
 
+  entities: {
+    list: (): Promise<
+      Array<{
+        id: string
+        name: string
+        kind: 'company' | 'person' | 'org' | 'technology'
+        aliases: string[]
+        count: number
+        latestAt: number
+      }>
+    > => ipcRenderer.invoke('entities:list'),
+    items: (input: { id: string; limit?: number }): Promise<
+      Array<{
+        id: string
+        title: string
+        url: string
+        summary: string
+        publishedAt?: number
+        sourceName: string
+      }>
+    > => ipcRenderer.invoke('entities:items', input),
+    rebuild: (): Promise<{ ok: boolean; linked: number }> => ipcRenderer.invoke('entities:rebuild')
+  },
+
   topics: {
     list: (): Promise<
       Array<{
