@@ -39,6 +39,15 @@ import {
   type PushPlatform
 } from './push'
 import {
+  readEmailConfig,
+  readEmailState,
+  saveEmailConfig,
+  sendEmail,
+  validateEmailConfig,
+  type EmailConfig
+} from './email'
+import { getSmtpPassword, setSmtpPassword } from './email-secret'
+import {
   chatModels,
   defaultChatModel,
   ensureItemThread,
@@ -1345,5 +1354,49 @@ export function registerIpc(): void {
     const parsed = z.object({ topicName: z.string(), date: z.string(), markdown: z.string(), noChange: z.boolean() }).safeParse(raw)
     if (!parsed.success) return ''
     return buildPushText(parsed.data.topicName, parsed.data.date, parsed.data.markdown, parsed.data.noChange)
+  })
+
+  // ── 邮件摘要：SMTP 配置与测试发送 ───────────────────────────
+  const emailConfigSchema = z.object({
+    enabled: z.boolean(),
+    host: z.string().max(255),
+    port: z.number().int(),
+    secure: z.boolean(),
+    user: z.string().max(255),
+    from: z.string().max(255),
+    to: z.string().max(255)
+  })
+
+  ipcMain.handle('email:get', () => readEmailState(requireStore()))
+
+  ipcMain.handle('email:set', (_e, raw: unknown) => {
+    const parsed = emailConfigSchema.extend({ password: z.string().max(500).optional() }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const { password, ...config } = parsed.data
+    const store = requireStore()
+    const willHavePassword = Boolean(password?.trim()) || readEmailState(store).hasPassword
+    const check = validateEmailConfig(config as EmailConfig, willHavePassword)
+    if (!check.ok) return check
+    if (password?.trim()) {
+      const saved = setSmtpPassword(password)
+      if (!saved.ok) return saved
+    }
+    saveEmailConfig(store, config as EmailConfig)
+    return { ok: true }
+  })
+
+  ipcMain.handle('email:test', async () => {
+    const store = requireStore()
+    const config = readEmailConfig(store)
+    const check = validateEmailConfig(config, Boolean(getSmtpPassword()))
+    if (!check.ok) return check
+    const text = `Meerkat 邮件测试 · ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n连通性正常，今天的简报会在完成后送到这里。`
+    const result = await sendEmail(config, getSmtpPassword(), {
+      subject: 'Meerkat 邮件测试',
+      text
+    })
+    store.settings.set('email.lastAt', Date.now())
+    store.settings.set('email.lastError', result.ok ? '' : (result.error ?? '邮件发送失败'))
+    return result
   })
 }

@@ -116,10 +116,11 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 「周回顾」把过去 7 天的判断连同简报/无变化天数摆在一起；产品不再只是阅读界面，而是决策记录。
 判断只存在本机 SQLite。
 
-### 每日推送
+### 每日推送与邮件
 
 设置页可以把每日简报推到飞书、Slack、Discord 或通用 webhook：有变化发三条速览，没变化发一句
-「今天没有值得改变判断的变化」。Webhook 地址只在本机 SQLite；不需要邮件服务器或账号。
+「今天没有值得改变判断的变化」。Webhook 地址只在本机 SQLite。也可以配置自己的 SMTP 把同样的
+摘要发到邮箱；SMTP 密码走系统加密，不回传给界面。
 
 ### 升级提醒
 
@@ -242,7 +243,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**501 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**505 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

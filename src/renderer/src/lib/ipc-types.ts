@@ -294,6 +294,28 @@ export interface PushBridge {
   detect: (url: string) => Promise<{ platform: PushPlatform }>
 }
 
+export interface EmailConfigPayload {
+  enabled: boolean
+  host: string
+  port: number
+  secure: boolean
+  user: string
+  from: string
+  to: string
+}
+
+export interface EmailStatePayload extends EmailConfigPayload {
+  hasPassword: boolean
+  lastAt?: number
+  lastError?: string
+}
+
+export interface EmailBridge {
+  get: () => Promise<EmailStatePayload>
+  set: (config: EmailConfigPayload & { password?: string }) => Promise<{ ok: boolean; error?: string }>
+  test: () => Promise<{ ok: boolean; error?: string }>
+}
+
 export interface VideosBridge {
   creators: () => Promise<VideoCreatorPayload[]>
   addCreator: (input: string) => Promise<{
@@ -417,6 +439,7 @@ export interface MeerkatBridge {
   videos?: VideosBridge
   decisions?: DecisionsBridge
   push?: PushBridge
+  email?: EmailBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

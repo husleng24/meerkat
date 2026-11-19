@@ -15,6 +15,7 @@ import type { Topic } from '../core/domain/types'
 import { beginRun, cancelRun, endRun, isRunning } from './run-control'
 import type { DailyOutcome } from './daily'
 import { deliverBriefPush } from './push'
+import { deliverBriefEmail } from './email'
 
 const CHECK_INTERVAL_MS = 60_000
 const LAST_RUN_KEY = 'schedule.lastRunAt'
@@ -149,6 +150,12 @@ export class Scheduler {
             else if (r.ok) log('info', `推送已发送（${topic.name}）`)
           })
           .catch((e) => log('warn', `推送异常（${topic.name}）：${e instanceof Error ? e.message : String(e)}`))
+        void deliverBriefEmail(this.deps.store, topic.name, latest.date, latest.markdown, out.noChange)
+          .then((r) => {
+            if (!r.ok && !r.skipped) log('warn', `邮件失败（${topic.name}）：${r.error ?? '未知错误'}`)
+            else if (r.ok) log('info', `邮件已发送（${topic.name}）`)
+          })
+          .catch((e) => log('warn', `邮件异常（${topic.name}）：${e instanceof Error ? e.message : String(e)}`))
       }
       this.deps.getWindow()?.webContents.send('brief:updated')
     } catch (e) {

@@ -350,6 +350,32 @@ const api = {
       ipcRenderer.invoke('push:detect', url)
   },
 
+  email: {
+    get: (): Promise<{
+      enabled: boolean
+      host: string
+      port: number
+      secure: boolean
+      user: string
+      from: string
+      to: string
+      hasPassword: boolean
+      lastAt?: number
+      lastError?: string
+    }> => ipcRenderer.invoke('email:get'),
+    set: (config: {
+      enabled: boolean
+      host: string
+      port: number
+      secure: boolean
+      user: string
+      from: string
+      to: string
+      password?: string
+    }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('email:set', config),
+    test: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('email:test')
+  },
+
   topics: {
     list: (): Promise<
       Array<{
