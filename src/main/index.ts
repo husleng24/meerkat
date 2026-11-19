@@ -7,6 +7,7 @@ import { installCrashHandlers, log } from './log'
 import { runElectronSelfCheck } from './selfcheck'
 import { apply as applyAutoLaunch } from './autolaunch'
 import { brandPath } from './paths'
+import { stopShare } from './share'
 
 const isDev = !app.isPackaged
 
@@ -188,6 +189,7 @@ if (process.argv.includes('--verify')) {
       log('info', '应用退出')
       quitting = true
       scheduler?.stop()
+      stopShare()
       closeStore()
     })
   }

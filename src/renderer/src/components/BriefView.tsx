@@ -6,6 +6,7 @@ import { useDecisions } from '../lib/useDecisions'
 import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
+import { renderBriefDocument } from '../lib/briefHtml'
 
 interface Props {
   brief: ParsedBrief
@@ -20,6 +21,8 @@ interface Props {
   refreshing?: boolean
   /** 当前领域名：显示在标题上方，说明这一页属于哪个作用域 */
   topicName?: string
+  /** 原始 Markdown：无变化简报解析后没有条目，手机分享要拿原文兜底 */
+  rawMarkdown?: string
 }
 
 /** 从简报的元信息行里抠数字：覆盖最近 48 小时 · 34 个信息源 · 精选 24 条 */
@@ -58,7 +61,8 @@ export function BriefView({
   previousDate,
   onRefresh,
   refreshing = false,
-  topicName
+  topicName,
+  rawMarkdown = ''
 }: Props): React.JSX.Element {
   const allItems = useMemo(() => brief.sections.flatMap((s) => s.items), [brief])
   const decisionIds = useMemo(
@@ -86,7 +90,49 @@ export function BriefView({
     [traceByUrl]
   )
   const [cursor, setCursor] = useState(0)
+  const [shareUrl, setShareUrl] = useState('')
+  const [shareBusy, setShareBusy] = useState(false)
+  const [shareMsg, setShareMsg] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+
+  const startShare = async (): Promise<void> => {
+    const api = window.meerkat?.share
+    if (!api) {
+      setShareMsg('预览模式下不可用')
+      return
+    }
+    setShareBusy(true)
+    setShareMsg('')
+    try {
+      const doc = renderBriefDocument(brief, dateLine(brief.title), rawMarkdown)
+      const r = await api.start({ title: brief.title, html: doc.html })
+      if (!r.ok || !r.url) {
+        setShareMsg(r.error ?? '分享失败')
+        return
+      }
+      setShareUrl(r.url)
+      try {
+        await navigator.clipboard.writeText(r.url)
+        setShareMsg('链接已复制，手机与电脑需在同一 Wi-Fi')
+      } catch {
+        setShareMsg('链接已生成，请手动复制')
+      }
+    } finally {
+      setShareBusy(false)
+    }
+  }
+
+  const stopShare = async (): Promise<void> => {
+    await window.meerkat?.share?.stop()
+    setShareUrl('')
+    setShareMsg('已停止分享')
+  }
+
+  useEffect(() => {
+    return () => {
+      void window.meerkat?.share?.stop()
+    }
+  }, [])
 
   const scrollTo = useCallback((key: string) => {
     document.getElementById(`item-${key}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -180,6 +226,14 @@ export function BriefView({
               {refreshing ? '更新中…' : '更新'}
             </button>
           )}
+          <button
+            onClick={() => void startShare()}
+            disabled={shareBusy}
+            title="生成手机可读的临时链接"
+            className="rounded-full border border-rule px-2.5 py-1 text-[11px] text-ink-2 transition-colors hover:border-accent hover:text-ink disabled:opacity-50"
+          >
+            {shareBusy ? '生成中…' : '手机阅读'}
+          </button>
           {(meta.sources !== undefined || meta.picked !== undefined) && (
             <span className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
               {meta.sources !== undefined ? `${meta.sources} 源` : ''}
@@ -189,6 +243,25 @@ export function BriefView({
           )}
         </div>
       </header>
+
+      {shareUrl && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent/25 bg-accent-soft px-3 py-2 text-[11px] text-ink-2">
+          <span className="font-medium text-accent">手机阅读</span>
+          <a href={shareUrl} target="_blank" rel="noreferrer" className="min-w-0 break-all text-ink underline underline-offset-2">
+            {shareUrl}
+          </a>
+          <button
+            onClick={() => void navigator.clipboard.writeText(shareUrl)}
+            className="ml-auto rounded border border-accent/30 px-2 py-0.5 text-[10.5px] hover:bg-white"
+          >
+            复制链接
+          </button>
+          <button onClick={() => void stopShare()} className="rounded border border-accent/30 px-2 py-0.5 text-[10.5px] hover:bg-white">
+            停止
+          </button>
+        </div>
+      )}
+      {shareMsg && !shareUrl && <p className="mb-3 text-[10.5px] text-ink-3">{shareMsg}</p>}
 
       {comparison && (
         <CompareStrip comparison={comparison} previousDate={previousDate} onJump={(key) => scrollTo(key)} />

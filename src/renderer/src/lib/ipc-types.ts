@@ -316,6 +316,16 @@ export interface EmailBridge {
   test: () => Promise<{ ok: boolean; error?: string }>
 }
 
+export interface ShareBridge {
+  start: (input: { title: string; html: string }) => Promise<{
+    ok: boolean
+    url?: string
+    expiresAt?: number
+    error?: string
+  }>
+  stop: () => Promise<{ ok: boolean }>
+}
+
 export interface VideosBridge {
   creators: () => Promise<VideoCreatorPayload[]>
   addCreator: (input: string) => Promise<{
@@ -440,6 +450,7 @@ export interface MeerkatBridge {
   decisions?: DecisionsBridge
   push?: PushBridge
   email?: EmailBridge
+  share?: ShareBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

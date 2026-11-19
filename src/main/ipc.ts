@@ -47,6 +47,7 @@ import {
   type EmailConfig
 } from './email'
 import { getSmtpPassword, setSmtpPassword } from './email-secret'
+import { startShare, stopShare } from './share'
 import {
   chatModels,
   defaultChatModel,
@@ -1398,5 +1399,17 @@ export function registerIpc(): void {
     store.settings.set('email.lastAt', Date.now())
     store.settings.set('email.lastError', result.ok ? '' : (result.error ?? '邮件发送失败'))
     return result
+  })
+
+  // ── 手机阅读：局域网一次性分享 ──────────────────────────────
+  ipcMain.handle('share:start', async (_e, raw: unknown) => {
+    const parsed = z.object({ title: z.string().max(500), html: z.string().min(1).max(5_000_000) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return startShare(parsed.data)
+  })
+
+  ipcMain.handle('share:stop', () => {
+    stopShare()
+    return { ok: true }
   })
 }

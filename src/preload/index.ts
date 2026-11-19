@@ -376,6 +376,16 @@ const api = {
     test: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('email:test')
   },
 
+  share: {
+    start: (input: { title: string; html: string }): Promise<{
+      ok: boolean
+      url?: string
+      expiresAt?: number
+      error?: string
+    }> => ipcRenderer.invoke('share:start', input),
+    stop: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('share:stop')
+  },
+
   topics: {
     list: (): Promise<
       Array<{

@@ -43,6 +43,21 @@ const CSS = `
   .nochange p { margin:0; font-size:12.5px; line-height:1.85; color:#39414d; }
   footer { margin-top:32px; color:var(--ink3); font-size:10.5px; }
   @page { margin: 18mm 14mm; }
+  @media (max-width: 640px) {
+    body { padding: 24px 16px 48px; }
+    h1 { font-size: 22px; }
+    .meta { margin-bottom: 20px; }
+    h2 { margin-top: 24px; }
+    .hl { padding: 4px 14px; border-radius: 12px; }
+    .hl div { gap: 10px; padding: 10px 0; }
+    .hl p { font-size: 13.5px; line-height: 1.7; }
+    article { padding: 12px 14px; border-radius: 12px; }
+    article h3 { font-size: 14px; }
+    article p { font-size: 12.5px; }
+    .punch { padding: 16px 18px; border-radius: 12px; }
+    .punch p { font-size: 14px; }
+    .links a { display: inline-block; min-height: 28px; line-height: 28px; }
+  }
 `
 
 export interface BriefDocument {
@@ -95,6 +110,7 @@ export function renderBriefDocument(brief: ParsedBrief, dateLabel: string, rawMa
   const title = brief.title || `简报 · ${dateLabel}`
   const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <style>${CSS}</style></head>
 <body><main>

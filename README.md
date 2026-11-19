@@ -134,6 +134,12 @@ three highlights when something changed, one honest line when nothing did. Webho
 local SQLite database. An optional SMTP path sends the same digest by email; the SMTP password is
 encrypted with the OS keystore and never returned to the renderer.
 
+### Phone reading
+
+The today page's **Phone reading** button starts a temporary LAN-only HTTP server with a random
+token and a mobile-friendly snapshot of the brief. Open the URL on a phone on the same Wi-Fi; it
+expires after 30 minutes or when sharing stops. Nothing is uploaded.
+
 ### Update notice
 
 On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
@@ -262,7 +268,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **505 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **507 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

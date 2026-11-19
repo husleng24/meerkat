@@ -63,7 +63,7 @@ export default function App(): React.JSX.Element {
     if (!topics.some((t) => t.id === activeId)) setActiveId(topics[0]!.id)
   }, [topics, activeId, setActiveId])
 
-  const { brief, date: briefDate, loading, urlToId, trace, noChange, comparison, previousDate } = useBriefData(
+  const { brief, raw, date: briefDate, loading, urlToId, trace, noChange, comparison, previousDate } = useBriefData(
     viewDate,
     activeId || undefined
   )
@@ -251,6 +251,7 @@ export default function App(): React.JSX.Element {
               onRefresh={() => void refresh()}
               refreshing={refreshing}
               topicName={topics.find((t) => t.id === activeId)?.name}
+              rawMarkdown={raw}
             />
           )}
 
