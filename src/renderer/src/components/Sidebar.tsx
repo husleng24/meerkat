@@ -172,13 +172,15 @@ export function Sidebar({
       </div>
 
       <div className="mt-auto pt-3">
-        <UpdateNotice />
-        <SidebarMenu
-          active={active}
-          attentionSources={attentionSources}
-          dateLabel={dateLabel}
-          onNavigate={onNavigate}
-        />
+        <div className="flex items-center gap-2">
+          <SidebarMenu
+            active={active}
+            attentionSources={attentionSources}
+            dateLabel={dateLabel}
+            onNavigate={onNavigate}
+          />
+          <UpdateNotice />
+        </div>
       </div>
     </aside>
   )
