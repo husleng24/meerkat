@@ -64,6 +64,35 @@ export interface ClaimCoverage {
   rate: number
 }
 
+export interface ClaimCitation {
+  text: string
+  /** 直接命中来源名，还是继承整条内容的链接 */
+  direct: boolean
+  sources: Array<{ name: string; url: string }>
+}
+
+/**
+ * 把一条内容的句子绑定到具体来源。
+ *
+ * 判定顺序：
+ * 1. 句子里出现某个来源名（如 TechCrunch）→ 只绑定这个来源，标记 direct；
+ * 2. 没有命中 → 继承条目的全部链接，标记 inherited（不是逐句语义匹配）；
+ * 3. 条目没有链接 → sources 为空。
+ */
+export function bindClaimCitations(input: {
+  title: string
+  body: string
+  links: Array<{ label: string; url: string }>
+}): ClaimCitation[] {
+  const claims = splitClaims(input.body || input.title)
+  return claims.map((text) => {
+    const lower = text.toLowerCase()
+    const direct = input.links.filter((l) => l.label.trim().length >= 2 && lower.includes(l.label.toLowerCase()))
+    const sources = (direct.length > 0 ? direct : input.links).map((l) => ({ name: l.label, url: l.url }))
+    return { text, direct: direct.length > 0, sources }
+  })
+}
+
 /** 把正文拆成可核查的句子；太短的口号/标题不算。 */
 export function splitClaims(text: string): string[] {
   return text

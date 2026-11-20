@@ -141,9 +141,10 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 ### 信任信号
 
 每条内容底部有规则化的 **事实 / 推断 / 传闻** 标签；简报页顶部显示来源多样性、最大单源占比、
-一个定义很窄的「无依据率」——没有 trace 来源证据的条目占比——以及句子级引用覆盖率
-（条目有链接即视为该条正文有出处，三句话速览没有逐条链接）。它们用于提示核实，不冒充事实核查；
-定义与边界见 [docs/TRUST.md](docs/TRUST.md)。
+一个定义很窄的「无依据率」——没有 trace 来源证据的条目占比——以及句子级引用覆盖率。
+点开「每句引用明细」，每条句子会绑定到具体来源：句子里点名来源的标「直接」，没点名的继承
+该条内容的全部链接。「无依据/引用」用于提示核实，不冒充事实核查；定义与边界见
+[docs/TRUST.md](docs/TRUST.md)。
 
 ### 升级提醒
 
@@ -266,7 +267,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**521 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**523 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

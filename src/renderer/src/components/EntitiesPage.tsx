@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { EntityEvent, EntityInputPayload, EntityPayload, EntityTimelinePayload, EventClusterPayload } from '../lib/ipc-types'
+import type {
+  EntityEvent,
+  EntityInputPayload,
+  EntityPayload,
+  EntityTimelinePayload,
+  EventClusterPayload,
+  MergeHistoryPayload
+} from '../lib/ipc-types'
 import { EventPage } from './EventPage'
 
 const KIND_LABEL: Record<EntityPayload['kind'], string> = {
@@ -48,6 +55,7 @@ export function EntitiesPage({ topicId }: { topicId?: string }): React.JSX.Eleme
   const [selected, setSelected] = useState('')
   const [timeline, setTimeline] = useState<EntityTimelinePayload | null>(null)
   const [events, setEvents] = useState<EventClusterPayload[]>([])
+  const [mergeHistory, setMergeHistory] = useState<MergeHistoryPayload[]>([])
   const [eventKey, setEventKey] = useState('')
   const [selectedEvents, setSelectedEvents] = useState<string[]>([])
   const [query, setQuery] = useState('')
@@ -82,6 +90,12 @@ export function EntitiesPage({ topicId }: { topicId?: string }): React.JSX.Eleme
     setEventFilter('all')
     setEventKey('')
     setSelectedEvents([])
+    void window.meerkat?.events
+      ?.mergeHistory()
+      .then((rows) => {
+        if (!cancelled) setMergeHistory((rows ?? []).filter((h) => h.entityId === selected))
+      })
+      .catch(() => undefined)
     void Promise.all([
       window.meerkat?.entities?.timeline({ id: selected, limit: 150 }),
       window.meerkat?.events?.list({ entityId: selected })
@@ -164,6 +178,19 @@ export function EntitiesPage({ topicId }: { topicId?: string }): React.JSX.Eleme
     if (!r?.ok || !r.key) return
     setSelectedEvents([])
     setEventKey(r.key)
+  }
+
+  const undoMerge = async (): Promise<void> => {
+    const r = await window.meerkat?.events?.undoMerge()
+    if (r?.ok) {
+      setEventKey('')
+      const [nextEvents, nextHistory] = await Promise.all([
+        window.meerkat?.events?.list({ entityId: selected }),
+        window.meerkat?.events?.mergeHistory()
+      ])
+      setEvents(nextEvents ?? [])
+      setMergeHistory((nextHistory ?? []).filter((h) => h.entityId === selected))
+    }
   }
 
   if (eventKey && selected) {
@@ -286,6 +313,14 @@ export function EntitiesPage({ topicId }: { topicId?: string }): React.JSX.Eleme
               <section className="mb-4">
                 <div className="mb-2 flex items-center gap-2">
                   <h3 className="text-[11px] font-semibold text-ink-3">事件</h3>
+                  {mergeHistory.length > 0 && (
+                    <span className="text-[10px] text-ink-3">
+                      最近合并 {mergeHistory.length} 次
+                      <button onClick={() => void undoMerge()} className="ml-2 text-accent hover:underline">
+                        撤销上一次
+                      </button>
+                    </span>
+                  )}
                   {selectedEvents.length >= 2 && (
                     <button
                       onClick={() => void mergeEvents()}

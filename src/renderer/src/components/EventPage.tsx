@@ -121,12 +121,6 @@ export function EventPage({
     else setMsg(r?.error ?? '操作失败')
   }
 
-  const undoMerge = async (): Promise<void> => {
-    const r = await window.meerkat?.events?.undoMerge()
-    if (r?.ok) onBack()
-    else setMsg(r?.error ?? '没有可撤销的合并')
-  }
-
   if (loading) return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
   if (!detail) {
     return (
@@ -186,14 +180,9 @@ export function EventPage({
             {splitting ? '取消拆分' : '拆分事件'}
           </button>
           {detail.manual && (
-            <>
-              <button onClick={() => void undoMerge()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-3 hover:border-accent hover:text-accent">
-                撤销合并
-              </button>
-              <button onClick={() => void deleteManual()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-3 hover:border-alert hover:text-alert">
-                恢复自动事件
-              </button>
-            </>
+            <button onClick={() => void deleteManual()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-3 hover:border-alert hover:text-alert">
+              恢复自动事件
+            </button>
           )}
           {msg && <span className="text-[10.5px] text-ink-3">{msg}</span>}
         </div>

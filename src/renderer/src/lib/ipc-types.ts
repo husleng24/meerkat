@@ -394,6 +394,14 @@ export interface EntityInputPayload {
   aliases: string[]
 }
 
+export interface MergeHistoryPayload {
+  id: string
+  entityId: string
+  title: string
+  newEventId: string
+  at: number
+}
+
 export interface EventClusterPayload {
   key: string
   title: string
@@ -414,6 +422,7 @@ export interface EventsBridge {
   list: (input: { entityId: string }) => Promise<EventClusterPayload[]>
   get: (input: { entityId: string; key: string }) => Promise<EventDetailPayload | null>
   merge: (input: { entityId: string; keys: string[] }) => Promise<{ ok: boolean; key?: string; error?: string }>
+  mergeHistory: () => Promise<MergeHistoryPayload[]>
   undoMerge: () => Promise<{ ok: boolean; error?: string }>
   split: (input: { entityId: string; key: string; itemIds: string[]; title?: string }) => Promise<{
     ok: boolean

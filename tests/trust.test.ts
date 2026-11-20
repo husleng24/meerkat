@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { auditClaimCoverage, auditTrust, classifyClaim, splitClaims } from '../src/app/trust'
+import { auditClaimCoverage, auditTrust, bindClaimCitations, classifyClaim, splitClaims } from '../src/app/trust'
 
 describe('信任层', () => {
   it('按措辞区分传闻、推断和事实', () => {
@@ -42,5 +42,26 @@ describe('信任层', () => {
     expect(coverage.claims).toBe(3)
     expect(coverage.cited).toBe(2)
     expect(coverage.rate).toBe(67)
+  })
+
+  it('claim 绑定来源：提到来源名走直接绑定，否则继承条目链接', () => {
+    const claims = bindClaimCitations({
+      title: 'OpenAI ships',
+      body: 'TechCrunch 报道称 OpenAI 发布了新模型。这可能会改变价格。',
+      links: [
+        { label: 'TechCrunch', url: 'https://tc.example/a' },
+        { label: 'The Verge', url: 'https://verge.example/b' }
+      ]
+    })
+    expect(claims).toHaveLength(2)
+    expect(claims[0]!.direct).toBe(true)
+    expect(claims[0]!.sources).toEqual([{ name: 'TechCrunch', url: 'https://tc.example/a' }])
+    expect(claims[1]!.direct).toBe(false)
+    expect(claims[1]!.sources).toHaveLength(2)
+  })
+
+  it('没有链接的 claim 不伪造来源', () => {
+    const claims = bindClaimCitations({ title: 'x', body: '没有任何链接的一条断言。', links: [] })
+    expect(claims[0]!.sources).toEqual([])
   })
 })

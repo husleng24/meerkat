@@ -1620,21 +1620,52 @@ export function registerIpc(): void {
       createdAt: now,
       updatedAt: now
     })
-    store.settings.set('events.mergeUndo', { newEventId: id, removed: removedManual, at: now })
+    const history = store.settings.get<
+      Array<{
+        id: string
+        entityId: string
+        title: string
+        newEventId: string
+        removed: Array<{ id: string; entityId: string; title: string; event: string; itemIds: string[]; createdAt: number; updatedAt: number }>
+        at: number
+      }>
+    >('events.mergeHistory') ?? []
+    history.unshift({
+      id: `mh-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      entityId: parsed.data.entityId,
+      title: chosen[0]!.title,
+      newEventId: id,
+      removed: removedManual,
+      at: now
+    })
+    store.settings.set('events.mergeHistory', history.slice(0, 20))
     return { ok: true, key: `manual:${id}` }
+  })
+
+  ipcMain.handle('events:mergeHistory', () => {
+    const history = requireStore().settings.get<
+      Array<{ id: string; entityId: string; title: string; newEventId: string; at: number }>
+    >('events.mergeHistory') ?? []
+    return history.map((h) => ({ id: h.id, entityId: h.entityId, title: h.title, newEventId: h.newEventId, at: h.at }))
   })
 
   ipcMain.handle('events:undoMerge', () => {
     const store = requireStore()
-    const snapshot = store.settings.get<{
-      newEventId: string
-      removed: Array<{ id: string; entityId: string; title: string; event: string; itemIds: string[]; createdAt: number; updatedAt: number }>
-      at: number
-    }>('events.mergeUndo')
-    if (!snapshot) return { ok: false, error: '没有可撤销的合并' }
+    const history = store.settings.get<
+      Array<{
+        id: string
+        entityId: string
+        title: string
+        newEventId: string
+        removed: Array<{ id: string; entityId: string; title: string; event: string; itemIds: string[]; createdAt: number; updatedAt: number }>
+        at: number
+      }>
+    >('events.mergeHistory') ?? []
+    if (history.length === 0) return { ok: false, error: '没有可撤销的合并' }
+    const snapshot = history[0]!
     store.manualEvents.remove(snapshot.newEventId)
     for (const m of snapshot.removed) store.manualEvents.upsert(m)
-    store.settings.set('events.mergeUndo', null)
+    store.settings.set('events.mergeHistory', history.slice(1))
     return { ok: true }
   })
 

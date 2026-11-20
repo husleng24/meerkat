@@ -7,7 +7,7 @@ import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
 import { renderBriefDocument } from '../lib/briefHtml'
-import { auditClaimCoverage, auditTrust, type TrustItem } from '../../../app/trust'
+import { auditClaimCoverage, auditTrust, bindClaimCitations, type TrustItem } from '../../../app/trust'
 
 interface Props {
   brief: ParsedBrief
@@ -110,6 +110,13 @@ export function BriefView({
         brief.highlights
       ),
     [allItems, brief.highlights]
+  )
+  const claimCitations = useMemo(
+    () =>
+      allItems.flatMap((item) =>
+        bindClaimCitations({ title: item.title, body: item.body, links: item.links })
+      ),
+    [allItems]
   )
   const [shareUrl, setShareUrl] = useState('')
   const [shareBusy, setShareBusy] = useState(false)
@@ -300,6 +307,40 @@ export function BriefView({
             : `无依据 ${trust.audit.unsupported}/${trust.audit.total} · ${trust.audit.unsupportedRate ?? 0}%`}
         </span>
       </div>
+
+      <details className="mb-3 rounded-xl border border-rule bg-white/70 px-3 py-2 text-[10.5px] text-ink-3">
+        <summary className="cursor-pointer select-none hover:text-ink">每句引用明细</summary>
+        <div className="mt-2 max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+          {claimCitations.length === 0 && <p>这一期没有可拆分的断言。</p>}
+          {claimCitations.map((claim, i) => (
+            <div key={i} className="flex gap-2 border-t border-rule/70 pt-1.5 first:border-t-0">
+              <span
+                className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] ${
+                  claim.sources.length === 0
+                    ? 'bg-red-50 text-red-700'
+                    : claim.direct
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-cream text-ink-2'
+                }`}
+              >
+                {claim.sources.length === 0 ? '无来源' : claim.direct ? '直接' : '条目级'}
+              </span>
+              <div className="min-w-0">
+                <p className="leading-5 text-ink-2">{claim.text}</p>
+                {claim.sources.length > 0 && (
+                  <p className="mt-0.5 flex flex-wrap gap-x-2">
+                    {claim.sources.map((s) => (
+                      <a key={`${s.name}-${s.url}`} href={s.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                        {s.name}
+                      </a>
+                    ))}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </details>
 
       {comparison && (
         <CompareStrip comparison={comparison} previousDate={previousDate} onJump={(key) => scrollTo(key)} />
