@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 527 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 529 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -60,8 +60,8 @@
 ### 领域 → 主题
 
 侧栏是一份扁平的主题列表；全局导航集中在最左侧的常驻图标栏（今日、跟踪、搜索、历史、事实源、
-视频解读、周回顾、实体、设置）。点主题即切换，`⌘1–9` 直接切；主题是采集与简报的单位，
-领域只在数据层承担分组。
+视频解读、周回顾、实体、设置）。点主题即切换，`⌘1–9` 直接切。非今日页的侧栏会切换成**当前页上下文**：
+跟踪筛选与计数、最近搜索、源健康度等，而不是继续列主题。
 **新建主题默认只带 8 个按语料推荐的源**，不再和别的主题全量重复。
 
 ![加源时选归属主题](docs/assets/ui-source-topic-picker.png)
@@ -268,7 +268,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**527 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**529 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

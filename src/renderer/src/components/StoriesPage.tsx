@@ -44,9 +44,30 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
     }
   }, [api, load])
 
+  // 侧栏筛选和内容区标签共用一套状态
+  useEffect(() => {
+    const onTab = (e: Event): void => {
+      const tab = (e as CustomEvent<{ tab?: 'active' | 'paused' | 'archived' }>).detail?.tab
+      if (tab === 'active' || tab === 'paused' || tab === 'archived') setTab(tab)
+    }
+    const onUpdated = (): void => void load()
+    window.addEventListener('meerkat:tracking-tab', onTab)
+    window.addEventListener('brief:updated', onUpdated)
+    return () => {
+      window.removeEventListener('meerkat:tracking-tab', onTab)
+      window.removeEventListener('brief:updated', onUpdated)
+    }
+  }, [load])
+
+  const changeTab = (next: typeof tab): void => {
+    setTab(next)
+    window.dispatchEvent(new CustomEvent('meerkat:tracking-tab-sync', { detail: { tab: next } }))
+  }
+
   const setStatus = async (id: string, status: StoryPayload['status']): Promise<void> => {
     await api?.setStatus({ id, status })
     await load()
+    window.dispatchEvent(new CustomEvent('meerkat:tracking-updated'))
   }
 
   const openTimeline = async (story: StoryPayload): Promise<void> => {
@@ -83,7 +104,7 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
         {tabs.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => changeTab(t.id)}
             className={[
               'rounded-full border px-3 py-1 text-[11px] transition-colors',
               tab === t.id

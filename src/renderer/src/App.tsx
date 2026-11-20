@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { NavRail } from './components/NavRail'
+import { ContextSidebar } from './components/ContextSidebar'
 import { BriefView } from './components/BriefView'
 import { SourcesPage } from './components/SourcesPage'
 import { Onboarding } from './components/Onboarding'
@@ -169,13 +170,17 @@ export default function App(): React.JSX.Element {
         tracking={tracking}
         onNavigate={go}
       />
-      <Sidebar
-        topics={topics}
-        activeTopic={activeId}
-        onPickTopic={pickTopic}
-        topicsAvailable={topicsAvailable}
-        onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
-      />
+      {nav === 'today' ? (
+        <Sidebar
+          topics={topics}
+          activeTopic={activeId}
+          onPickTopic={pickTopic}
+          topicsAvailable={topicsAvailable}
+          onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
+        />
+      ) : (
+        <ContextSidebar nav={nav} attentionSources={summary.attention} />
+      )}
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* 今日页不设页头：报头在内容里，页头会跟它抢同一件事 */}

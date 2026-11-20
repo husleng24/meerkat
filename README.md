@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 527 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 529 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -65,8 +65,8 @@ titles-and-links digest instead of failing.
 
 The sidebar is a flat list of topics; global navigation lives in a persistent icon rail on the far left
 (today, tracking, search, history, sources, videos, weekly review, entities, settings). Clicking a topic
-switches to it, and `⌘1–9` jumps directly. A topic is the unit of collection and briefing; a domain only
-groups them in data.
+switches to it, and `⌘1–9` jumps directly. On non-today pages the sidebar becomes **page context**:
+tracking filters and counts, recent searches, source health, and so on instead of the topic list.
 **New topics start with 8 recommended sources** instead of copying every source.
 
 ![Choosing topics when adding a source](docs/assets/ui-source-topic-picker.png)
@@ -294,7 +294,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **527 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **529 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

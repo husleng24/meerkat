@@ -4,6 +4,21 @@ import type { SearchHit } from '../lib/ipc-types'
 
 type SortKey = 'score' | 'time'
 
+const RECENT_KEY = 'meerkat.search.recent'
+
+function rememberQuery(q: string): void {
+  const term = q.trim()
+  if (term.length < 2) return
+  try {
+    const old: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]')
+    const list = Array.isArray(old) ? old.filter((x): x is string => typeof x === 'string') : []
+    localStorage.setItem(RECENT_KEY, JSON.stringify([term, ...list.filter((x) => x !== term)].slice(0, 6)))
+    window.dispatchEvent(new CustomEvent('meerkat:search-recent'))
+  } catch {
+    /* localStorage 不可用时不影响搜索 */
+  }
+}
+
 const DAY_OPTIONS: Array<{ days?: number; label: string }> = [
   { label: '全部时间' },
   { days: 7, label: '最近 7 天' },
@@ -40,6 +55,16 @@ export function SearchPage(): React.JSX.Element {
     inputRef.current?.focus()
   }, [])
 
+  // 侧栏的「最近搜索」点击后把关键词送回输入框
+  useEffect(() => {
+    const onQuery = (e: Event): void => {
+      const q = (e as CustomEvent<{ q?: string }>).detail?.q
+      if (typeof q === 'string') setQ(q)
+    }
+    window.addEventListener('meerkat:search-query', onQuery)
+    return () => window.removeEventListener('meerkat:search-query', onQuery)
+  }, [])
+
   // 来源下拉：只在应用内有意义，浏览器预览里拿不到
   useEffect(() => {
     const api = window.meerkat?.sources
@@ -73,7 +98,10 @@ export function SearchPage(): React.JSX.Element {
         })
         .then((r) => setHits(r))
         .catch(() => setHits([]))
-        .finally(() => setBusy(false))
+        .finally(() => {
+          setBusy(false)
+          rememberQuery(term)
+        })
     }, 250)
     return () => {
       clearTimeout(timer)
