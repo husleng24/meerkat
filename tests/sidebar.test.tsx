@@ -147,21 +147,10 @@ describe('侧栏：扁平主题列表', () => {
     expect(el.textContent).not.toContain('数据来源')
   })
 
-  it('底部导航按钮打开全局菜单，事实源告警带数量', async () => {
-    const onNavigate = vi.fn()
-    const el = await render(<Sidebar {...baseProps({ onNavigate })} />)
-    const trigger = el.querySelector('button[aria-haspopup="menu"]') as HTMLButtonElement
-    await act(async () => trigger.click())
-
-    const items = [...el.querySelectorAll('[role="menuitem"]')]
-    const labels = items.map((i) => i.textContent ?? '')
-    expect(labels.some((x) => x.includes('搜索'))).toBe(true)
-    expect(labels.some((x) => x.includes('历史简报'))).toBe(true)
-    expect(labels.some((x) => x.includes('设置'))).toBe(true)
-    expect(labels.find((x) => x.includes('事实源'))).toContain('15')
-
-    await act(async () => items.find((i) => i.textContent?.includes('历史简报'))!.click())
-    expect(onNavigate).toHaveBeenCalledWith('timeline')
+  it('全局导航已移到左侧常驻栏，侧栏不再有弹出菜单', async () => {
+    const el = await render(<Sidebar {...baseProps()} />)
+    expect(el.querySelector('button[aria-haspopup="menu"]')).toBeNull()
+    expect(el.querySelector('[role="menuitem"]')).toBeNull()
   })
 })
 

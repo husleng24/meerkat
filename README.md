@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 479 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.2 · 528 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -166,10 +166,10 @@ confidence and reason. These are prompts for verification, not a claim of fact-c
 
 ### Update notice
 
-On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a small
-**sidebar-footer entry** appears (`↓ v0.1.2 · Download`); clicking it opens the release page, where both the
-changelog and the installers are. Settings → About checks on demand and expands the changelog in place.
-It never downloads or replaces the app itself — both platforms are unsigned.
+On launch it asks GitHub for the latest release (cached for 24 hours). When a newer version exists, a
+small **download icon with a red dot** appears at the bottom of the left navigation rail. Clicking it
+opens a compact card with the version, changelog preview, and release-page actions; it never downloads
+or replaces the app itself — both platforms are unsigned.
 
 ### Export
 
@@ -292,7 +292,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **526 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **528 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

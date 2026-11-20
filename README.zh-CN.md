@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 479 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.2 · 528 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -148,9 +148,9 @@ FTS5 全文检索（支持板块、源、时间筛选、高亮、排序）；历
 
 ### 升级提醒
 
-启动时查一次 GitHub 最新 Release（24 小时内不重复），有新版本时**侧栏底部**出现一条
-「↓ 新版本 v0.1.2 · 下载」，点一下打开 Release 页（changelog 与安装包都在那里）。
-设置 →「关于」可以手动检查，并就地展开这次更新了什么。只提示、不自动下载——两个平台都未签名。
+启动时查一次 GitHub 最新 Release（24 小时内不重复），有新版本时**左侧导航栏底部**出现一个带红点的
+小下载图标；点开是一张紧凑的更新卡片，含版本号、更新说明预览和 Release 页入口。只提示、不自动下载
+或替换应用——两个平台都未签名。设置 →「关于」可以手动检查并展开完整说明。
 
 ### 导出
 
@@ -267,7 +267,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**526 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**528 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

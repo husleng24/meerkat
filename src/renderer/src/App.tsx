@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Sidebar } from './components/Sidebar'
+import { NavRail } from './components/NavRail'
 import { BriefView } from './components/BriefView'
 import { SourcesPage } from './components/SourcesPage'
 import { Onboarding } from './components/Onboarding'
@@ -162,6 +163,11 @@ export default function App(): React.JSX.Element {
     <div className="flex h-full overflow-hidden">
       {/* 没有它，隐藏标题栏的窗口无法拖动 */}
       {IS_MAC && <div className="app-drag-strip" aria-hidden="true" />}
+      <NavRail
+        active={nav}
+        attentionSources={summary.attention}
+        onNavigate={go}
+      />
       <Sidebar
         active={nav}
         topics={topics}

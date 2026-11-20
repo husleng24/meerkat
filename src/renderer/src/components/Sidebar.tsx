@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import type { TopicPayload } from '../lib/ipc-types'
-import { UpdateNotice } from './UpdateNotice'
-import { SidebarMenu } from './SidebarMenu'
 
 interface Props {
   active: string
@@ -44,8 +42,6 @@ export function Sidebar({
   topicsAvailable,
   onCreateTopic,
   onNavigate,
-  attentionSources,
-  dateLabel,
   tracking
 }: Props): React.JSX.Element {
   const [creating, setCreating] = useState(false)
@@ -169,18 +165,6 @@ export function Sidebar({
             </button>
           )
         )}
-      </div>
-
-      <div className="mt-auto pt-3">
-        <div className="flex items-center gap-2">
-          <SidebarMenu
-            active={active}
-            attentionSources={attentionSources}
-            dateLabel={dateLabel}
-            onNavigate={onNavigate}
-          />
-          <UpdateNotice />
-        </div>
       </div>
     </aside>
   )
