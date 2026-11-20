@@ -31,10 +31,12 @@ function day(ts: number): string {
 export function EventPage({
   entityId,
   eventKey,
+  topicId,
   onBack
 }: {
   entityId: string
   eventKey: string
+  topicId?: string
   onBack: () => void
 }): React.JSX.Element {
   const [detail, setDetail] = useState<EventDetailPayload | null>(null)
@@ -42,6 +44,9 @@ export function EventPage({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [splitting, setSplitting] = useState(false)
+  const [msg, setMsg] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -88,6 +93,27 @@ export function EventPage({
     setError('')
   }
 
+  const split = async (): Promise<void> => {
+    if (selectedItems.length === 0) return
+    const r = await window.meerkat?.events?.split({ entityId, key: eventKey, itemIds: selectedItems })
+    if (!r?.ok) {
+      setMsg(r?.error ?? '拆分失败')
+      return
+    }
+    onBack()
+  }
+
+  const toStory = async (): Promise<void> => {
+    const r = await window.meerkat?.events?.toStory({ entityId, key: eventKey, ...(topicId ? { topicId } : {}) })
+    setMsg(r?.ok ? '已转为跟踪，可在「跟踪」页查看' : (r?.error ?? '转换失败'))
+  }
+
+  const deleteManual = async (): Promise<void> => {
+    const r = await window.meerkat?.events?.deleteManual(eventKey)
+    if (r?.ok) onBack()
+    else setMsg(r?.error ?? '操作失败')
+  }
+
   if (loading) return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
   if (!detail) {
     return (
@@ -113,7 +139,40 @@ export function EventPage({
           </span>
         </div>
         <h1 className="mt-2 text-[24px] font-bold leading-tight tracking-[-0.03em] text-ink">{detail.title}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button onClick={() => void toStory()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-2 hover:border-accent">
+            转为跟踪
+          </button>
+          <button
+            onClick={() => {
+              setSplitting((v) => !v)
+              setSelectedItems([])
+            }}
+            className={`rounded-full border px-2.5 py-1 text-[10.5px] ${splitting ? 'border-accent bg-accent-soft text-accent' : 'border-cream text-ink-2 hover:border-accent'}`}
+          >
+            {splitting ? '取消拆分' : '拆分事件'}
+          </button>
+          {detail.manual && (
+            <button onClick={() => void deleteManual()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-3 hover:border-alert hover:text-alert">
+              恢复自动事件
+            </button>
+          )}
+          {msg && <span className="text-[10.5px] text-ink-3">{msg}</span>}
+        </div>
       </header>
+
+      {splitting && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-accent/25 bg-accent-soft px-3 py-2 text-[11px] text-ink-2">
+          <span>勾选要拆出去的内容（{selectedItems.length} 条）</span>
+          <button
+            onClick={() => void split()}
+            disabled={selectedItems.length === 0}
+            className="rounded bg-ink px-2.5 py-1 text-[10.5px] text-paper disabled:opacity-40"
+          >
+            拆分为新事件
+          </button>
+        </div>
+      )}
 
       <section className="card mt-4 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -180,22 +239,37 @@ export function EventPage({
             <div className="space-y-2">
               {list.map((item) => (
                 <article key={item.id} className="card px-4 py-3">
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[13px] font-semibold leading-5 text-ink hover:text-accent hover:underline"
-                  >
-                    {item.title}
-                  </a>
-                  <p className="mt-1 text-[10.5px] text-ink-3">{item.sourceName}</p>
-                  {item.summary && <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-5 text-ink-2">{item.summary}</p>}
-                  {decisions.has(item.id) && (
-                    <p className="mt-2 whitespace-pre-wrap border-l-2 border-accent/30 pl-3 text-[11px] leading-5 text-ink-2">
-                      <span className="mr-1 font-medium text-accent">我的判断</span>
-                      {decisions.get(item.id)}
-                    </p>
-                  )}
+                  <div className="flex items-start gap-2">
+                    {splitting && (
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.id)}
+                        onChange={(e) =>
+                          setSelectedItems((prev) => (e.target.checked ? [...prev, item.id] : prev.filter((id) => id !== item.id)))
+                        }
+                        aria-label="选择要拆出的内容"
+                        className="mt-1"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[13px] font-semibold leading-5 text-ink hover:text-accent hover:underline"
+                      >
+                        {item.title}
+                      </a>
+                      <p className="mt-1 text-[10.5px] text-ink-3">{item.sourceName}</p>
+                      {item.summary && <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-5 text-ink-2">{item.summary}</p>}
+                      {decisions.has(item.id) && (
+                        <p className="mt-2 whitespace-pre-wrap border-l-2 border-accent/30 pl-3 text-[11px] leading-5 text-ink-2">
+                          <span className="mr-1 font-medium text-accent">我的判断</span>
+                          {decisions.get(item.id)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </article>
               ))}
             </div>

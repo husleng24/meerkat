@@ -386,6 +386,23 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_event_notes_updated ON event_notes(updated_at DESC);
     `
+  },
+  {
+    version: 14,
+    name: 'manual_events',
+    up: `
+      -- 用户手动合并/拆分出来的事件；item_ids 是覆盖自动聚类的唯一来源。
+      CREATE TABLE manual_events (
+        id           TEXT PRIMARY KEY,
+        entity_id    TEXT NOT NULL,
+        title        TEXT NOT NULL,
+        event        TEXT NOT NULL,
+        item_ids_json TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        updated_at   INTEGER NOT NULL
+      );
+      CREATE INDEX idx_manual_events_entity ON manual_events(entity_id, updated_at DESC);
+    `
   }
 ]
 

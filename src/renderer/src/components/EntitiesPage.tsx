@@ -43,12 +43,13 @@ function day(ts: number | undefined): string {
 }
 
 /** 实体页：公司/人物档案、事件卡、事件页入口、手动维护实体。 */
-export function EntitiesPage(): React.JSX.Element {
+export function EntitiesPage({ topicId }: { topicId?: string }): React.JSX.Element {
   const [entities, setEntities] = useState<EntityPayload[] | null>(null)
   const [selected, setSelected] = useState('')
   const [timeline, setTimeline] = useState<EntityTimelinePayload | null>(null)
   const [events, setEvents] = useState<EventClusterPayload[]>([])
   const [eventKey, setEventKey] = useState('')
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [eventFilter, setEventFilter] = useState<EntityEvent | 'all'>('all')
   const [loadingItems, setLoadingItems] = useState(false)
@@ -80,6 +81,7 @@ export function EntitiesPage(): React.JSX.Element {
     setLoadingItems(true)
     setEventFilter('all')
     setEventKey('')
+    setSelectedEvents([])
     void Promise.all([
       window.meerkat?.entities?.timeline({ id: selected, limit: 150 }),
       window.meerkat?.events?.list({ entityId: selected })
@@ -156,7 +158,27 @@ export function EntitiesPage(): React.JSX.Element {
     await load()
   }
 
-  if (eventKey && selected) return <EventPage entityId={selected} eventKey={eventKey} onBack={() => setEventKey('')} />
+  const mergeEvents = async (): Promise<void> => {
+    if (selectedEvents.length < 2) return
+    const r = await window.meerkat?.events?.merge({ entityId: selected, keys: selectedEvents })
+    if (!r?.ok || !r.key) return
+    setSelectedEvents([])
+    setEventKey(r.key)
+  }
+
+  if (eventKey && selected) {
+    return (
+      <EventPage
+        entityId={selected}
+        eventKey={eventKey}
+        topicId={topicId}
+        onBack={() => {
+          setEventKey('')
+          void window.meerkat?.events?.list({ entityId: selected }).then((rows) => setEvents(rows ?? []))
+        }}
+      />
+    )
+  }
   if (entities === null) return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
 
   const period = timeline?.period
@@ -262,22 +284,46 @@ export function EntitiesPage(): React.JSX.Element {
 
             {events.length > 0 && (
               <section className="mb-4">
-                <h3 className="mb-2 text-[11px] font-semibold text-ink-3">事件</h3>
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-[11px] font-semibold text-ink-3">事件</h3>
+                  {selectedEvents.length >= 2 && (
+                    <button
+                      onClick={() => void mergeEvents()}
+                      className="rounded-full bg-ink px-2.5 py-1 text-[10px] text-paper"
+                    >
+                      合并所选 {selectedEvents.length} 个
+                    </button>
+                  )}
+                </div>
                 <div className="grid gap-1.5 sm:grid-cols-2">
                   {events.slice(0, 8).map((e) => (
-                    <button
+                    <div
                       key={e.key}
                       onClick={() => setEventKey(e.key)}
-                      className="card px-3 py-2 text-left transition-colors hover:border-accent/40"
+                      className={`card cursor-pointer px-3 py-2 text-left transition-colors hover:border-accent/40 ${
+                        selectedEvents.includes(e.key) ? 'border-accent/60 bg-accent-soft/40' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedEvents.includes(e.key)}
+                          onClick={(ev) => ev.stopPropagation()}
+                          onChange={(ev) =>
+                            setSelectedEvents((prev) =>
+                              ev.target.checked ? [...prev, e.key] : prev.filter((k) => k !== e.key)
+                            )
+                          }
+                          aria-label="选择事件用于合并"
+                        />
                         <span className={`rounded px-1.5 py-0.5 text-[9px] ${EVENT_STYLE[e.event]}`}>{EVENT_LABEL[e.event]}</span>
+                        {e.manual && <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[9px] text-accent">手动</span>}
                         <span className="text-[9.5px] text-ink-3">
                           {day(e.earliestAt)} · {e.items.length} 条 · {e.sourceCount} 来源
                         </span>
                       </div>
                       <p className="mt-1 line-clamp-2 text-[11.5px] font-medium leading-4 text-ink">{e.title}</p>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </section>

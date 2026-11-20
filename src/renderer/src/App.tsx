@@ -263,7 +263,7 @@ export default function App(): React.JSX.Element {
 
           {nav === 'videos' && <VideoPage />}
           {nav === 'review' && <ReviewPage onGoToday={() => go('today')} />}
-          {nav === 'entities' && <EntitiesPage />}
+          {nav === 'entities' && <EntitiesPage topicId={activeId || undefined} />}
 
           {nav === 'sources' && (
             <SourcesPage

@@ -148,7 +148,9 @@ the page shows a dated timeline of related items and their sources. The index is
 launch and incremented after each daily run. Items are also tagged by rule-based event type
 (funding/product/layoff/regulation/security/research/partnership), with a this-week-vs-last-week
 count. Event cards open a full event page with a dated timeline, an event-level judgment, and the
-judgments already written on linked items. Entities can be added, renamed, re-aliased, or deleted
+judgments already written on linked items. Event cards can be merged (select two or more), an event
+can be split by selecting items, and manual events can be reverted to automatic ones. Any event can
+be turned into a tracking story in one click. Entities can be added, renamed, re-aliased, or deleted
 locally; re-aliasing rebuilds the index.
 
 ### Update notice
@@ -279,7 +281,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **516 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **517 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

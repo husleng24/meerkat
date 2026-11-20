@@ -390,6 +390,7 @@ export interface EventClusterPayload {
   sourceCount: number
   latestAt: number
   earliestAt: number
+  manual?: boolean
 }
 
 export interface EventDetailPayload extends EventClusterPayload {
@@ -400,6 +401,19 @@ export interface EventDetailPayload extends EventClusterPayload {
 export interface EventsBridge {
   list: (input: { entityId: string }) => Promise<EventClusterPayload[]>
   get: (input: { entityId: string; key: string }) => Promise<EventDetailPayload | null>
+  merge: (input: { entityId: string; keys: string[] }) => Promise<{ ok: boolean; key?: string; error?: string }>
+  split: (input: { entityId: string; key: string; itemIds: string[]; title?: string }) => Promise<{
+    ok: boolean
+    key?: string
+    error?: string
+  }>
+  deleteManual: (eventKey: string) => Promise<{ ok: boolean; error?: string }>
+  toStory: (input: { entityId: string; key: string; topicId?: string }) => Promise<{
+    ok: boolean
+    storyId?: string
+    title?: string
+    error?: string
+  }>
   noteSave: (input: { eventKey: string; note: string }) => Promise<{
     ok: boolean
     note?: { eventKey: string; note: string; createdAt: number; updatedAt: number }

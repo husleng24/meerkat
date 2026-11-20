@@ -6,7 +6,7 @@
  */
 import type {
   Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story,
-  VideoCreator, VideoReport, DecisionNote, Entity, EventNote
+  VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../domain/types'
 
 export interface SourceStore {
@@ -161,6 +161,13 @@ export interface EventNoteStore {
   remove(eventKey: string): void
 }
 
+export interface ManualEventStore {
+  list(entityId?: string): ManualEvent[]
+  get(id: string): ManualEvent | undefined
+  upsert(event: ManualEvent): void
+  remove(id: string): void
+}
+
 export interface Store {
   sources: SourceStore
   domains: DomainStore
@@ -176,6 +183,7 @@ export interface Store {
   decisions: DecisionStore
   entities: EntityStore
   eventNotes: EventNoteStore
+  manualEvents: ManualEventStore
   /** 当前 schema 版本，便于诊断包记录 */
   schemaVersion(): number
   /** 在单个事务里执行；导入配置这类多步写入必须原子完成 */

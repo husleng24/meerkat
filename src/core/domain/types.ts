@@ -214,6 +214,17 @@ export interface EventNote {
   updatedAt: number
 }
 
+/** 用户手动合并/拆分后的事件；itemIds 覆盖自动聚类 */
+export interface ManualEvent {
+  id: string
+  entityId: string
+  title: string
+  event: string
+  itemIds: string[]
+  createdAt: number
+  updatedAt: number
+}
+
 /** 领域：主题的分组（一个领域下有多个主题） */
 export interface Domain {
   id: string

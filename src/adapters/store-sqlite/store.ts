@@ -2,12 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore, EventNoteStore
+  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore, EventNoteStore, ManualEventStore
 } from '../../core/ports/store'
 import type {
   Domain,
   Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
-  VideoCreator, VideoReport, DecisionNote, Entity, EventNote
+  VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../../core/domain/types'
 
 const now = (): number => Date.now()
@@ -76,6 +76,11 @@ interface EntityRow {
 
 interface EventNoteRow {
   event_key: string; note: string; created_at: number; updated_at: number
+}
+
+interface ManualEventRow {
+  id: string; entity_id: string; title: string; event: string
+  item_ids_json: string; created_at: number; updated_at: number
 }
 
 interface ChatMessageRow {
@@ -219,6 +224,16 @@ const toEntity = (r: EntityRow): Entity => ({
 const toEventNote = (r: EventNoteRow): EventNote => ({
   eventKey: r.event_key,
   note: r.note,
+  createdAt: r.created_at,
+  updatedAt: r.updated_at
+})
+
+const toManualEvent = (r: ManualEventRow): ManualEvent => ({
+  id: r.id,
+  entityId: r.entity_id,
+  title: r.title,
+  event: r.event,
+  itemIds: safeParseArray(r.item_ids_json),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -1128,6 +1143,47 @@ class SqliteEventNoteStore implements EventNoteStore {
   }
 }
 
+class SqliteManualEventStore implements ManualEventStore {
+  constructor(private db: DB) {}
+
+  list(entityId?: string): ManualEvent[] {
+    const rows = (
+      entityId
+        ? this.db.prepare('SELECT * FROM manual_events WHERE entity_id = ? ORDER BY updated_at DESC').all(entityId)
+        : this.db.prepare('SELECT * FROM manual_events ORDER BY updated_at DESC').all()
+    ) as ManualEventRow[]
+    return rows.map(toManualEvent)
+  }
+
+  get(id: string): ManualEvent | undefined {
+    const r = this.db.prepare('SELECT * FROM manual_events WHERE id = ?').get(id) as ManualEventRow | undefined
+    return r ? toManualEvent(r) : undefined
+  }
+
+  upsert(event: ManualEvent): void {
+    this.db
+      .prepare(
+        `INSERT INTO manual_events (id,entity_id,title,event,item_ids_json,created_at,updated_at)
+         VALUES (@id,@entity_id,@title,@event,@item_ids_json,@created_at,@updated_at)
+         ON CONFLICT(id) DO UPDATE SET title=excluded.title, event=excluded.event,
+           item_ids_json=excluded.item_ids_json, updated_at=excluded.updated_at`
+      )
+      .run({
+        id: event.id,
+        entity_id: event.entityId,
+        title: event.title,
+        event: event.event,
+        item_ids_json: JSON.stringify(event.itemIds),
+        created_at: event.createdAt,
+        updated_at: event.updatedAt
+      })
+  }
+
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM manual_events WHERE id = ?').run(id)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -1143,6 +1199,7 @@ class SqliteStore implements Store {
   readonly decisions: DecisionStore
   readonly entities: EntityStore
   readonly eventNotes: EventNoteStore
+  readonly manualEvents: ManualEventStore
 
   constructor(private db: DB) {
     this.sources = new SqliteSourceStore(db)
@@ -1159,6 +1216,7 @@ class SqliteStore implements Store {
     this.decisions = new SqliteDecisionStore(db)
     this.entities = new SqliteEntityStore(db)
     this.eventNotes = new SqliteEventNoteStore(db)
+    this.manualEvents = new SqliteManualEventStore(db)
   }
 
   schemaVersion(): number {

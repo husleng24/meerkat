@@ -23,6 +23,9 @@ import { seedVideoTopic } from '../app/seed-video-topic'
 import { bootstrapEntities } from '../app/entities'
 import { createEntity, updateEntity, rebuildEntityIndex } from '../app/entities'
 import { buildEntityEventClusters, classifyEntityEvent, entityPeriods } from '../app/entity-events'
+import type { EntityEvent } from '../app/entity-events'
+import { extractKeywords } from '../app/event-timeline'
+import { cleanAliases } from '../app/aliases'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -77,6 +80,7 @@ import { exportDiagnostic } from './diagnostic'
 import { composeFeedback, copyFeedback, saveFeedback } from './feedback'
 import { allKeyStatuses, availableProviders, clearApiKey, importFromDsh, keyStatus, setApiKey } from './keystore'
 import type { Store } from '../core/ports/store'
+import type { Story } from '../core/domain/types'
 import type { Source } from '../core/domain/types'
 
 let store: Store | null = null
@@ -1441,6 +1445,34 @@ export function registerIpc(): void {
       })
   }
 
+  const clustersFor = (entityId: string) => {
+    const store = requireStore()
+    const timeline = timelineFor(entityId)
+    const manual = store.manualEvents.list(entityId)
+    const claimed = new Set(manual.flatMap((m) => m.itemIds))
+    const auto = buildEntityEventClusters(entityId, timeline.filter((i) => !claimed.has(i.id)))
+      .filter((c) => c.event !== 'other')
+      .map((c) => ({ ...c, manual: false }))
+    const manualClusters = manual
+      .map((m) => {
+        const items = timeline.filter((i) => m.itemIds.includes(i.id))
+        if (items.length === 0) return null
+        const sources = new Set(items.map((i) => i.sourceName))
+        return {
+          key: `manual:${m.id}`,
+          title: m.title,
+          event: (m.event as EntityEvent) ?? 'other',
+          items,
+          sourceCount: sources.size,
+          latestAt: items[0]!.at,
+          earliestAt: items[items.length - 1]!.at,
+          manual: true
+        }
+      })
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    return [...manualClusters, ...auto].sort((a, b) => b.items.length - a.items.length || b.latestAt - a.latestAt)
+  }
+
   ipcMain.handle('entities:list', () => {
     const store = requireStore()
     const counts = new Map(store.entities.counts().map((c) => [c.entityId, c]))
@@ -1516,6 +1548,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const store = requireStore()
     if (!store.entities.get(parsed.data)) return { ok: false, error: '实体不存在' }
+    for (const m of store.manualEvents.list(parsed.data)) store.manualEvents.remove(m.id)
     store.entities.remove(parsed.data)
     return { ok: true }
   })
@@ -1524,19 +1557,14 @@ export function registerIpc(): void {
   ipcMain.handle('events:list', (_e, raw: unknown) => {
     const parsed = z.object({ entityId: z.string().min(1).max(100) }).safeParse(raw)
     if (!parsed.success) return []
-    // 「其他」是兜底桶，不适合作为事件卡；事件页只展示有明确类型的内容。
-    return buildEntityEventClusters(parsed.data.entityId, timelineFor(parsed.data.entityId))
-      .filter((c) => c.event !== 'other')
-      .sort((a, b) => b.items.length - a.items.length || b.latestAt - a.latestAt)
+    return clustersFor(parsed.data.entityId)
   })
 
   ipcMain.handle('events:get', (_e, raw: unknown) => {
     const parsed = z.object({ entityId: z.string().min(1).max(100), key: z.string().min(1).max(200) }).safeParse(raw)
     if (!parsed.success) return null
     const store = requireStore()
-    const cluster = buildEntityEventClusters(parsed.data.entityId, timelineFor(parsed.data.entityId)).find(
-      (c) => c.key === parsed.data.key
-    )
+    const cluster = clustersFor(parsed.data.entityId).find((c) => c.key === parsed.data.key)
     if (!cluster) return null
     const ids = cluster.items.map((i) => i.id)
     return {
@@ -1544,6 +1572,113 @@ export function registerIpc(): void {
       decisions: store.decisions.listByIds(ids),
       note: store.eventNotes.get(cluster.key) ?? null
     }
+  })
+
+  ipcMain.handle('events:merge', (_e, raw: unknown) => {
+    const parsed = z.object({ entityId: z.string().min(1).max(100), keys: z.array(z.string().min(1).max(200)).min(2).max(20) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '至少选择两个事件' }
+    const store = requireStore()
+    const all = clustersFor(parsed.data.entityId)
+    const chosen = parsed.data.keys.map((k) => all.find((c) => c.key === k)).filter((c): c is NonNullable<typeof c> => Boolean(c))
+    if (chosen.length < 2) return { ok: false, error: '事件不存在或已被修改' }
+    const itemIds = [...new Set(chosen.flatMap((c) => c.items.map((i) => i.id)))]
+    for (const key of parsed.data.keys) {
+      if (key.startsWith('manual:')) store.manualEvents.remove(key.slice('manual:'.length))
+    }
+    const now = Date.now()
+    const id = `me-${now}-${Math.random().toString(36).slice(2, 8)}`
+    store.manualEvents.upsert({
+      id,
+      entityId: parsed.data.entityId,
+      title: chosen[0]!.title,
+      event: chosen[0]!.event,
+      itemIds,
+      createdAt: now,
+      updatedAt: now
+    })
+    return { ok: true, key: `manual:${id}` }
+  })
+
+  ipcMain.handle('events:split', (_e, raw: unknown) => {
+    const parsed = z
+      .object({
+        entityId: z.string().min(1).max(100),
+        key: z.string().min(1).max(200),
+        itemIds: z.array(z.string().min(1).max(100)).min(1).max(500),
+        title: z.string().max(200).optional()
+      })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    const cluster = clustersFor(parsed.data.entityId).find((c) => c.key === parsed.data.key)
+    if (!cluster) return { ok: false, error: '事件不存在' }
+    const selected = cluster.items.filter((i) => parsed.data.itemIds.includes(i.id))
+    if (selected.length === 0) return { ok: false, error: '没有选中事件里的内容' }
+    const selectedIds = new Set(selected.map((i) => i.id))
+    const now = Date.now()
+
+    if (parsed.data.key.startsWith('manual:')) {
+      const oldId = parsed.data.key.slice('manual:'.length)
+      const old = store.manualEvents.get(oldId)
+      if (old) {
+        const remaining = old.itemIds.filter((id) => !selectedIds.has(id))
+        if (remaining.length === 0) store.manualEvents.remove(oldId)
+        else store.manualEvents.upsert({ ...old, itemIds: remaining, updatedAt: now })
+      }
+    }
+
+    const id = `me-${now}-${Math.random().toString(36).slice(2, 8)}`
+    store.manualEvents.upsert({
+      id,
+      entityId: parsed.data.entityId,
+      title: parsed.data.title?.trim() || selected[0]!.title,
+      event: cluster.event,
+      itemIds: [...selectedIds],
+      createdAt: now,
+      updatedAt: now
+    })
+    return { ok: true, key: `manual:${id}` }
+  })
+
+  ipcMain.handle('events:deleteManual', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(200).safeParse(raw)
+    if (!parsed.success || !parsed.data.startsWith('manual:')) return { ok: false, error: '不是手动事件' }
+    requireStore().manualEvents.remove(parsed.data.slice('manual:'.length))
+    return { ok: true }
+  })
+
+  ipcMain.handle('events:toStory', (_e, raw: unknown) => {
+    const parsed = z
+      .object({ entityId: z.string().min(1).max(100), key: z.string().min(1).max(200), topicId: z.string().min(1).max(80).optional() })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const store = requireStore()
+    const cluster = clustersFor(parsed.data.entityId).find((c) => c.key === parsed.data.key)
+    if (!cluster || cluster.items.length === 0) return { ok: false, error: '事件不存在' }
+    const entity = store.entities.get(parsed.data.entityId)
+    const topic = parsed.data.topicId ? store.topics.get(parsed.data.topicId) : store.topics.list()[0]
+    if (!topic) return { ok: false, error: '没有可用的主题' }
+    const now = Date.now()
+    const aliases = cleanAliases([
+      ...(entity?.aliases ?? []),
+      ...extractKeywords(cluster.title)
+    ]).slice(0, 12)
+    const story: Story = {
+      id: `st-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      title: cluster.title.slice(0, 60),
+      query: cluster.title,
+      aliases: aliases.length > 0 ? aliases : [cluster.title.slice(0, 12)],
+      topicId: topic.id,
+      itemId: cluster.items[0]!.id,
+      status: 'active',
+      missCount: 0,
+      createdAt: now,
+      updatedAt: now
+    }
+    store.stories.create(story)
+    store.stories.addItems(story.id, cluster.items.map((i) => i.id), now)
+    store.stories.update(story.id, { lastMatchAt: now, updatedAt: now })
+    return { ok: true, storyId: story.id, title: story.title }
   })
 
   ipcMain.handle('events:noteSave', (_e, raw: unknown) => {

@@ -459,6 +459,21 @@ const api = {
         earliestAt: number
       }>
     > => ipcRenderer.invoke('events:list', input),
+    merge: (input: { entityId: string; keys: string[] }): Promise<{ ok: boolean; key?: string; error?: string }> =>
+      ipcRenderer.invoke('events:merge', input),
+    split: (input: { entityId: string; key: string; itemIds: string[]; title?: string }): Promise<{
+      ok: boolean
+      key?: string
+      error?: string
+    }> => ipcRenderer.invoke('events:split', input),
+    deleteManual: (eventKey: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('events:deleteManual', eventKey),
+    toStory: (input: { entityId: string; key: string; topicId?: string }): Promise<{
+      ok: boolean
+      storyId?: string
+      title?: string
+      error?: string
+    }> => ipcRenderer.invoke('events:toStory', input),
     get: (input: { entityId: string; key: string }): Promise<{
       key: string
       title: string
