@@ -285,10 +285,12 @@ export interface ChatThread {
   id: string
   title: string
   topicId: string
-  /** brief：当天简报的对话；item：某条新闻的评论串 */
-  scope: 'brief' | 'item'
-  /** scope=item 时指向条目 */
+  /** brief：当天简报的对话；item：某条新闻的评论串；event：事件页评论串 */
+  scope: 'brief' | 'item' | 'event'
+  /** scope=item 时指向条目；scope=event 时作为上下文锚点 */
   itemId?: string
+  /** scope=event 时指向稳定事件 key */
+  eventKey?: string
   /** 创建时对应的简报日期；作为默认上下文 */
   briefDate?: string
   model: string

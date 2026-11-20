@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { BriefItem, BriefLink } from '../lib/parseBrief'
 import type { BriefTraceEntryPayload, DecisionNotePayload } from '../lib/ipc-types'
+import { CLAIM_LABEL, classifyClaim } from '../../../app/trust'
 
 /**
  * 同一来源常被引用多次（模型给的是不同 URL）。
@@ -65,8 +66,7 @@ export function ItemCard({
   const [decisionDraft, setDecisionDraft] = useState('')
   const [decisionError, setDecisionError] = useState('')
 
-  const submitDecision = async (): Promise<void> => {
-    const note = decisionDraft.trim()
+  const submitDecision = async (): Promise<void> => {    const note = decisionDraft.trim()
     if (!note) {
       setDecisionError('写一句你的判断')
       return
@@ -80,6 +80,14 @@ export function ItemCard({
       setDecisionError(r.error ?? '保存失败')
     }
   }
+
+  const claim = classifyClaim(item.title, item.body)
+  const claimStyle =
+    claim === 'rumor'
+      ? 'bg-red-50 text-red-700'
+      : claim === 'inference'
+        ? 'bg-amber-50 text-amber-700'
+        : 'bg-cream text-ink-2'
 
   if (hidden) {
     return (
@@ -123,6 +131,12 @@ export function ItemCard({
       </p>
 
       <footer className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-3">
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] ${claimStyle}`}
+          title="按措辞规则标注，不等于事实核查；传闻/推断请回看来源"
+        >
+          {CLAIM_LABEL[claim]}
+        </span>
         {item.links.length > 0 && (
           <span className="rounded-full bg-cream px-2 py-0.5 tabular-nums text-ink-2">{item.links.length} 源</span>
         )}

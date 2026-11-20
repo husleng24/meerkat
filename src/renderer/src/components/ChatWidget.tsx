@@ -26,6 +26,14 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
   const [open, setOpen] = useState(() => readFlag(OPEN_KEY, false))
   /** 从某条新闻点「评论」进来时，面板切成这条新闻的评论串 */
   const [itemContext, setItemContext] = useState<{ id: string; title: string; topicId?: string } | null>(null)
+  /** 从事件页点「评论」进来时，面板切成事件评论串，并把事件判断作为置顶上下文 */
+  const [eventContext, setEventContext] = useState<{
+    key: string
+    title: string
+    itemId?: string
+    note?: string
+    topicId?: string
+  } | null>(null)
   const [thread, setThread] = useState<ChatThreadPayload | null>(null)
   const [briefStale, setBriefStale] = useState(false)
   const [messages, setMessages] = useState<ChatMessagePayload[]>([])
@@ -40,12 +48,14 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
 
   const actions = useMemo(() => visibleActions(hasPrevious), [hasPrevious])
   const itemId = itemContext?.id
+  const contextMode = eventContext ? 'event' : itemContext ? 'item' : 'brief'
 
   // 条目上的「评论」按钮通过这个事件打开面板；不新增第二个聊天入口
   useEffect(() => {
     const onComment = (e: Event): void => {
       const detail = (e as CustomEvent<{ itemId?: string; title?: string; topicId?: string }>).detail
       if (!detail?.itemId) return
+      setEventContext(null)
       setItemContext({
         id: detail.itemId,
         title: detail.title ?? '这条新闻',
@@ -58,6 +68,34 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     return () => window.removeEventListener('meerkat:comment-item', onComment)
   }, [])
 
+  // 事件页的「评论 / 时间线」：独立 event thread，但复用同一条消息链路
+  useEffect(() => {
+    const onCommentEvent = (e: Event): void => {
+      const detail = (
+        e as CustomEvent<{
+          eventKey?: string
+          title?: string
+          itemId?: string
+          note?: string
+          topicId?: string
+        }>
+      ).detail
+      if (!detail?.eventKey) return
+      setItemContext(null)
+      setEventContext({
+        key: detail.eventKey,
+        title: detail.title ?? '这件事',
+        ...(detail.itemId ? { itemId: detail.itemId } : {}),
+        ...(detail.note ? { note: detail.note } : {}),
+        ...(detail.topicId ? { topicId: detail.topicId } : {})
+      })
+      setOpen(true)
+      writeFlag(OPEN_KEY, true)
+    }
+    window.addEventListener('meerkat:comment-event', onCommentEvent)
+    return () => window.removeEventListener('meerkat:comment-event', onCommentEvent)
+  }, [])
+
   // 选中正文后浮出的工具条：打开面板并预填
   useEffect(() => {
     const onAsk = (e: Event): void => {
@@ -65,8 +103,10 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
         .detail
       if (!detail?.text) return
       if (detail.itemId) {
+        setEventContext(null)
         setItemContext({ id: detail.itemId, title: detail.title ?? '这条新闻' })
       } else {
+        setEventContext(null)
         setItemContext(null)
       }
       setDraft(detail.mode === 'track' ? `@agent 帮我盯着这件事：${detail.text}` : detail.text)
@@ -82,6 +122,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
   // 从「跟踪」页跨主题打开时，detail 已带上目标 topicId，不能被这次切换清掉
   useEffect(() => {
     setItemContext((ctx) => (ctx?.topicId && ctx.topicId !== topicId ? null : ctx))
+    setEventContext((ctx) => (ctx?.topicId && ctx.topicId !== topicId ? null : ctx))
   }, [topicId])
 
   // 模型目录：只列已配置 key 的供应商；当前选中的模型不在其中时自动落到第一个
@@ -104,9 +145,17 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     if (!open || !api || !topicId) return
     let cancelled = false
     const load = async (): Promise<void> => {
-      const t = itemId
-        ? await api.ensureItem({ topicId: itemContext?.topicId ?? topicId, itemId, model })
-        : await api.ensure({ topicId, ...(briefDate ? { briefDate } : {}), model })
+      const t = eventContext
+        ? await api.ensureEvent({
+            topicId: eventContext.topicId ?? topicId,
+            eventKey: eventContext.key,
+            title: eventContext.title,
+            ...(eventContext.itemId ? { itemId: eventContext.itemId } : {}),
+            model
+          })
+        : itemId
+          ? await api.ensureItem({ topicId: itemContext?.topicId ?? topicId, itemId, model })
+          : await api.ensure({ topicId, ...(briefDate ? { briefDate } : {}), model })
       if (cancelled || !t) return
       setThread(t)
       setBriefStale(t.briefStale ?? false)
@@ -119,7 +168,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
     }
     // 只在打开/切主题/切日期/切条目时重新建会话；model 变化不应重开会话
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, api, topicId, briefDate, itemId])
+  }, [open, api, topicId, briefDate, itemId, eventContext?.key, eventContext?.itemId])
 
   // 新消息滚到底
   useEffect(() => {
@@ -218,11 +267,14 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
         >
           <header className="flex items-center gap-2 border-b border-rule px-4 py-3">
             <span className="min-w-0 truncate text-[13px] font-bold text-ink">
-              {itemContext ? `评论 · ${itemContext.title}` : 'AI 对话'}
+              {eventContext ? `事件 · ${eventContext.title}` : itemContext ? `评论 · ${itemContext.title}` : 'AI 对话'}
             </span>
-            {itemContext && (
+            {(itemContext || eventContext) && (
               <button
-                onClick={() => setItemContext(null)}
+                onClick={() => {
+                  setItemContext(null)
+                  setEventContext(null)
+                }}
                 className="shrink-0 text-[10.5px] text-accent hover:underline"
               >
                 返回简报
@@ -238,9 +290,13 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
 
           <div className="flex flex-wrap items-center gap-1.5 border-b border-rule px-4 py-2.5">
             <span className="max-w-[220px] truncate rounded-full border border-rule bg-cream px-2.5 py-1 text-[10.5px] text-ink-2">
-              {itemContext ? `新闻 · ${itemContext.title}` : `今日简报 · ${briefDate || '—'}`}
+              {eventContext
+                ? `事件 · ${eventContext.title}`
+                : itemContext
+                  ? `新闻 · ${itemContext.title}`
+                  : `今日简报 · ${briefDate || '—'}`}
             </span>
-            {!itemContext && hasPrevious && (
+            {contextMode === 'brief' && hasPrevious && (
               <button
                 onClick={() => setIncludePrevious((v) => !v)}
                 className={[
@@ -253,12 +309,12 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
                 昨天{includePrevious ? ' ✓' : ' ＋'}
               </button>
             )}
-            {thread && !itemContext && (
+            {thread && contextMode === 'brief' && (
               <span className="ml-auto text-[10px] tabular-nums text-ink-3">上下文 ≈{fmtK(thread.contextTokens)}</span>
             )}
           </div>
 
-          {briefStale && !itemContext && (
+          {briefStale && contextMode === 'brief' && (
             <div className="flex items-center gap-2 border-b border-rule bg-accent-soft/60 px-4 py-2 text-[11px] text-ink-2">
               <span className="flex-1">简报在这次对话之后更新过，历史回答可能对不上当前内容。</span>
               <button onClick={() => void restart()} className="shrink-0 font-medium text-accent hover:underline">
@@ -268,6 +324,12 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
           )}
 
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+            {eventContext?.note && (
+              <div className="rounded-xl border border-accent/25 bg-accent-soft/50 px-3 py-2">
+                <p className="text-[10px] font-medium text-accent">这件事的判断</p>
+                <p className="mt-1 whitespace-pre-wrap text-[11.5px] leading-5 text-ink-2">{eventContext.note}</p>
+              </div>
+            )}
             {models.length === 0 && (
               <p className="rounded-lg bg-cream/70 px-3 py-2 text-[11.5px] leading-relaxed text-ink-2">
                 还没有可用的模型。去「设置 → 模型与密钥」配置任意一家供应商（DeepSeek / OpenAI / Anthropic）。
@@ -275,9 +337,11 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
             )}
             {messages.length === 0 && !sending && models.length > 0 && (
               <p className="text-[12px] leading-relaxed text-ink-3">
-                {itemContext
-                  ? '评论这条新闻；输入 @agent 可以让 Meerkat 把同一件事的多篇报道整理成时间线。'
-                  : '就这期简报提问，或者用下面的动作。回答只依据简报内容，不会编外部信息。'}
+                {eventContext
+                  ? '评论这个事件；输入 @agent 可以让 Meerkat 把同一件事的多篇报道整理成时间线。事件判断会作为上下文。'
+                  : itemContext
+                    ? '评论这条新闻；输入 @agent 可以让 Meerkat 把同一件事的多篇报道整理成时间线。'
+                    : '就这期简报提问，或者用下面的动作。回答只依据简报内容，不会编外部信息。'}
               </p>
             )}
             {messages.map((m) => (
@@ -319,7 +383,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
           </div>
 
           <div className="flex flex-wrap gap-1.5 px-4 pb-2">
-            {!itemContext && actions.map((a) => (
+            {contextMode === 'brief' && actions.map((a) => (
               <button
                 key={a.id}
                 title={a.hint}
@@ -339,7 +403,13 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onComposerKey}
               rows={2}
-              placeholder={itemContext ? '评论… 输入 @agent 整理时间线，⌘↵ 发送' : '问点什么，⌘↵ 发送…'}
+              placeholder={
+                eventContext
+                  ? '评论这个事件… 输入 @agent 整理时间线，⌘↵ 发送'
+                  : itemContext
+                    ? '评论… 输入 @agent 整理时间线，⌘↵ 发送'
+                    : '问点什么，⌘↵ 发送…'
+              }
               className="w-full resize-none bg-transparent text-[12.5px] leading-6 text-ink outline-none placeholder:text-ink-3/70"
             />
             <div className="mt-1 flex items-center gap-2">

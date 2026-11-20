@@ -58,6 +58,7 @@ import {
   chatModels,
   defaultChatModel,
   ensureItemThread,
+  ensureEventThread,
   ensureThread,
   previewContextTokens,
   sendChatMessage,
@@ -148,6 +149,13 @@ const storyStatusSchema = z.enum(['active', 'paused', 'archived'])
 const chatEnsureItemSchema = z.object({
   topicId: topicIdSchema,
   itemId: z.string().min(1).max(80),
+  model: z.string().max(40).optional()
+})
+const chatEnsureEventSchema = z.object({
+  topicId: topicIdSchema,
+  eventKey: z.string().min(1).max(200),
+  title: z.string().max(200),
+  itemId: z.string().min(1).max(80).optional(),
   model: z.string().max(40).optional()
 })
 const chatSendSchema = z.object({
@@ -844,6 +852,18 @@ export function registerIpc(): void {
     if (!parsed.success) return null
     const deps = chatDeps()
     const thread = ensureItemThread(requireStore(), {
+      ...parsed.data,
+      model: parsed.data.model ?? defaultChatModel(deps)
+    })
+    if (!thread) return null
+    return { ...thread, contextTokens: 0, briefStale: false }
+  })
+
+  ipcMain.handle('chat:ensureEvent', (_e, raw: unknown) => {
+    const parsed = chatEnsureEventSchema.safeParse(raw)
+    if (!parsed.success) return null
+    const deps = chatDeps()
+    const thread = ensureEventThread(requireStore(), {
       ...parsed.data,
       model: parsed.data.model ?? defaultChatModel(deps)
     })

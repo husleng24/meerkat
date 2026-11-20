@@ -42,7 +42,7 @@ interface FlagRow {
 interface SettingRow { key: string; value: string }
 interface ChatThreadRow {
   id: string; title: string; topic_id: string; brief_date: string | null
-  scope: string; item_id: string | null
+  scope: string; item_id: string | null; event_key: string | null
   model: string; created_at: number; updated_at: number; archived: number
 }
 interface StoryRow {
@@ -155,8 +155,9 @@ const toChatThread = (r: ChatThreadRow): ChatThread => ({
   id: r.id,
   title: r.title,
   topicId: r.topic_id,
-  scope: r.scope === 'item' ? 'item' : 'brief',
+  scope: r.scope === 'item' ? 'item' : r.scope === 'event' ? 'event' : 'brief',
   ...(r.item_id !== null ? { itemId: r.item_id } : {}),
+  ...(r.event_key !== null ? { eventKey: r.event_key } : {}),
   ...(r.brief_date !== null ? { briefDate: r.brief_date } : {}),
   model: r.model,
   createdAt: r.created_at,
@@ -765,11 +766,21 @@ class SqliteChatStore implements ChatStore {
       .get(topicId, itemId) as ChatThreadRow | undefined
     return r ? toChatThread(r) : undefined
   }
+  findByEvent(topicId: string, eventKey: string): ChatThread | undefined {
+    const r = this.db
+      .prepare(
+        `SELECT * FROM chat_threads
+         WHERE topic_id = ? AND event_key = ? AND scope = 'event'
+         ORDER BY updated_at DESC LIMIT 1`
+      )
+      .get(topicId, eventKey) as ChatThreadRow | undefined
+    return r ? toChatThread(r) : undefined
+  }
   create(t: ChatThread): void {
     this.db
       .prepare(
-        `INSERT INTO chat_threads (id,title,topic_id,scope,item_id,brief_date,model,created_at,updated_at,archived)
-         VALUES (@id,@title,@topic_id,@scope,@item_id,@brief_date,@model,@created_at,@updated_at,@archived)`
+        `INSERT INTO chat_threads (id,title,topic_id,scope,item_id,event_key,brief_date,model,created_at,updated_at,archived)
+         VALUES (@id,@title,@topic_id,@scope,@item_id,@event_key,@brief_date,@model,@created_at,@updated_at,@archived)`
       )
       .run({
         id: t.id,
@@ -777,6 +788,7 @@ class SqliteChatStore implements ChatStore {
         topic_id: t.topicId,
         scope: t.scope ?? 'brief',
         item_id: t.itemId ?? null,
+        event_key: t.eventKey ?? null,
         brief_date: t.briefDate ?? null,
         model: t.model,
         created_at: t.createdAt,

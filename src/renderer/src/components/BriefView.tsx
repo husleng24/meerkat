@@ -7,6 +7,7 @@ import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
 import { renderBriefDocument } from '../lib/briefHtml'
+import { auditTrust, type TrustItem } from '../../../app/trust'
 
 interface Props {
   brief: ParsedBrief
@@ -90,6 +91,18 @@ export function BriefView({
     [traceByUrl]
   )
   const [cursor, setCursor] = useState(0)
+  const trust = useMemo(() => {
+    const items: TrustItem[] = allItems.map((item) => {
+      const t = traceFor(item)
+      return {
+        title: item.title,
+        body: item.body,
+        sourceNames: t ? [t.sourceName, ...t.alsoIn] : item.links.map((l) => l.label),
+        hasTrace: Boolean(t)
+      }
+    })
+    return { items, audit: auditTrust(items) }
+  }, [allItems, traceFor])
   const [shareUrl, setShareUrl] = useState('')
   const [shareBusy, setShareBusy] = useState(false)
   const [shareMsg, setShareMsg] = useState('')
@@ -262,6 +275,20 @@ export function BriefView({
         </div>
       )}
       {shareMsg && !shareUrl && <p className="mb-3 text-[10.5px] text-ink-3">{shareMsg}</p>}
+
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10.5px] text-ink-3">
+        <span title="按 trace 的来源名去重；最大单源占比超过 60% 会标黄">
+          来源 <strong className="font-semibold text-ink-2">{trust.audit.sources}</strong>
+          {trust.audit.topSource ? ` · ${trust.audit.topSource} ${trust.audit.topShare}%` : ''}
+          {trust.audit.topShare >= 60 && <span className="ml-1 text-amber-700">集中</span>}
+        </span>
+        <span>事实 {trust.audit.fact} · 推断 {trust.audit.inference} · 传闻 {trust.audit.rumor}</span>
+        <span title="没有 trace 来源证据的条目；旧简报可能没有 trace">
+          {trust.audit.unsupported === null
+            ? '旧简报无来源证据'
+            : `无依据 ${trust.audit.unsupported}/${trust.audit.total} · ${trust.audit.unsupportedRate ?? 0}%`}
+        </span>
+      </div>
 
       {comparison && (
         <CompareStrip comparison={comparison} previousDate={previousDate} onJump={(key) => scrollTo(key)} />

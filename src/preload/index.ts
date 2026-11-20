@@ -189,6 +189,27 @@ const api = {
       contextTokens: number
       briefStale: boolean
     } | null> => ipcRenderer.invoke('chat:ensureItem', input),
+    ensureEvent: (input: {
+      topicId: string
+      eventKey: string
+      title: string
+      itemId?: string
+      model?: string
+    }): Promise<{
+      id: string
+      title: string
+      topicId: string
+      scope: 'brief' | 'item' | 'event'
+      itemId?: string
+      eventKey?: string
+      briefDate?: string
+      model: string
+      createdAt: number
+      updatedAt: number
+      archived: boolean
+      contextTokens: number
+      briefStale?: boolean
+    } | null> => ipcRenderer.invoke('chat:ensureEvent', input),
     messages: (
       threadId: string
     ): Promise<

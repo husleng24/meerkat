@@ -172,9 +172,10 @@ export interface ChatThreadPayload {
   id: string
   title: string
   topicId: string
-  /** brief：当天简报的对话；item：某条新闻的评论串 */
-  scope: 'brief' | 'item'
+  /** brief：当天简报的对话；item：某条新闻的评论串；event：事件页评论串 */
+  scope: 'brief' | 'item' | 'event'
   itemId?: string
+  eventKey?: string
   briefDate?: string
   model: string
   createdAt: number
@@ -482,6 +483,13 @@ export interface ChatBridge {
   models: () => Promise<ChatModelPayload[]>
   ensure: (input: { topicId: string; briefDate?: string; model?: string }) => Promise<ChatThreadPayload | null>
   ensureItem: (input: { topicId: string; itemId: string; model?: string }) => Promise<ChatThreadPayload | null>
+  ensureEvent: (input: {
+    topicId: string
+    eventKey: string
+    title: string
+    itemId?: string
+    model?: string
+  }) => Promise<ChatThreadPayload | null>
   messages: (threadId: string) => Promise<ChatMessagePayload[]>
   send: (input: {
     threadId: string

@@ -152,7 +152,15 @@ judgments already written on linked items. Event cards can be merged (select two
 can be split by selecting items, and manual events can be reverted to automatic ones. Any event can
 be turned into a tracking story in one click. Entities can be added, renamed, re-aliased, or deleted
 locally; re-aliasing rebuilds the index. Event-level judgments appear in the weekly review, and an
-event page can open the existing comment/timeline thread for its newest item.
+event page opens a dedicated event thread: the event judgment is pinned in the comment panel and also
+included in the agent context.
+
+### Trust signals
+
+Each item carries a rule-based **fact / inference / rumor** chip. The brief header reports source
+diversity, the largest source share, and an “unsupported” rate defined narrowly as items with no
+trace evidence. These are prompts for verification, not a claim of fact-checking; see
+[docs/TRUST.md](docs/TRUST.md).
 
 ### Update notice
 
@@ -282,7 +290,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **517 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **520 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

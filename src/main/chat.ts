@@ -80,6 +80,26 @@ function resolveBrief(store: Store, thread: ChatThread) {
 }
 
 export function threadContextSources(store: Store, thread: ChatThread, includePrevious: boolean): ChatContextSource[] {
+  // 事件评论串：以锚点条目搜集同事件报道，并把事件级判断一起带给模型。
+  if (thread.scope === 'event' && thread.itemId) {
+    const item = store.items.get(thread.itemId)
+    if (!item) return []
+    const related = collectRelatedItems(store, { itemId: item.id })
+    const sources: ChatContextSource[] = related.items.slice(0, 12).map((it) => ({
+      kind: 'items' as const,
+      label: it.title,
+      text: `标题：${it.title}\n摘要：${it.summary}\n链接：${it.url}`
+    }))
+    const note = thread.eventKey ? store.eventNotes.get(thread.eventKey) : undefined
+    if (note?.note) {
+      sources.unshift({
+        kind: 'items',
+        label: `事件判断 · ${thread.title}`,
+        text: `事件：${thread.title}\n我的判断：${note.note}`
+      })
+    }
+    return sources
+  }
   // 条目评论串：上下文是这条新闻与同一事件的其他报道，而不是某一天的简报
   if (thread.scope === 'item' && thread.itemId) {
     const item = store.items.get(thread.itemId)
@@ -117,7 +137,7 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
     if (!text) return { ok: false, error: '消息是空的' }
 
     // 条目评论里 @agent：先分意图，再决定是问答 / 一次性时间线 / 持续跟踪
-    if (thread.scope === 'item' && thread.itemId && hasAgentMention(text)) {
+    if ((thread.scope === 'item' || thread.scope === 'event') && thread.itemId && hasAgentMention(text)) {
       const intent = classifyIntent(text)
 
       // 只是提问：剥掉 mention，走普通问答，不落 story
@@ -224,7 +244,7 @@ export async function sendChatMessage(store: Store, deps: ChatDeps, input: SendI
     const brief = resolveBrief(store, thread)
     const sources = threadContextSources(store, thread, input.includePrevious === true)
     if (sources.length === 0) {
-      return { ok: false, error: thread.scope === 'item' ? '这条新闻还没有可用于问答的素材' : '还没有简报可以作为上下文' }
+      return { ok: false, error: thread.scope === 'brief' ? '还没有简报可以作为上下文' : '这条内容还没有可用于问答的素材' }
     }
 
     const context = buildChatContext(sources)
@@ -377,6 +397,32 @@ export function ensureItemThread(
     topicId: topic.id,
     scope: 'item',
     itemId: item.id,
+    model: input.model ?? defaultChatModel({ keys: {} }),
+    createdAt: now,
+    updatedAt: now,
+    archived: false
+  }
+  store.chat.create(thread)
+  return thread
+}
+
+/** 事件页的评论串：复用消息/意图/跟踪链路，但以事件为身份。 */
+export function ensureEventThread(
+  store: Store,
+  input: { topicId: string; eventKey: string; title: string; itemId?: string; model?: string }
+): ChatThread | null {
+  const topic = store.topics.get(input.topicId)
+  if (!topic) return null
+  const existing = store.chat.findByEvent(topic.id, input.eventKey)
+  if (existing) return existing
+  const now = Date.now()
+  const thread: ChatThread = {
+    id: `ct-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    title: input.title.slice(0, 60) || '事件评论',
+    topicId: topic.id,
+    scope: 'event',
+    eventKey: input.eventKey,
+    ...(input.itemId ? { itemId: input.itemId } : {}),
     model: input.model ?? defaultChatModel({ keys: {} }),
     createdAt: now,
     updatedAt: now,

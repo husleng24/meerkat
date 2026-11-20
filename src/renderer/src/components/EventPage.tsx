@@ -155,8 +155,14 @@ export function EventPage({
               const first = detail.items[0]
               if (!first) return
               window.dispatchEvent(
-                new CustomEvent('meerkat:comment-item', {
-                  detail: { itemId: first.id, title: detail.title }
+                new CustomEvent('meerkat:comment-event', {
+                  detail: {
+                    eventKey,
+                    title: detail.title,
+                    itemId: first.id,
+                    ...(detail.note?.note ? { note: detail.note.note } : {}),
+                    ...(topicId ? { topicId } : {})
+                  }
                 })
               )
             }}

@@ -415,6 +415,15 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE event_notes ADD COLUMN latest_at INTEGER;
       CREATE INDEX idx_event_notes_latest ON event_notes(latest_at DESC);
     `
+  },
+  {
+    version: 16,
+    name: 'event_chat_threads',
+    up: `
+      -- 事件评论串：与条目评论分开，但复用同一套消息/意图/跟踪链路。
+      ALTER TABLE chat_threads ADD COLUMN event_key TEXT;
+      CREATE INDEX idx_chat_threads_event ON chat_threads(topic_id, event_key);
+    `
   }
 ]
 
