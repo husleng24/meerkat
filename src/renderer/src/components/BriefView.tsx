@@ -8,6 +8,7 @@ import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { auditClaimCoverage, auditTrust, bindClaimCitations, type TrustItem } from '../../../app/trust'
+import type { SemanticBindingPayload } from '../lib/ipc-types'
 
 interface Props {
   brief: ParsedBrief
@@ -114,13 +115,45 @@ export function BriefView({
   const claimCitations = useMemo(
     () =>
       allItems.flatMap((item) =>
-        bindClaimCitations({ title: item.title, body: item.body, links: item.links })
+        bindClaimCitations({ title: item.title, body: item.body, links: item.links }).map((claim, index) => ({
+          ...claim,
+          id: `${item.key}-${index}`,
+          candidates: item.links
+        }))
       ),
     [allItems]
   )
+
+  const semanticBind = async (): Promise<void> => {
+    const api = window.meerkat?.claims
+    if (!api) return
+    setSemanticBusy(true)
+    setSemanticMsg('')
+    try {
+      const payload = claimCitations.slice(0, 100).map((c) => ({
+        id: c.id,
+        text: c.text,
+        candidates: c.candidates.map((l) => ({ name: l.label, url: l.url }))
+      }))
+      const r = await api.semanticBind(payload)
+      if (!r.ok) {
+        setSemanticMsg(r.error ?? '语义核对失败')
+        return
+      }
+      const next: Record<string, SemanticBindingPayload> = {}
+      for (const binding of r.bindings ?? []) next[binding.id] = binding
+      setSemantic(next)
+      setSemanticMsg(`已核对 ${r.bindings?.length ?? 0} 条（模型语义判断）`)
+    } finally {
+      setSemanticBusy(false)
+    }
+  }
   const [shareUrl, setShareUrl] = useState('')
   const [shareBusy, setShareBusy] = useState(false)
   const [shareMsg, setShareMsg] = useState('')
+  const [semantic, setSemantic] = useState<Record<string, SemanticBindingPayload>>({})
+  const [semanticBusy, setSemanticBusy] = useState(false)
+  const [semanticMsg, setSemanticMsg] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
 
   const startShare = async (): Promise<void> => {
@@ -308,37 +341,70 @@ export function BriefView({
         </span>
       </div>
 
+      <div className="mb-2 flex flex-wrap items-center gap-2 text-[10.5px] text-ink-3">
+        <button
+          onClick={() => void semanticBind()}
+          disabled={semanticBusy || claimCitations.length === 0}
+          className="rounded-full border border-cream px-2.5 py-1 text-[10px] text-ink-2 hover:border-accent disabled:opacity-40"
+        >
+          {semanticBusy ? '语义核对中…' : '语义核对（模型）'}
+        </button>
+        {semanticMsg && <span>{semanticMsg}</span>}
+      </div>
+
       <details className="mb-3 rounded-xl border border-rule bg-white/70 px-3 py-2 text-[10.5px] text-ink-3">
         <summary className="cursor-pointer select-none hover:text-ink">每句引用明细</summary>
         <div className="mt-2 max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
           {claimCitations.length === 0 && <p>这一期没有可拆分的断言。</p>}
-          {claimCitations.map((claim, i) => (
-            <div key={i} className="flex gap-2 border-t border-rule/70 pt-1.5 first:border-t-0">
-              <span
-                className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] ${
-                  claim.sources.length === 0
-                    ? 'bg-red-50 text-red-700'
-                    : claim.direct
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-cream text-ink-2'
-                }`}
-              >
-                {claim.sources.length === 0 ? '无来源' : claim.direct ? '直接' : '条目级'}
-              </span>
-              <div className="min-w-0">
-                <p className="leading-5 text-ink-2">{claim.text}</p>
-                {claim.sources.length > 0 && (
-                  <p className="mt-0.5 flex flex-wrap gap-x-2">
-                    {claim.sources.map((s) => (
-                      <a key={`${s.name}-${s.url}`} href={s.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                        {s.name}
-                      </a>
-                    ))}
-                  </p>
-                )}
+          {claimCitations.map((claim) => {
+            const semanticRow = semantic[claim.id]
+            const sources =
+              semanticRow && semanticRow.sources.length > 0
+                ? semanticRow.sources.map((url) => ({
+                    name: claim.candidates.find((c) => c.url === url)?.label ?? url,
+                    url
+                  }))
+                : claim.sources
+            const label = semanticRow
+              ? semanticRow.sources.length > 0
+                ? `语义 ${Math.round(semanticRow.confidence * 100)}%`
+                : '语义无匹配'
+              : sources.length === 0
+                ? '无来源'
+                : claim.direct
+                  ? '直接'
+                  : '条目级'
+            return (
+              <div key={claim.id} className="flex gap-2 border-t border-rule/70 pt-1.5 first:border-t-0">
+                <span
+                  className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] ${
+                    sources.length === 0
+                      ? 'bg-red-50 text-red-700'
+                      : semanticRow
+                        ? 'bg-violet-50 text-violet-700'
+                        : claim.direct
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-cream text-ink-2'
+                  }`}
+                >
+                  {label}
+                </span>
+                <div className="min-w-0">
+                  <p className="leading-5 text-ink-2">{claim.text}</p>
+                  {sources.length > 0 && (
+                    <p className="mt-0.5 flex flex-wrap gap-x-2">
+                      {sources.map((s) => (
+                        <a key={`${s.name}-${s.url}`} href={s.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                          {s.name}
+                        </a>
+                      ))}
+                    </p>
+                  )}
+                  {semanticRow?.reason && <p className="mt-0.5 text-ink-3">{semanticRow.reason}</p>}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </details>
 

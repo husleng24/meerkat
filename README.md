@@ -159,9 +159,10 @@ included in the agent context.
 
 Each item carries a rule-based **fact / inference / rumor** chip. The brief header reports source
 diversity, the largest source share, an “unsupported” rate defined narrowly as items with no trace
-evidence, and sentence-level citation coverage. “Every claim” opens a per-sentence binding: a claim
-that names a source is bound directly, otherwise it inherits the item's links. These are prompts for
-verification, not a claim of fact-checking; see [docs/TRUST.md](docs/TRUST.md).
+evidence, and sentence-level citation coverage. “Every claim” opens a per-sentence binding; the
+optional **semantic check** asks the current model to choose only from the candidate URLs, returning a
+confidence and reason. These are prompts for verification, not a claim of fact-checking; see
+[docs/TRUST.md](docs/TRUST.md).
 
 ### Update notice
 
@@ -291,7 +292,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **523 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **526 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

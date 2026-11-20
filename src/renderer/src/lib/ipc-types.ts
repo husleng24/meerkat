@@ -402,6 +402,27 @@ export interface MergeHistoryPayload {
   at: number
 }
 
+export interface SemanticClaimPayload {
+  id: string
+  text: string
+  candidates: Array<{ name: string; url: string }>
+}
+
+export interface SemanticBindingPayload {
+  id: string
+  sources: string[]
+  confidence: number
+  reason?: string
+}
+
+export interface ClaimsBridge {
+  semanticBind: (claims: SemanticClaimPayload[]) => Promise<{
+    ok: boolean
+    bindings?: SemanticBindingPayload[]
+    error?: string
+  }>
+}
+
 export interface EventClusterPayload {
   key: string
   title: string
@@ -596,6 +617,7 @@ export interface MeerkatBridge {
   share?: ShareBridge
   entities?: EntitiesBridge
   events?: EventsBridge
+  claims?: ClaimsBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

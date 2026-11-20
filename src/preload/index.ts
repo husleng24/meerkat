@@ -555,6 +555,14 @@ const api = {
     > => ipcRenderer.invoke('events:notesRecent', { days })
   },
 
+  claims: {
+    semanticBind: (claims: Array<{ id: string; text: string; candidates: Array<{ name: string; url: string }> }>): Promise<{
+      ok: boolean
+      bindings?: Array<{ id: string; sources: string[]; confidence: number; reason?: string }>
+      error?: string
+    }> => ipcRenderer.invoke('claims:semanticBind', { claims })
+  },
+
   topics: {
     list: (): Promise<
       Array<{

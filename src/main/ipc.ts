@@ -26,6 +26,7 @@ import { buildEntityEventClusters, classifyEntityEvent, entityPeriods } from '..
 import type { EntityEvent } from '../app/entity-events'
 import { extractKeywords } from '../app/event-timeline'
 import { cleanAliases } from '../app/aliases'
+import { semanticBindClaims, type SemanticClaim } from '../app/claim-semantic'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -1791,5 +1792,35 @@ export function registerIpc(): void {
     const parsed = z.object({ days: z.number().int().min(1).max(90).optional() }).safeParse(raw ?? {})
     if (!parsed.success) return []
     return requireStore().eventNotes.recent(Date.now() - (parsed.data.days ?? 7) * 86_400_000)
+  })
+
+  // ── Claim → source 语义归因（模型只在候选 URL 里选） ─────────
+  ipcMain.handle('claims:semanticBind', async (_e, raw: unknown) => {
+    const parsed = z
+      .object({
+        claims: z
+          .array(
+            z.object({
+              id: z.string().min(1).max(200),
+              text: z.string().min(1).max(2000),
+              candidates: z.array(z.object({ name: z.string().max(200), url: z.string().url() })).max(8)
+            })
+          )
+          .max(100)
+      })
+      .safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const keys: ProviderKeys = {}
+    for (const p of availableProviders()) keys[p.id] = p.key
+    const target = composeTarget(keys, readModelOverrides(requireStore()))
+    if (!target) return { ok: false, error: '还没有配置模型' }
+    const provider = createProviderInstance(target.provider, target.key)
+    if (!provider) return { ok: false, error: '模型供应商不可用' }
+    try {
+      const result = await semanticBindClaims(provider, target.model, parsed.data.claims as SemanticClaim[])
+      return result
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : String(e) }
+    }
   })
 }
