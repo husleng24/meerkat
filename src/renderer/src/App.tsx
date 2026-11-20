@@ -166,19 +166,15 @@ export default function App(): React.JSX.Element {
       <NavRail
         active={nav}
         attentionSources={summary.attention}
+        tracking={tracking}
         onNavigate={go}
       />
       <Sidebar
-        active={nav}
         topics={topics}
         activeTopic={activeId}
         onPickTopic={pickTopic}
         topicsAvailable={topicsAvailable}
         onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
-        onNavigate={go}
-        attentionSources={summary.attention}
-        dateLabel={dateLabel}
-        tracking={tracking}
       />
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">

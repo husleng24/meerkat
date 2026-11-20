@@ -44,7 +44,6 @@ afterEach(async () => {
 
 function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): React.ComponentProps<typeof Sidebar> {
   return {
-    active: 'today',
     topics: [
       topic({ id: 'a', name: '模型与产品', todayCount: 23, unreadCount: 2 }),
       topic({ id: 'b', name: '芯片与算力', todayCount: 12 }),
@@ -54,9 +53,6 @@ function baseProps(over: Partial<React.ComponentProps<typeof Sidebar>> = {}): Re
     onPickTopic: vi.fn(),
     topicsAvailable: true,
     onCreateTopic: vi.fn().mockResolvedValue(null),
-    onNavigate: vi.fn(),
-    attentionSources: 15,
-    dateLabel: '2026-11-12',
     ...over
   }
 }
@@ -151,25 +147,5 @@ describe('侧栏：扁平主题列表', () => {
     const el = await render(<Sidebar {...baseProps()} />)
     expect(el.querySelector('button[aria-haspopup="menu"]')).toBeNull()
     expect(el.querySelector('[role="menuitem"]')).toBeNull()
-  })
-})
-
-describe('侧栏：跟踪入口', () => {
-  it('始终显示，带跟踪中数量', async () => {
-    const el = await render(<Sidebar {...baseProps({ tracking: { active: 3, quiet: 0 } })} />)
-    const entry = topicButton(el, '跟踪')
-    expect(entry).toBeTruthy()
-    expect(entry.textContent).toContain('3')
-  })
-
-  it('点「跟踪」跳到跟踪页；有待确认时显示红点', async () => {
-    const onNavigate = vi.fn()
-    const el = await render(
-      <Sidebar {...baseProps({ tracking: { active: 2, quiet: 1 }, onNavigate })} />
-    )
-    const entry = topicButton(el, '跟踪')
-    await act(async () => entry.click())
-    expect(onNavigate).toHaveBeenCalledWith('stories')
-    expect(el.querySelector('[aria-label="1 个跟踪很久没有新进展"]')).not.toBeNull()
   })
 })

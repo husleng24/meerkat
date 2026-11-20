@@ -3,6 +3,8 @@ import { UpdateNotice } from './UpdateNotice'
 interface Props {
   active: string
   attentionSources: number
+  /** 跟踪中/待确认数量；不传时入口仍然显示，只是没有数字 */
+  tracking?: { active: number; quiet: number }
   onNavigate: (id: string) => void
 }
 
@@ -29,6 +31,15 @@ function HomeIcon(): React.JSX.Element {
     <svg {...iconProps}>
       <path d="M2.4 7.2 8 2.5l5.6 4.7v5.4a.9.9 0 0 1-.9.9H3.3a.9.9 0 0 1-.9-.9V7.2Z" />
       <path d="M6.2 13.5V9.8h3.6v3.7" />
+    </svg>
+  )
+}
+function TrackingIcon(): React.JSX.Element {
+  return (
+    <svg {...iconProps}>
+      <circle cx="8" cy="8" r="5.5" />
+      <circle cx="8" cy="8" r="1.6" fill="currentColor" />
+      <path d="M8 2.5v2M13.5 8h-2" />
     </svg>
   )
 }
@@ -91,6 +102,7 @@ function GearIcon(): React.JSX.Element {
 
 const ITEMS: RailItem[] = [
   { id: 'today', label: '今日简报', icon: <HomeIcon /> },
+  { id: 'stories', label: '跟踪', icon: <TrackingIcon /> },
   { id: 'search', label: '搜索', icon: <SearchIcon /> },
   { id: 'timeline', label: '历史简报', icon: <ClockIcon /> },
   { id: 'sources', label: '事实源', icon: <LayersIcon /> },
@@ -101,7 +113,7 @@ const ITEMS: RailItem[] = [
 ]
 
 /** 最左侧的常驻导航栏：所有全局入口一眼可见，不需要先点开菜单。 */
-export function NavRail({ active, attentionSources, onNavigate }: Props): React.JSX.Element {
+export function NavRail({ active, attentionSources, tracking, onNavigate }: Props): React.JSX.Element {
   const isMac = typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform)
   return (
     <nav
@@ -118,13 +130,30 @@ export function NavRail({ active, attentionSources, onNavigate }: Props): React.
               onClick={() => onNavigate(item.id)}
               aria-label={item.label}
               aria-current={selected ? 'page' : undefined}
-              title={item.label}
+              title={
+                item.id === 'stories' && tracking?.active
+                  ? `跟踪 · ${tracking.active} 个进行中`
+                  : item.id === 'stories' && tracking?.quiet
+                    ? `跟踪 · ${tracking.quiet} 个很久没进展`
+                    : item.label
+              }
               className={[
                 'relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
                 selected ? 'bg-accent-soft text-accent' : 'text-ink-3 hover:bg-cream hover:text-ink'
               ].join(' ')}
             >
               {item.icon}
+              {item.id === 'stories' && tracking && tracking.quiet > 0 && (
+                <span
+                  aria-label={`${tracking.quiet} 个跟踪很久没有新进展`}
+                  className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-alert ring-2 ring-white"
+                />
+              )}
+              {item.id === 'stories' && tracking && tracking.active > 0 && (
+                <span className="absolute -bottom-0.5 -right-0.5 min-w-[13px] rounded-full bg-ink px-1 text-center text-[8px] leading-[13px] text-paper">
+                  {tracking.active > 9 ? '9+' : tracking.active}
+                </span>
+              )}
               {item.id === 'sources' && attentionSources > 0 && (
                 <span
                   aria-label={`${attentionSources} 个事实源需关注`}
