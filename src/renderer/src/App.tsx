@@ -179,7 +179,7 @@ export default function App(): React.JSX.Element {
           onCreateTopic={async (input) => createTopic({ ...input, domainId: activeDomain })}
         />
       ) : (
-        <ContextSidebar nav={nav} attentionSources={summary.attention} />
+        <ContextSidebar nav={nav} />
       )}
 
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">

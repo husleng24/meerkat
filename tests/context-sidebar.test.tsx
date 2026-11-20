@@ -51,7 +51,7 @@ describe('上下文侧栏', () => {
     }
     const onTab = vi.fn()
     window.addEventListener('meerkat:tracking-tab', onTab)
-    const el = await render(<ContextSidebar nav="stories" attentionSources={0} />)
+    const el = await render(<ContextSidebar nav="stories" />)
     await act(async () => new Promise((r) => setTimeout(r, 0)))
     expect(el.textContent).toContain('进行中')
     expect(el.textContent).toContain('2')
@@ -65,11 +65,19 @@ describe('上下文侧栏', () => {
     localStorage.setItem('meerkat.search.recent', JSON.stringify(['Gemini', 'Agent']))
     const onQuery = vi.fn()
     window.addEventListener('meerkat:search-query', onQuery)
-    const el = await render(<ContextSidebar nav="search" attentionSources={0} />)
+    const el = await render(<ContextSidebar nav="search" />)
     expect(el.textContent).toContain('Gemini')
     const gemini = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Gemini'))!
     await act(async () => gemini.click())
     expect(onQuery).toHaveBeenCalled()
     window.removeEventListener('meerkat:search-query', onQuery)
+  })
+
+  it('没有独有信息时整栏不渲染', async () => {
+    const el = await render(<ContextSidebar nav="sources" />)
+    expect(el.textContent).toBe('')
+    localStorage.clear()
+    const search = await render(<ContextSidebar nav="search" />)
+    expect(search.textContent).toBe('')
   })
 })

@@ -44,7 +44,7 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
     }
   }, [api, load])
 
-  // 侧栏筛选和内容区标签共用一套状态
+  // 侧栏筛选和内容区共用一套状态
   useEffect(() => {
     const onTab = (e: Event): void => {
       const tab = (e as CustomEvent<{ tab?: 'active' | 'paused' | 'archived' }>).detail?.tab
@@ -59,10 +59,10 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
     }
   }, [load])
 
-  const changeTab = (next: typeof tab): void => {
-    setTab(next)
-    window.dispatchEvent(new CustomEvent('meerkat:tracking-tab-sync', { detail: { tab: next } }))
-  }
+  // 页面重新挂载时把默认 tab 同步回侧栏，避免侧栏停留在上次的 paused/archived
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('meerkat:tracking-tab-sync', { detail: { tab } }))
+  }, [tab])
 
   const setStatus = async (id: string, status: StoryPayload['status']): Promise<void> => {
     await api?.setStatus({ id, status })
@@ -84,37 +84,16 @@ export function StoriesPage({ onOpen }: Props): React.JSX.Element {
   const archived = stories.filter((s) => s.status === 'archived')
   const shown = tab === 'active' ? active : tab === 'paused' ? paused : archived
   const quiet = active.filter((s) => s.missCount >= 3).length
-
-  const tabs: Array<{ id: typeof tab; label: string; count: number }> = [
-    { id: 'active', label: '跟踪中', count: active.length },
-    { id: 'paused', label: '已暂停', count: paused.length },
-    { id: 'archived', label: '已放弃', count: archived.length }
-  ]
+  const tabLabel = tab === 'active' ? '跟踪中' : tab === 'paused' ? '已暂停' : '已放弃'
 
   return (
     <div className="mx-auto max-w-[820px] px-10 pb-24 pt-4">
       <div className="flex items-baseline gap-3">
         <h2 className="text-[15px] font-bold text-ink">事件跟踪</h2>
         <span className="text-[11px] text-ink-3">
-          {active.length} 个跟踪中{quiet > 0 ? ` · ${quiet} 个很久没新进展` : ''}
+          {tabLabel} · {shown.length}
+          {quiet > 0 ? ` · ${quiet} 个很久没新进展` : ''}
         </span>
-      </div>
-
-      <div className="mt-4 flex gap-1.5">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => changeTab(t.id)}
-            className={[
-              'rounded-full border px-3 py-1 text-[11px] transition-colors',
-              tab === t.id
-                ? 'border-accent bg-accent-soft text-accent'
-                : 'border-rule text-ink-3 hover:border-accent hover:text-ink'
-            ].join(' ')}
-          >
-            {t.label} {t.count > 0 ? t.count : ''}
-          </button>
-        ))}
       </div>
 
       {loading && <div className="mt-8 text-[12px] text-ink-3">加载中…</div>}
