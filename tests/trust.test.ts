@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { auditTrust, classifyClaim } from '../src/app/trust'
+import { auditClaimCoverage, auditTrust, classifyClaim, splitClaims } from '../src/app/trust'
 
 describe('信任层', () => {
   it('按措辞区分传闻、推断和事实', () => {
@@ -31,5 +31,16 @@ describe('信任层', () => {
     expect(audit.unsupported).toBeNull()
     expect(audit.unsupportedRate).toBeNull()
     expect(audit.traceAvailable).toBe(false)
+  })
+
+  it('句子级引用覆盖：有链接条目算引用，速览句算未引用', () => {
+    expect(splitClaims('第一句足够长可以算一个断言。第二句也足够长，可以被核查。')).toHaveLength(2)
+    const coverage = auditClaimCoverage(
+      [{ text: '第一句足够长可以算一个断言。第二句也足够长，可以被核查。', hasLink: true }],
+      ['速览是一句综合判断，没有逐条链接。']
+    )
+    expect(coverage.claims).toBe(3)
+    expect(coverage.cited).toBe(2)
+    expect(coverage.rate).toBe(67)
   })
 })

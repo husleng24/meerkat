@@ -1602,6 +1602,10 @@ export function registerIpc(): void {
     const chosen = parsed.data.keys.map((k) => all.find((c) => c.key === k)).filter((c): c is NonNullable<typeof c> => Boolean(c))
     if (chosen.length < 2) return { ok: false, error: '事件不存在或已被修改' }
     const itemIds = [...new Set(chosen.flatMap((c) => c.items.map((i) => i.id)))]
+    const removedManual = parsed.data.keys
+      .filter((k) => k.startsWith('manual:'))
+      .map((k) => store.manualEvents.get(k.slice('manual:'.length)))
+      .filter((x): x is NonNullable<typeof x> => Boolean(x))
     for (const key of parsed.data.keys) {
       if (key.startsWith('manual:')) store.manualEvents.remove(key.slice('manual:'.length))
     }
@@ -1616,7 +1620,22 @@ export function registerIpc(): void {
       createdAt: now,
       updatedAt: now
     })
+    store.settings.set('events.mergeUndo', { newEventId: id, removed: removedManual, at: now })
     return { ok: true, key: `manual:${id}` }
+  })
+
+  ipcMain.handle('events:undoMerge', () => {
+    const store = requireStore()
+    const snapshot = store.settings.get<{
+      newEventId: string
+      removed: Array<{ id: string; entityId: string; title: string; event: string; itemIds: string[]; createdAt: number; updatedAt: number }>
+      at: number
+    }>('events.mergeUndo')
+    if (!snapshot) return { ok: false, error: '没有可撤销的合并' }
+    store.manualEvents.remove(snapshot.newEventId)
+    for (const m of snapshot.removed) store.manualEvents.upsert(m)
+    store.settings.set('events.mergeUndo', null)
+    return { ok: true }
   })
 
   ipcMain.handle('events:split', (_e, raw: unknown) => {

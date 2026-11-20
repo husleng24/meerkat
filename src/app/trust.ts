@@ -57,6 +57,48 @@ export interface TrustAudit {
   traceAvailable: boolean
 }
 
+export interface ClaimCoverage {
+  claims: number
+  cited: number
+  /** 0–100 */
+  rate: number
+}
+
+/** 把正文拆成可核查的句子；太短的口号/标题不算。 */
+export function splitClaims(text: string): string[] {
+  return text
+    .replace(/\r\n/g, '\n')
+    .split(/(?<=[。！？!?；;])|\n+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 8)
+}
+
+/**
+ * 句子级引用覆盖率的诚实定义：
+ * - 一个条目只要挂了来源链接，就视为该条目的正文句子都有出处；
+ * - 三句话速览是模型综合句，没有直接链接，因此按「未直接引用」计入；
+ * - 这不是语义验证，只是「有没有链接可点」。
+ */
+export function auditClaimCoverage(
+  items: Array<{ text: string; hasLink: boolean }>,
+  highlights: string[] = []
+): ClaimCoverage {
+  let claims = 0
+  let cited = 0
+  for (const item of items) {
+    const sentences = splitClaims(item.text)
+    const n = sentences.length > 0 ? sentences.length : 1
+    claims += n
+    if (item.hasLink) cited += n
+  }
+  for (const h of highlights) {
+    if (h.trim().length === 0) continue
+    claims += 1
+    // 速览句没有逐条链接：不假装它被直接引用
+  }
+  return { claims, cited, rate: claims > 0 ? Math.round((cited / claims) * 100) : 0 }
+}
+
 export function auditTrust(items: TrustItem[]): TrustAudit {
   let fact = 0
   let inference = 0

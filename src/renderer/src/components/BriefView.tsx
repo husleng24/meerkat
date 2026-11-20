@@ -7,7 +7,7 @@ import type { BriefPayload, BriefTraceEntryPayload } from '../lib/ipc-types'
 import { ItemCard } from './ItemCard'
 import { CompareStrip } from './CompareStrip'
 import { renderBriefDocument } from '../lib/briefHtml'
-import { auditTrust, type TrustItem } from '../../../app/trust'
+import { auditClaimCoverage, auditTrust, type TrustItem } from '../../../app/trust'
 
 interface Props {
   brief: ParsedBrief
@@ -103,6 +103,14 @@ export function BriefView({
     })
     return { items, audit: auditTrust(items) }
   }, [allItems, traceFor])
+  const claimCoverage = useMemo(
+    () =>
+      auditClaimCoverage(
+        allItems.map((item) => ({ text: item.body || item.title, hasLink: item.links.length > 0 })),
+        brief.highlights
+      ),
+    [allItems, brief.highlights]
+  )
   const [shareUrl, setShareUrl] = useState('')
   const [shareBusy, setShareBusy] = useState(false)
   const [shareMsg, setShareMsg] = useState('')
@@ -283,6 +291,9 @@ export function BriefView({
           {trust.audit.topShare >= 60 && <span className="ml-1 text-amber-700">集中</span>}
         </span>
         <span>事实 {trust.audit.fact} · 推断 {trust.audit.inference} · 传闻 {trust.audit.rumor}</span>
+        <span title="句子级：条目有链接即视为整条正文有出处；三句话速览没有逐条链接">
+          引用覆盖 {claimCoverage.rate}% · {claimCoverage.cited}/{claimCoverage.claims} 句
+        </span>
         <span title="没有 trace 来源证据的条目；旧简报可能没有 trace">
           {trust.audit.unsupported === null
             ? '旧简报无来源证据'

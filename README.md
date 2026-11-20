@@ -158,9 +158,10 @@ included in the agent context.
 ### Trust signals
 
 Each item carries a rule-based **fact / inference / rumor** chip. The brief header reports source
-diversity, the largest source share, and an “unsupported” rate defined narrowly as items with no
-trace evidence. These are prompts for verification, not a claim of fact-checking; see
-[docs/TRUST.md](docs/TRUST.md).
+diversity, the largest source share, an “unsupported” rate defined narrowly as items with no trace
+evidence, and sentence-level citation coverage (an item with links counts as cited; the three
+highlights have no per-claim links). These are prompts for verification, not a claim of fact-checking;
+see [docs/TRUST.md](docs/TRUST.md).
 
 ### Update notice
 
@@ -290,7 +291,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **520 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **521 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

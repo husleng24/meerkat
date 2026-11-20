@@ -30,6 +30,9 @@ export function ReviewPage({ onGoToday }: { onGoToday: () => void }): React.JSX.
   const [decisions, setDecisions] = useState<DecisionRecentPayload[] | null>(null)
   const [eventNotes, setEventNotes] = useState<EventNotePayload[]>([])
   const [briefs, setBriefs] = useState<BriefRow[]>([])
+  const [editingEvent, setEditingEvent] = useState('')
+  const [eventDraft, setEventDraft] = useState('')
+  const [eventError, setEventError] = useState('')
 
   useEffect(() => {
     const api = window.meerkat?.decisions
@@ -66,8 +69,7 @@ export function ReviewPage({ onGoToday }: { onGoToday: () => void }): React.JSX.
     }
   }, [])
 
-  const stats = useMemo(() => {
-    const dates = new Set((decisions ?? []).map((d) => new Date(d.updatedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })))
+  const stats = useMemo(() => {    const dates = new Set((decisions ?? []).map((d) => new Date(d.updatedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })))
     return {
       decisions: decisions?.length ?? 0,
       events: eventNotes.length,
@@ -79,6 +81,34 @@ export function ReviewPage({ onGoToday }: { onGoToday: () => void }): React.JSX.
 
   if (decisions === null) {
     return <div className="px-10 py-16 text-[13px] text-ink-3">加载中…</div>
+  }
+
+  const saveEventNote = async (note: EventNotePayload): Promise<void> => {
+    const text = eventDraft.trim()
+    if (!text) {
+      setEventError('写一句判断')
+      return
+    }
+    const r = await window.meerkat?.events?.noteSave({
+      eventKey: note.eventKey,
+      note: text,
+      ...(note.entityId ? { entityId: note.entityId } : {}),
+      ...(note.title ? { title: note.title } : {}),
+      ...(note.eventType ? { eventType: note.eventType } : {}),
+      ...(note.latestAt !== undefined ? { latestAt: note.latestAt } : {})
+    })
+    if (!r?.ok) {
+      setEventError(r?.error ?? '保存失败')
+      return
+    }
+    setEventNotes((prev) => prev.map((n) => (n.eventKey === note.eventKey ? (r.note ?? n) : n)))
+    setEditingEvent('')
+    setEventError('')
+  }
+
+  const removeEventNote = async (eventKey: string): Promise<void> => {
+    const r = await window.meerkat?.events?.noteRemove(eventKey)
+    if (r?.ok) setEventNotes((prev) => prev.filter((n) => n.eventKey !== eventKey))
   }
 
   return (
@@ -120,10 +150,46 @@ export function ReviewPage({ onGoToday }: { onGoToday: () => void }): React.JSX.
                     {n.entityId ? `${n.entityId} · ` : ''}
                     {new Date(n.updatedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })}
                   </span>
+                  <span className="ml-auto flex gap-2 text-[10px] text-ink-3">
+                    <button
+                      onClick={() => {
+                        setEditingEvent(n.eventKey)
+                        setEventDraft(n.note)
+                        setEventError('')
+                      }}
+                      className="hover:text-accent"
+                    >
+                      编辑
+                    </button>
+                    <button onClick={() => void removeEventNote(n.eventKey)} className="hover:text-alert">
+                      删除
+                    </button>
+                  </span>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap border-l-2 border-accent/30 pl-3 text-[13px] leading-6 text-ink-2">
-                  {n.note}
-                </p>
+                {editingEvent === n.eventKey ? (
+                  <div className="mt-2">
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      value={eventDraft}
+                      onChange={(e) => setEventDraft(e.target.value)}
+                      className="w-full resize-y rounded-lg border border-accent/40 bg-white px-3 py-2 text-[12px] leading-relaxed outline-none"
+                    />
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button onClick={() => void saveEventNote(n)} className="rounded bg-ink px-2.5 py-1 text-[10.5px] text-paper">
+                        保存
+                      </button>
+                      <button onClick={() => setEditingEvent('')} className="text-[10.5px] text-ink-3 hover:text-ink">
+                        取消
+                      </button>
+                      {eventError && <span className="text-[10.5px] text-alert">{eventError}</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-2 whitespace-pre-wrap border-l-2 border-accent/30 pl-3 text-[13px] leading-6 text-ink-2">
+                    {n.note}
+                  </p>
+                )}
               </article>
             ))}
           </div>

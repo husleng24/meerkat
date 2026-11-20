@@ -482,6 +482,7 @@ const api = {
     > => ipcRenderer.invoke('events:list', input),
     merge: (input: { entityId: string; keys: string[] }): Promise<{ ok: boolean; key?: string; error?: string }> =>
       ipcRenderer.invoke('events:merge', input),
+    undoMerge: (): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('events:undoMerge'),
     split: (input: { entityId: string; key: string; itemIds: string[]; title?: string }): Promise<{
       ok: boolean
       key?: string
