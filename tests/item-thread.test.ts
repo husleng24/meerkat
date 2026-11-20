@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createMemoryStore } from '../src/adapters/store-sqlite/store'
 import { ensureItemThread, ensureThread } from '../src/main/chat'
 import type { Item } from '../src/core/domain/types'
+
+// main/chat -> log -> electron；Node 环境必须 mock，避免 Electron 44 触发二进制下载
+vi.mock('electron', () => ({ app: { getPath: () => '/tmp/meerkat-test' } }))
 
 const NOW = new Date('2026-11-14T10:00:00+08:00').getTime()
 

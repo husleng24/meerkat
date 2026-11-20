@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { createMemoryStore } from '../src/adapters/store-sqlite/store'
 import {
   buildDeterministicTimeline,
@@ -11,6 +11,9 @@ import {
 } from '../src/app/event-timeline'
 import { composeItemTimeline } from '../src/main/item-timeline'
 import type { Item } from '../src/core/domain/types'
+
+// main/chat -> log -> electron；Node 环境必须 mock，避免 Electron 44 触发二进制下载
+vi.mock('electron', () => ({ app: { getPath: () => '/tmp/meerkat-test' } }))
 
 const DAY = 86_400_000
 const at = (iso: string): number => new Date(`${iso}T10:00:00+08:00`).getTime()

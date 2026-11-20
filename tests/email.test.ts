@@ -1,4 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// email-secret 会 import electron；Node 测试环境里必须 mock，否则模块加载会挂住
+vi.mock('electron', () => ({
+  app: { getPath: () => '/tmp/meerkat-email-test' },
+  safeStorage: { isEncryptionAvailable: () => false }
+}))
 import { createMemoryStore } from '../src/adapters/store-sqlite/store'
 import {
   buildEmailMessage,
