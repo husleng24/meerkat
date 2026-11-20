@@ -210,6 +210,11 @@ export interface Entity {
 export interface EventNote {
   eventKey: string
   note: string
+  /** 周回顾用：事件属于哪个实体、标题、类型和时间 */
+  entityId?: string
+  title?: string
+  eventType?: string
+  latestAt?: number
   createdAt: number
   updatedAt: number
 }

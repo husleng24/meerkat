@@ -151,7 +151,8 @@ count. Event cards open a full event page with a dated timeline, an event-level 
 judgments already written on linked items. Event cards can be merged (select two or more), an event
 can be split by selecting items, and manual events can be reverted to automatic ones. Any event can
 be turned into a tracking story in one click. Entities can be added, renamed, re-aliased, or deleted
-locally; re-aliasing rebuilds the index.
+locally; re-aliasing rebuilds the index. Event-level judgments appear in the weekly review, and an
+event page can open the existing comment/timeline thread for its newest item.
 
 ### Update notice
 

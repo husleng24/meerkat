@@ -493,13 +493,41 @@ const api = {
       decisions: Array<{ itemId: string; note: string; verifyAt?: number; createdAt: number; updatedAt: number }>
       note: { eventKey: string; note: string; createdAt: number; updatedAt: number } | null
     } | null> => ipcRenderer.invoke('events:get', input),
-    noteSave: (input: { eventKey: string; note: string }): Promise<{
+    noteSave: (input: {
+      eventKey: string
+      note: string
+      entityId?: string
+      title?: string
+      eventType?: string
+      latestAt?: number
+    }): Promise<{
       ok: boolean
-      note?: { eventKey: string; note: string; createdAt: number; updatedAt: number }
+      note?: {
+        eventKey: string
+        note: string
+        entityId?: string
+        title?: string
+        eventType?: string
+        latestAt?: number
+        createdAt: number
+        updatedAt: number
+      }
       error?: string
     }> => ipcRenderer.invoke('events:noteSave', input),
     noteRemove: (eventKey: string): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke('events:noteRemove', eventKey)
+      ipcRenderer.invoke('events:noteRemove', eventKey),
+    notesRecent: (days?: number): Promise<
+      Array<{
+        eventKey: string
+        note: string
+        entityId?: string
+        title?: string
+        eventType?: string
+        latestAt?: number
+        createdAt: number
+        updatedAt: number
+      }>
+    > => ipcRenderer.invoke('events:notesRecent', { days })
   },
 
   topics: {

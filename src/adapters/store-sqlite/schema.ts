@@ -403,6 +403,18 @@ export const MIGRATIONS: Migration[] = [
       );
       CREATE INDEX idx_manual_events_entity ON manual_events(entity_id, updated_at DESC);
     `
+  },
+  {
+    version: 15,
+    name: 'event_note_context',
+    up: `
+      -- 周回顾需要知道事件判断属于谁、是哪件事；旧行允许为空，按 key 兜底显示。
+      ALTER TABLE event_notes ADD COLUMN entity_id TEXT;
+      ALTER TABLE event_notes ADD COLUMN title TEXT;
+      ALTER TABLE event_notes ADD COLUMN event_type TEXT;
+      ALTER TABLE event_notes ADD COLUMN latest_at INTEGER;
+      CREATE INDEX idx_event_notes_latest ON event_notes(latest_at DESC);
+    `
   }
 ]
 

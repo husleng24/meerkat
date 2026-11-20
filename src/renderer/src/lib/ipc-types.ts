@@ -326,6 +326,17 @@ export interface ShareBridge {
   stop: () => Promise<{ ok: boolean }>
 }
 
+export interface EventNotePayload {
+  eventKey: string
+  note: string
+  entityId?: string
+  title?: string
+  eventType?: string
+  latestAt?: number
+  createdAt: number
+  updatedAt: number
+}
+
 export interface EntityPayload {
   id: string
   name: string
@@ -395,7 +406,7 @@ export interface EventClusterPayload {
 
 export interface EventDetailPayload extends EventClusterPayload {
   decisions: DecisionNotePayload[]
-  note: { eventKey: string; note: string; createdAt: number; updatedAt: number } | null
+  note: EventNotePayload | null
 }
 
 export interface EventsBridge {
@@ -414,12 +425,20 @@ export interface EventsBridge {
     title?: string
     error?: string
   }>
-  noteSave: (input: { eventKey: string; note: string }) => Promise<{
+  noteSave: (input: {
+    eventKey: string
+    note: string
+    entityId?: string
+    title?: string
+    eventType?: string
+    latestAt?: number
+  }) => Promise<{
     ok: boolean
-    note?: { eventKey: string; note: string; createdAt: number; updatedAt: number }
+    note?: EventNotePayload
     error?: string
   }>
   noteRemove: (eventKey: string) => Promise<{ ok: boolean; error?: string }>
+  notesRecent: (days?: number) => Promise<EventNotePayload[]>
 }
 
 export interface EntitiesBridge {

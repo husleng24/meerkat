@@ -76,6 +76,7 @@ interface EntityRow {
 
 interface EventNoteRow {
   event_key: string; note: string; created_at: number; updated_at: number
+  entity_id: string | null; title: string | null; event_type: string | null; latest_at: number | null
 }
 
 interface ManualEventRow {
@@ -224,6 +225,10 @@ const toEntity = (r: EntityRow): Entity => ({
 const toEventNote = (r: EventNoteRow): EventNote => ({
   eventKey: r.event_key,
   note: r.note,
+  ...(r.entity_id !== null ? { entityId: r.entity_id } : {}),
+  ...(r.title !== null ? { title: r.title } : {}),
+  ...(r.event_type !== null ? { eventType: r.event_type } : {}),
+  ...(r.latest_at !== null ? { latestAt: r.latest_at } : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -1123,16 +1128,29 @@ class SqliteEventNoteStore implements EventNoteStore {
     return r ? toEventNote(r) : undefined
   }
 
+  recent(sinceTs: number, limit = 100): EventNote[] {
+    const rows = this.db
+      .prepare('SELECT * FROM event_notes WHERE updated_at >= ? ORDER BY updated_at DESC LIMIT ?')
+      .all(sinceTs, limit) as EventNoteRow[]
+    return rows.map(toEventNote)
+  }
+
   upsert(note: EventNote): void {
     this.db
       .prepare(
-        `INSERT INTO event_notes (event_key,note,created_at,updated_at)
-         VALUES (@event_key,@note,@created_at,@updated_at)
-         ON CONFLICT(event_key) DO UPDATE SET note=excluded.note, updated_at=excluded.updated_at`
+        `INSERT INTO event_notes (event_key,note,entity_id,title,event_type,latest_at,created_at,updated_at)
+         VALUES (@event_key,@note,@entity_id,@title,@event_type,@latest_at,@created_at,@updated_at)
+         ON CONFLICT(event_key) DO UPDATE SET note=excluded.note, entity_id=excluded.entity_id,
+           title=excluded.title, event_type=excluded.event_type, latest_at=excluded.latest_at,
+           updated_at=excluded.updated_at`
       )
       .run({
         event_key: note.eventKey,
         note: note.note,
+        entity_id: note.entityId ?? null,
+        title: note.title ?? null,
+        event_type: note.eventType ?? null,
+        latest_at: note.latestAt ?? null,
         created_at: note.createdAt,
         updated_at: note.updatedAt
       })

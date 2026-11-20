@@ -1682,7 +1682,16 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('events:noteSave', (_e, raw: unknown) => {
-    const parsed = z.object({ eventKey: z.string().min(1).max(200), note: z.string().trim().min(1).max(2000) }).safeParse(raw)
+    const parsed = z
+      .object({
+        eventKey: z.string().min(1).max(200),
+        note: z.string().trim().min(1).max(2000),
+        entityId: z.string().max(100).optional(),
+        title: z.string().max(300).optional(),
+        eventType: z.string().max(30).optional(),
+        latestAt: z.number().optional()
+      })
+      .safeParse(raw)
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const store = requireStore()
     const old = store.eventNotes.get(parsed.data.eventKey)
@@ -1690,6 +1699,10 @@ export function registerIpc(): void {
     const note = {
       eventKey: parsed.data.eventKey,
       note: parsed.data.note,
+      ...(parsed.data.entityId ? { entityId: parsed.data.entityId } : old?.entityId ? { entityId: old.entityId } : {}),
+      ...(parsed.data.title ? { title: parsed.data.title } : old?.title ? { title: old.title } : {}),
+      ...(parsed.data.eventType ? { eventType: parsed.data.eventType } : old?.eventType ? { eventType: old.eventType } : {}),
+      latestAt: parsed.data.latestAt ?? old?.latestAt ?? now,
       createdAt: old?.createdAt ?? now,
       updatedAt: now
     }
@@ -1702,5 +1715,11 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     requireStore().eventNotes.remove(parsed.data)
     return { ok: true }
+  })
+
+  ipcMain.handle('events:notesRecent', (_e, raw: unknown) => {
+    const parsed = z.object({ days: z.number().int().min(1).max(90).optional() }).safeParse(raw ?? {})
+    if (!parsed.success) return []
+    return requireStore().eventNotes.recent(Date.now() - (parsed.data.days ?? 7) * 86_400_000)
   })
 }

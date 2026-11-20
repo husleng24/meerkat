@@ -83,7 +83,14 @@ export function EventPage({
       setError('写一句判断')
       return
     }
-    const r = await window.meerkat?.events?.noteSave({ eventKey, note })
+    const r = await window.meerkat?.events?.noteSave({
+      eventKey,
+      note,
+      entityId,
+      title: detail?.title ?? '',
+      eventType: detail?.event ?? 'other',
+      latestAt: detail?.latestAt ?? Date.now()
+    })
     if (!r?.ok) {
       setError(r?.error ?? '保存失败')
       return
@@ -142,6 +149,20 @@ export function EventPage({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button onClick={() => void toStory()} className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-2 hover:border-accent">
             转为跟踪
+          </button>
+          <button
+            onClick={() => {
+              const first = detail.items[0]
+              if (!first) return
+              window.dispatchEvent(
+                new CustomEvent('meerkat:comment-item', {
+                  detail: { itemId: first.id, title: detail.title }
+                })
+              )
+            }}
+            className="rounded-full border border-cream px-2.5 py-1 text-[10.5px] text-ink-2 hover:border-accent"
+          >
+            评论 / 时间线
           </button>
           <button
             onClick={() => {

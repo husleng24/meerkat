@@ -157,6 +157,7 @@ export interface EntityStore {
 
 export interface EventNoteStore {
   get(eventKey: string): EventNote | undefined
+  recent(sinceTs: number, limit?: number): EventNote[]
   upsert(note: EventNote): void
   remove(eventKey: string): void
 }
