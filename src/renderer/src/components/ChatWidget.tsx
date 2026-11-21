@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { actionPrompt, visibleActions, type ChatActionId } from '../../../core/chat/actions'
 import { ChatMarkdown } from './ChatMarkdown'
 import { TimelineCard } from './TimelineCard'
@@ -44,6 +44,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
   const api = window.meerkat?.chat
 
   const actions = useMemo(() => visibleActions(hasPrevious), [hasPrevious])
@@ -174,6 +175,17 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight })
   }, [messages, sending])
+
+  // 输入框随内容长高，最高 160px；再长就在框内滚动，避免把整块面板撑破
+  useLayoutEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    el.style.height = '0px'
+    const max = 160
+    const next = Math.min(el.scrollHeight, max)
+    el.style.height = `${Math.max(next, 44)}px`
+    el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'
+  }, [draft, open, itemContext?.id, eventContext?.key])
 
   const toggle = useCallback(() => {
     setOpen((v) => {
@@ -399,10 +411,11 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
           <div className="mx-3 mb-3 rounded-xl border border-rule px-3 py-2">
             <textarea
               id="chat-input"
+              ref={composerRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onComposerKey}
-              rows={2}
+              rows={1}
               placeholder={
                 eventContext
                   ? '评论这个事件… 输入 @agent 整理时间线，⌘↵ 发送'
@@ -410,7 +423,7 @@ export function ChatWidget({ topicId, briefDate, hasPrevious }: Props): React.JS
                     ? '评论… 输入 @agent 整理时间线，⌘↵ 发送'
                     : '问点什么，⌘↵ 发送…'
               }
-              className="w-full resize-none bg-transparent text-[12.5px] leading-6 text-ink outline-none placeholder:text-ink-3/70"
+              className="min-h-[44px] max-h-[160px] w-full resize-none bg-transparent text-[12.5px] leading-6 text-ink outline-none placeholder:text-ink-3/70"
             />
             <div className="mt-1 flex items-center gap-2">
               {sending ? (
