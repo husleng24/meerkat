@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, nativeImage, screen, shell } from 'electron'
 import { join } from 'node:path'
-import { checkUpdatesInBackground, closeStore, dailyDeps, initStore, registerIpc } from './ipc'
+import { checkUpdatesInBackground, closeStore, dailyDeps, getStore, initStore, registerIpc } from './ipc'
 import { Scheduler } from './scheduler'
 import { runDaily } from './daily'
 import { installCrashHandlers, log } from './log'
@@ -8,6 +8,7 @@ import { runElectronSelfCheck } from './selfcheck'
 import { apply as applyAutoLaunch } from './autolaunch'
 import { brandPath } from './paths'
 import { stopShare } from './share'
+import { handleAuthCallback } from './auth'
 
 const isDev = !app.isPackaged
 
@@ -19,9 +20,46 @@ app.setName('Meerkat')
 // （打包版由快捷方式带上，开发态/便携版必须自己设）
 if (process.platform === 'win32') app.setAppUserModelId('com.meerkat.daily')
 
+registerAuthProtocol()
+app.on('open-url', (event, url) => {
+  if (!url.startsWith('meerkat://auth/')) return
+  event.preventDefault()
+  void processAuthUrl(url)
+})
+
 let mainWindow: BrowserWindow | null = null
 let scheduler: Scheduler | null = null
 let quitting = false
+let pendingAuthUrl: string | null = null
+
+function authUrlOf(args: string[]): string | undefined {
+  return args.find((a) => a.startsWith('meerkat://auth/'))
+}
+
+async function processAuthUrl(url: string): Promise<void> {
+  const store = getStore()
+  if (!store) {
+    pendingAuthUrl = url
+    return
+  }
+  const result = await handleAuthCallback(store, url)
+  mainWindow?.webContents.send('auth:changed', result)
+  showWindow()
+}
+
+/** 自定义协议：GitHub OAuth / 邮箱确认都回到 meerkat://auth/callback。 */
+function registerAuthProtocol(): void {
+  try {
+    if (process.defaultApp) {
+      const appPath = process.argv[1]
+      if (appPath) app.setAsDefaultProtocolClient('meerkat', process.execPath, [appPath])
+    } else {
+      app.setAsDefaultProtocolClient('meerkat')
+    }
+  } catch {
+    /* 系统注册失败时仍保留回环回调作为后续兜底的空间 */
+  }
+}
 
 /**
  * 深链：`Meerkat.exe --route=search/Gemini` 直接打开某个页面。
@@ -124,7 +162,11 @@ if (process.argv.includes('--verify')) {
   if (!gotLock) {
     app.quit()
   } else {
-    app.on('second-instance', () => showWindow())
+    app.on('second-instance', (_event, argv) => {
+      const url = authUrlOf(argv)
+      if (url) void processAuthUrl(url)
+      else showWindow()
+    })
 
     // 默认菜单（File/Edit/View…）对这个应用没有意义，去掉
     Menu.setApplicationMenu(null)
@@ -149,6 +191,10 @@ if (process.argv.includes('--verify')) {
       registerIpc()
 
       createWindow()
+
+      const launchAuth = authUrlOf(process.argv) ?? pendingAuthUrl
+      pendingAuthUrl = null
+      if (launchAuth) void processAuthUrl(launchAuth)
 
       scheduler = new Scheduler({
         store,

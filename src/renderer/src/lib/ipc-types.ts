@@ -423,6 +423,34 @@ export interface ClaimsBridge {
   }>
 }
 
+export interface AuthUserPayload {
+  id: string
+  email: string
+  provider: string
+  createdAt?: string
+}
+
+export interface AuthStatusPayload {
+  ok?: boolean
+  configured: boolean
+  signedIn: boolean
+  user?: AuthUserPayload
+  needsConfirmation?: boolean
+  message?: string
+  error?: string
+}
+
+export interface AuthBridge {
+  status: () => Promise<AuthStatusPayload>
+  config: () => Promise<{ configured: boolean; url: string; hasKey: boolean }>
+  setConfig: (input: { url: string; key: string }) => Promise<AuthStatusPayload>
+  signUp: (input: { email: string; password: string }) => Promise<AuthStatusPayload>
+  signIn: (input: { email: string; password: string }) => Promise<AuthStatusPayload>
+  github: () => Promise<AuthStatusPayload>
+  signOut: () => Promise<AuthStatusPayload>
+  onChanged: (cb: (status: AuthStatusPayload) => void) => () => void
+}
+
 export interface EventClusterPayload {
   key: string
   title: string
@@ -618,6 +646,7 @@ export interface MeerkatBridge {
   entities?: EntitiesBridge
   events?: EventsBridge
   claims?: ClaimsBridge
+  auth?: AuthBridge
   domains?: {
     list: () => Promise<DomainPayload[]>
     create: (input: { id?: string; name: string }) => Promise<{ ok: boolean; id?: string; error?: string }>

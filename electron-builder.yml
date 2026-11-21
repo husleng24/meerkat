@@ -56,6 +56,9 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  protocols:
+    - name: Meerkat Auth
+      schemes: [meerkat]
   target:
     - target: dmg
       arch: [arm64, x64]

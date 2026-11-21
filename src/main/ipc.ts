@@ -27,6 +27,7 @@ import type { EntityEvent } from '../app/entity-events'
 import { extractKeywords } from '../app/event-timeline'
 import { cleanAliases } from '../app/aliases'
 import { semanticBindClaims, type SemanticClaim } from '../app/claim-semantic'
+import { readAuthConfig, saveAuthConfig, signInEmail, signInGithub, signOut, signUpEmail, status as authStatus } from './auth'
 import { topicStats } from '../app/topic-stats'
 import { NEW_TOPIC_SOURCE_LIMIT, recommendSources, recommendSourcesForNewTopic } from '../app/source-recommend'
 import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolaunch'
@@ -313,6 +314,10 @@ export function initStore(dbPath: string): Store {
   seedVideoTopic(store)
   // 实体词表与倒排：首次启动回填历史条目，之后只有新条目增量索引
   bootstrapEntities(store)
+  return store
+}
+
+export function getStore(): Store | null {
   return store
 }
 
@@ -1793,6 +1798,27 @@ export function registerIpc(): void {
     if (!parsed.success) return []
     return requireStore().eventNotes.recent(Date.now() - (parsed.data.days ?? 7) * 86_400_000)
   })
+
+  // ── 账号：Supabase Auth（主进程持有 session） ──────────────
+  ipcMain.handle('auth:status', () => authStatus(requireStore()))
+  ipcMain.handle('auth:config', () => readAuthConfig(requireStore()))
+  ipcMain.handle('auth:setConfig', (_e, raw: unknown) => {
+    const parsed = z.object({ url: z.string().max(500), key: z.string().max(2000) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return saveAuthConfig(requireStore(), parsed.data.url, parsed.data.key)
+  })
+  ipcMain.handle('auth:signUp', (_e, raw: unknown) => {
+    const parsed = z.object({ email: z.string().max(300), password: z.string().min(1).max(200) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return signUpEmail(requireStore(), parsed.data.email, parsed.data.password)
+  })
+  ipcMain.handle('auth:signIn', (_e, raw: unknown) => {
+    const parsed = z.object({ email: z.string().max(300), password: z.string().min(1).max(200) }).safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    return signInEmail(requireStore(), parsed.data.email, parsed.data.password)
+  })
+  ipcMain.handle('auth:github', () => signInGithub(requireStore()))
+  ipcMain.handle('auth:signOut', () => signOut(requireStore()))
 
   // ── Claim → source 语义归因（模型只在候选 URL 里选） ─────────
   ipcMain.handle('claims:semanticBind', async (_e, raw: unknown) => {

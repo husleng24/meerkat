@@ -563,6 +563,65 @@ const api = {
     }> => ipcRenderer.invoke('claims:semanticBind', { claims })
   },
 
+  auth: {
+    status: (): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      user?: { id: string; email: string; provider: string; createdAt?: string }
+      needsConfirmation?: boolean
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:status'),
+    config: (): Promise<{ configured: boolean; url: string; hasKey: boolean }> =>
+      ipcRenderer.invoke('auth:config'),
+    setConfig: (input: { url: string; key: string }): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      user?: { id: string; email: string; provider: string; createdAt?: string }
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:setConfig', input),
+    signUp: (input: { email: string; password: string }): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      user?: { id: string; email: string; provider: string; createdAt?: string }
+      needsConfirmation?: boolean
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:signUp', input),
+    signIn: (input: { email: string; password: string }): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      user?: { id: string; email: string; provider: string; createdAt?: string }
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:signIn', input),
+    github: (): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      user?: { id: string; email: string; provider: string; createdAt?: string }
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:github'),
+    signOut: (): Promise<{
+      ok?: boolean
+      configured: boolean
+      signedIn: boolean
+      message?: string
+      error?: string
+    }> => ipcRenderer.invoke('auth:signOut'),
+    onChanged: (cb: (status: unknown) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, status: unknown): void => cb(status)
+      ipcRenderer.on('auth:changed', listener)
+      return () => ipcRenderer.removeListener('auth:changed', listener)
+    }
+  },
+
   topics: {
     list: (): Promise<
       Array<{

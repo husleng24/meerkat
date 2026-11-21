@@ -130,7 +130,12 @@ On any brief item, write a short local note: what it changes, what you plan to d
 prove you wrong. The weekly review collects the last seven days of notes alongside brief/no-change
 counts, so the product is not only a reading surface but a decision log. Notes stay in local SQLite.
 
-### Daily push and email
+### Account and sign-in
+
+Optional Supabase Auth (bring your own project): email/password registration and GitHub OAuth, with
+the session kept in the main process and encrypted by the OS keystore. Sign-in is not required for
+local use, and **data sync is not implemented yet**; the account currently only establishes identity.
+Setup and desktop callback flow: [docs/AUTH.md](docs/AUTH.md).
 
 The settings page can deliver each scheduled brief to a Feishu, Slack, Discord, or generic webhook:
 three highlights when something changed, one honest line when nothing did. Webhook URLs stay in the

@@ -7,6 +7,7 @@ import { TopicSources } from './TopicSources'
 import { TopicManager } from './TopicManager'
 import { PushPanel } from './PushPanel'
 import { EmailPanel } from './EmailPanel'
+import { AccountPanel } from './AccountPanel'
 import { ChatMarkdown } from './ChatMarkdown'
 import { DomainManager } from './DomainManager'
 import type { DomainPayload, TopicPayload, UpdateCheckPayload } from '../lib/ipc-types'
@@ -215,6 +216,14 @@ export function SettingsPage({
 
   return (
     <div className="mx-auto max-w-[680px] px-10 pb-24 pt-8">
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">账号</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          邮箱注册/登录或 GitHub 登录。账号使用 Supabase Auth；当前只建立身份，尚未开始数据同步。
+        </p>
+        <AccountPanel />
+      </section>
+
       <section className="mb-8">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">领域</h2>
         <p className="mb-4 text-[12px] text-ink-3">
