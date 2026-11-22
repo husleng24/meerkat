@@ -40,8 +40,56 @@ macos-14 与 windows-latest，测试通过后打包并附加到一个 **draft** 
 
 ## 签名
 
-两个平台都是**未签名**：macOS 首次打开要右键「打开」，Windows SmartScreen 要选「仍要运行」。
-接签名需要另外配置证书与 `CSC_LINK` / `WIN_CSC_LINK`。
+- **macOS**：CI 用 Developer ID 签名并公证；app 与 dmg 都会 staple。需要以下 secrets：
+
+| Secret | 内容 |
+|---|---|
+| `MAC_CSC_LINK` | 只含 Developer ID Application 的 `.p12`，base64 后一行 |
+| `MAC_CSC_KEY_PASSWORD` | `.p12` 密码 |
+| `APPLE_API_KEY_P8` | App Store Connect API Key `.p8`，base64 后一行 |
+| `APPLE_API_KEY_ID` | Key ID（`.p8` 文件名里的 10 位） |
+| `APPLE_API_ISSUER` | Issuer ID（UUID） |
+
+  任一缺失时，工作流会退回 ad-hoc 签名并打 warning；产物不可直接分发。
+
+- **Windows**：仍未签名，SmartScreen 会提示未知发布者。
+
+## 本机签名出包
+
+```bash
+APPLE_API_KEY="$HOME/.appstoreconnect/private_keys/AuthKey_XXXX.p8" \
+APPLE_API_KEY_ID="XXXXXXXXXX" \
+APPLE_API_ISSUER="<issuer-uuid>" \
+pnpm exec electron-builder --mac dmg --arm64 --x64 --publish never \
+  -c.mac.identity="<证书名，不带 Developer ID Application: 前缀>" \
+  -c.mac.notarize=true
+```
+
+electron-builder 只公证 app；dmg 需要再提交一次并 staple：
+
+```bash
+xcrun notarytool submit release/Meerkat-<版本>-arm64.dmg \
+  --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
+xcrun stapler staple release/Meerkat-<版本>-arm64.dmg
+```
+
+验证：
+
+```bash
+spctl -a -vvv release/mac-arm64/Meerkat.app   # accepted / Notarized Developer ID
+xcrun stapler validate release/mac-arm64/Meerkat.app
+xcrun stapler validate release/Meerkat-<版本>-arm64.dmg
+```
+
+## macOS 签名说明
+
+没有证书时 electron-builder 默认不签名，产物在 macOS 15+ 上会被 AMFI 拒绝。当前 CI 已接入
+Developer ID：证书私钥以 `.p12` 形式放在 `MAC_CSC_LINK`，公证用 App Store Connect API Key。
+本地开发如果没有证书，可显式退回 ad-hoc：
+
+```bash
+pnpm exec electron-builder --mac dmg --arm64 --publish never -c.mac.identity=-
+```
 
 ## 本机打包的已知限制
 

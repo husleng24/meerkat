@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 530 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.3 · 530 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -17,18 +17,14 @@ Grab an installer from [Releases](https://github.com/husleng24/meerkat/releases)
 
 | Platform | File |
 |---|---|
-| macOS (Apple Silicon) | [Meerkat-0.1.2-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-arm64.dmg) |
-| macOS (Intel) | [Meerkat-0.1.2-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.dmg) |
-| Windows (installer) | [Meerkat-0.1.2-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.exe) |
-| Windows (portable) | [Meerkat-0.1.2-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-portable.exe) |
+| macOS (Apple Silicon) | [Meerkat-0.1.3-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-arm64.dmg) |
+| macOS (Intel) | [Meerkat-0.1.3-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-x64.dmg) |
+| Windows (installer) | [Meerkat-0.1.3-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-x64.exe) |
+| Windows (portable) | [Meerkat-0.1.3-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-portable.exe) |
 
-Neither platform is code-signed, and that has consequences:
-
-- **macOS**: right-click **Open** or `xattr -dr com.apple.quarantine` may still be refused —
-  Gatekeeper/AMFI can reject an unsigned build on macOS 15+ (`Unrecoverable CT signature issue`).
-  Until a Developer ID certificate and notarization are in place, the macOS build is for local
-  development only.
-- **Windows**: SmartScreen → **More info → Run anyway**; this works, but the publisher is unknown.
+Both macOS builds are signed with a Developer ID and notarized by Apple, so they open with a
+normal double-click. Windows builds are not code-signed: SmartScreen needs **More info → Run anyway**,
+and the publisher will show as unknown.
 
 ## What it is
 

@@ -50,9 +50,8 @@ nsis:
   deleteAppDataOnUninstall: false
 
 mac:
-  # 没有证书，用 "-" 做 ad-hoc 签名；必须配合 entitlements 关闭库校验，
-  # 否则 Frameworks 里的 ad-hoc dylib 会被 AMFI 拒绝，双击无法启动
-  identity: "-"
+  # 签名身份由 CSC_LINK / CSC_NAME / 本机钥匙串决定（CI 里由 secrets 提供）。
+  # 没有证书时用 `-c.mac.identity=-` 退回 ad-hoc。
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist

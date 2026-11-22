@@ -44,9 +44,40 @@ jobs:
       - name: Package
         shell: bash
         env:
-          # 本仓库没有签名证书：macOS 出未签名 dmg，Windows 出未签名安装包
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: pnpm exec electron-builder --${{ matrix.platform }} --publish never
+          PLATFORM: ${{ matrix.platform }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+        run: |
+          if [ "$PLATFORM" = "mac" ] && [ -n "$CSC_LINK" ]; then
+            # App Store Connect API Key 只以 base64 secret 保存，构建时落盘
+            printf '%s' "$APPLE_API_KEY_P8" | openssl base64 -d -A -out "$APPLE_API_KEY"
+            pnpm exec electron-builder --mac --publish never -c.mac.notarize=true
+          elif [ "$PLATFORM" = "mac" ]; then
+            echo "::warning::macOS signing secrets are empty; building an ad-hoc dmg"
+            pnpm exec electron-builder --mac --publish never -c.mac.identity=-
+          else
+            CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --win --publish never
+          fi
+
+      - name: Notarize and staple dmg
+        if: matrix.platform == 'mac'
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          APPLE_API_KEY: ${{ runner.temp }}/AuthKey.p8
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          if [ -z "$CSC_LINK" ]; then exit 0; fi
+          for dmg in release/*.dmg; do
+            xcrun notarytool submit "$dmg"               --key "$APPLE_API_KEY"               --key-id "$APPLE_API_KEY_ID"               --issuer "$APPLE_API_ISSUER" --wait
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+          done
 
       - uses: actions/upload-artifact@v4
         with:

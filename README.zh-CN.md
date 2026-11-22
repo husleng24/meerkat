@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.2 · 530 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.3 · 530 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -16,17 +16,13 @@
 
 | 平台 | 文件 |
 |---|---|
-| macOS（Apple Silicon） | [Meerkat-0.1.2-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-arm64.dmg) |
-| macOS（Intel） | [Meerkat-0.1.2-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.dmg) |
-| Windows（安装版） | [Meerkat-0.1.2-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-x64.exe) |
-| Windows（便携版） | [Meerkat-0.1.2-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.2/Meerkat-0.1.2-portable.exe) |
+| macOS（Apple Silicon） | [Meerkat-0.1.3-arm64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-arm64.dmg) |
+| macOS（Intel） | [Meerkat-0.1.3-x64.dmg](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-x64.dmg) |
+| Windows（安装版） | [Meerkat-0.1.3-x64.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-x64.exe) |
+| Windows（便携版） | [Meerkat-0.1.3-portable.exe](https://github.com/husleng24/meerkat/releases/download/v0.1.3/Meerkat-0.1.3-portable.exe) |
 
-两个平台都没有代码签名，后果要说清楚：
-
-- **macOS**：右键「打开」或 `xattr -dr com.apple.quarantine` 之后**仍可能被拒绝**——macOS 15+
-  的 Gatekeeper/AMFI 会直接拦下未签名包（`Unrecoverable CT signature issue`）。在拿到
-  Developer ID 证书并公证之前，macOS 包只适合开发者本机使用。
-- **Windows**：SmartScreen 选「更多信息 → 仍要运行」即可，但发布者会显示为未知。
+macOS 两个架构都已用 Developer ID 签名并由 Apple 公证，正常双击即可打开。
+Windows 仍未代码签名：SmartScreen 选「更多信息 → 仍要运行」即可，但发布者会显示为未知。
 
 ## 它是什么
 
