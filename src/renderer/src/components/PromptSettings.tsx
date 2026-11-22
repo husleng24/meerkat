@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { PromptProfilePayload, PromptVersionPayload, TopicPayload } from '../lib/ipc-types'
+import type {
+  PromptDryRunPayload,
+  PromptEvaluationPayload,
+  PromptProfilePayload,
+  PromptVersionPayload,
+  TopicPayload
+} from '../lib/ipc-types'
+import { ChatMarkdown } from './ChatMarkdown'
 import { PROMPT_VARIABLES, promptWarnings, renderPromptTemplate } from '../../../app/prompt-profile'
 
 interface Props {
@@ -26,6 +33,11 @@ export function PromptSettings({ topicId, topics, onTopicsChanged }: Props): Rea
   const [showPreview, setShowPreview] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [trial, setTrial] = useState<PromptDryRunPayload | null>(null)
+  const [trialBusy, setTrialBusy] = useState(false)
+  const [rating, setRating] = useState(0)
+  const [notes, setNotes] = useState('')
+  const [evaluations, setEvaluations] = useState<PromptEvaluationPayload[]>([])
   const api = window.meerkat?.prompts
   const editorRef = useRef<HTMLTextAreaElement>(null)
 
@@ -53,11 +65,21 @@ export function PromptSettings({ topicId, topics, onTopicsChanged }: Props): Rea
     setSystemMd(p.systemMd)
     setVersions([])
     setMsg('')
+    setEvaluations([])
     // 长模板切过来时从头看，而不是停在上一份的滚动位置
     requestAnimationFrame(() => {
       if (editorRef.current) editorRef.current.scrollTop = 0
     })
   }, [profiles, selectedId])
+
+  const loadEvaluations = useCallback(async (): Promise<void> => {
+    const list = await api?.evaluations(topicId).catch(() => [])
+    setEvaluations(list ?? [])
+  }, [api, topicId])
+
+  useEffect(() => {
+    void loadEvaluations()
+  }, [loadEvaluations, selectedId])
 
   const bind = async (id: string | null): Promise<void> => {
     const res = await window.meerkat?.topics?.update({ id: topicId, promptProfileId: id })
@@ -118,6 +140,41 @@ export function PromptSettings({ topicId, topics, onTopicsChanged }: Props): Rea
     await load()
   }
 
+  const runTrial = async (): Promise<void> => {
+    if (!api || !selected) return
+    setTrialBusy(true)
+    setMsg('')
+    const res = await api.dryRun({
+      topicId,
+      systemMd,
+      profileId: selected.id,
+      profileName: selected.name,
+      profileVersion: selected.version,
+      ...(topic?.selectionPolicy ? { selectionPolicy: topic.selectionPolicy } : {})
+    })
+    setTrialBusy(false)
+    if (!res.ok || !res.result) return setMsg(res.error ?? '试跑失败')
+    setTrial(res.result)
+    setRating(0)
+    setNotes('')
+  }
+
+  const saveEvaluation = async (): Promise<void> => {
+    if (!api || !trial || rating < 1) return
+    const res = await api.evaluate({
+      topicId,
+      profileId: trial.profileId,
+      profileName: trial.profileName,
+      profileVersion: trial.profileVersion,
+      rating,
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
+      metrics: trial.metrics
+    })
+    if (!res.ok) return setMsg(res.error ?? '保存评测失败')
+    setMsg('评测已保存')
+    await loadEvaluations()
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
@@ -139,6 +196,13 @@ export function PromptSettings({ topicId, topics, onTopicsChanged }: Props): Rea
           className="rounded-lg border border-cream px-3 py-1.5 text-[11.5px] text-ink-2 hover:border-accent hover:text-ink disabled:opacity-40"
         >
           复制为自定义
+        </button>
+        <button
+          onClick={() => void runTrial()}
+          disabled={trialBusy}
+          className="rounded-lg border border-accent/40 px-3 py-1.5 text-[11.5px] text-accent hover:bg-accent-soft disabled:opacity-40"
+        >
+          {trialBusy ? '试跑中…' : '试跑（最近素材）'}
         </button>
         {!selected?.builtin && (
           <button
@@ -220,6 +284,79 @@ export function PromptSettings({ topicId, topics, onTopicsChanged }: Props): Rea
       )}
 
       {msg && <p className="mt-1.5 text-[10.5px] text-ink-3">{msg}</p>}
+
+      {evaluations.length > 0 && (
+        <div className="mt-2 rounded-lg border border-cream bg-cream/30 px-3 py-2">
+          <div className="text-[10.5px] font-medium text-ink-3">最近评测</div>
+          <ul className="mt-1 space-y-1">
+            {evaluations.slice(0, 5).map((e) => (
+              <li key={e.id} className="flex flex-wrap items-center gap-2 text-[10.5px] text-ink-2">
+                <span className="text-amber-600">{'★'.repeat(e.rating)}</span>
+                <span className="truncate">{e.profileName} v{e.profileVersion}</span>
+                <span className="text-ink-3">
+                  引用 {e.metrics.cited ?? 0} · 链接率 {e.metrics.linkRate ?? 0}%
+                </span>
+                <span className="ml-auto text-ink-3">{new Date(e.createdAt).toLocaleDateString('zh-CN')}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {trial && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-ink/20 p-6 backdrop-blur-[2px]">
+          <div className="mx-auto max-w-[860px] rounded-2xl border border-rule bg-white shadow-2xl">
+            <div className="sticky top-0 flex items-center gap-3 rounded-t-2xl border-b border-rule bg-white px-5 py-3">
+              <div className="min-w-0">
+                <div className="truncate text-[13px] font-bold text-ink">试跑 · {trial.profileName}</div>
+                <div className="text-[10.5px] text-ink-3">
+                  使用最近素材，不落库 · 引用 {trial.metrics.cited}/{trial.usedItems} · 链接率{' '}
+                  {trial.metrics.linkRate}% · {trial.metrics.sections} 个板块 · {trial.model}
+                </div>
+              </div>
+              <button onClick={() => setTrial(null)} className="ml-auto text-[11px] text-ink-3 hover:text-ink">
+                关闭
+              </button>
+            </div>
+            <div className="max-h-[65vh] overflow-y-auto px-6 py-4">
+              {trial.degraded && (
+                <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                  未配置模型或调用失败，下面是仅聚合降级稿。
+                </p>
+              )}
+              <ChatMarkdown text={trial.markdown} />
+            </div>
+            <div className="border-t border-rule px-5 py-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-[11px] text-ink-3">这次结果打几分？</span>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setRating(n)}
+                    className={['text-[16px]', n <= rating ? 'text-amber-500' : 'text-ink-3/40'].join(' ')}
+                    aria-label={`${n} 星`}
+                  >
+                    ★
+                  </button>
+                ))}
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="备注（可选）"
+                  className="min-w-[200px] flex-1 rounded-lg border border-cream px-2.5 py-1.5 text-[11px] outline-none focus:border-accent"
+                />
+                <button
+                  onClick={() => void saveEvaluation()}
+                  disabled={rating < 1}
+                  className="rounded-lg bg-ink px-3 py-1.5 text-[11.5px] font-medium text-paper disabled:opacity-40"
+                >
+                  保存评测
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

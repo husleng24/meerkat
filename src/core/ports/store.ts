@@ -5,7 +5,7 @@
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
 import type {
-  Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story, PromptProfile, PromptProfileVersion,
+  Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story, PromptProfile, PromptProfileVersion, PromptEvaluation,
   VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../domain/types'
 
@@ -116,6 +116,9 @@ export interface PromptProfileStore {
   /** 把历史版本恢复成新版本 */
   restore(id: string, version: number): PromptProfile | undefined
   remove(id: string): void
+  /** 人工评测记录，按时间倒序 */
+  evaluations(topicId: string, limit?: number): PromptEvaluation[]
+  addEvaluation(evaluation: PromptEvaluation): void
 }
 
 export interface RunStore {

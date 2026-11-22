@@ -37,6 +37,7 @@ import { copyBriefRichText, exportBrief } from './export'
 import { extractBriefSummary } from '../app/brief-summary'
 import { loadBuiltinPrompt } from './prompts'
 import { resolveSelectionPolicy } from '../app/selection-policy'
+import { dryRunPrompt } from './prompt-eval'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
@@ -232,6 +233,32 @@ const promptUpdateSchema = z.object({
 })
 const promptIdSchema = z.string().min(1).max(80)
 const promptRestoreSchema = z.object({ id: z.string().min(1).max(80), version: z.number().int().min(1) })
+const selectionPolicySchema = z.object({
+  windowHours: z.number(),
+  maxItems: z.number(),
+  targetMin: z.number(),
+  targetMax: z.number(),
+  buckets: z.array(z.string()).max(20),
+  boostKeywords: z.array(z.string()).max(50),
+  suppressKeywords: z.array(z.string()).max(50)
+})
+const promptDryRunSchema = z.object({
+  topicId: topicIdSchema,
+  systemMd: z.string().max(200_000).optional(),
+  profileId: z.string().max(80),
+  profileName: z.string().max(80),
+  profileVersion: z.number().int().min(0),
+  selectionPolicy: selectionPolicySchema.optional()
+})
+const promptEvalSchema = z.object({
+  topicId: topicIdSchema,
+  profileId: z.string().max(80),
+  profileName: z.string().max(80),
+  profileVersion: z.number().int().min(0),
+  rating: z.number().int().min(1).max(5),
+  notes: z.string().max(2000).optional(),
+  metrics: z.record(z.string(), z.number())
+})
 const scheduleSetSchema = z.object({
   topicId: z.string().min(1).max(40),
   enabled: z.boolean(),
@@ -759,6 +786,42 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const profile = requireStore().prompts.restore(parsed.data.id, parsed.data.version)
     return profile ? { ok: true, profile } : { ok: false, error: '版本不存在' }
+  })
+
+  ipcMain.handle('prompts:dryRun', async (_e, raw: unknown) => {
+    const parsed = promptDryRunSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const { selectionPolicy, ...rest } = parsed.data
+    return dryRunPrompt(requireStore(), dailyDeps(), {
+      ...rest,
+      ...(selectionPolicy
+        ? { selectionPolicy: resolveSelectionPolicy(selectionPolicy as never) }
+        : {})
+    })
+  })
+
+  ipcMain.handle('prompts:evaluate', (_e, raw: unknown) => {
+    const parsed = promptEvalSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const now = Date.now()
+    requireStore().prompts.addEvaluation({
+      id: `pe-${now}-${Math.random().toString(36).slice(2, 6)}`,
+      topicId: parsed.data.topicId,
+      profileId: parsed.data.profileId,
+      profileName: parsed.data.profileName,
+      profileVersion: parsed.data.profileVersion,
+      rating: parsed.data.rating,
+      ...(parsed.data.notes ? { notes: parsed.data.notes } : {}),
+      metrics: parsed.data.metrics,
+      createdAt: now
+    })
+    return { ok: true }
+  })
+
+  ipcMain.handle('prompts:evaluations', (_e, raw: unknown) => {
+    const parsed = z.string().min(1).max(40).safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore().prompts.evaluations(parsed.data, 10)
   })
 
   ipcMain.handle('schedule:get', (_e, raw: unknown) => {

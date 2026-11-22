@@ -655,7 +655,51 @@ const api = {
       ok: boolean
       profile?: { id: string; name: string; version: number; systemMd: string }
       error?: string
-    }> => ipcRenderer.invoke('prompts:restore', input)
+    }> => ipcRenderer.invoke('prompts:restore', input),
+    dryRun: (input: {
+      topicId: string
+      systemMd?: string
+      profileId: string
+      profileName: string
+      profileVersion: number
+      selectionPolicy?: unknown
+    }): Promise<{
+      ok: boolean
+      error?: string
+      result?: {
+        markdown: string
+        model: string
+        degraded: boolean
+        issues: string[]
+        metrics: Record<string, number>
+        profileId: string
+        profileName: string
+        profileVersion: number
+        usedItems: number
+      }
+    }> => ipcRenderer.invoke('prompts:dryRun', input),
+    evaluate: (input: {
+      topicId: string
+      profileId: string
+      profileName: string
+      profileVersion: number
+      rating: number
+      notes?: string
+      metrics: Record<string, number>
+    }): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('prompts:evaluate', input),
+    evaluations: (topicId: string): Promise<
+      Array<{
+        id: string
+        topicId: string
+        profileId: string
+        profileName: string
+        profileVersion: number
+        rating: number
+        notes?: string
+        metrics: Record<string, number>
+        createdAt: number
+      }>
+    > => ipcRenderer.invoke('prompts:evaluations', topicId)
   },
 
   topics: {

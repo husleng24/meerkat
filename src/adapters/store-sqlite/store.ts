@@ -7,7 +7,7 @@ import type {
 } from '../../core/ports/store'
 import type {
   Domain,
-  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story, PromptProfile, PromptProfileVersion,
+  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story, PromptProfile, PromptProfileVersion, PromptEvaluation,
   VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../../core/domain/types'
 
@@ -1294,6 +1294,45 @@ class SqlitePromptStore implements PromptProfileStore {
   }
   remove(id: string): void {
     this.db.prepare('DELETE FROM prompt_profiles WHERE id = ?').run(id)
+  }
+  evaluations(topicId: string, limit = 20): PromptEvaluation[] {
+    return (
+      this.db
+        .prepare('SELECT * FROM prompt_evaluations WHERE topic_id = ? ORDER BY created_at DESC LIMIT ?')
+        .all(topicId, limit) as Array<{
+        id: string; topic_id: string; profile_id: string; profile_name: string; profile_version: number
+        rating: number; notes: string | null; metrics_json: string; created_at: number
+      }>
+    ).map((r) => ({
+      id: r.id,
+      topicId: r.topic_id,
+      profileId: r.profile_id,
+      profileName: r.profile_name,
+      profileVersion: r.profile_version,
+      rating: r.rating,
+      ...(r.notes ? { notes: r.notes } : {}),
+      metrics: JSON.parse(r.metrics_json) as Record<string, number>,
+      createdAt: r.created_at
+    }))
+  }
+  addEvaluation(e: PromptEvaluation): void {
+    this.db
+      .prepare(
+        `INSERT INTO prompt_evaluations
+         (id,topic_id,profile_id,profile_name,profile_version,rating,notes,metrics_json,created_at)
+         VALUES (@id,@topic_id,@profile_id,@profile_name,@profile_version,@rating,@notes,@metrics_json,@created_at)`
+      )
+      .run({
+        id: e.id,
+        topic_id: e.topicId,
+        profile_id: e.profileId,
+        profile_name: e.profileName,
+        profile_version: e.profileVersion,
+        rating: e.rating,
+        notes: e.notes ?? null,
+        metrics_json: JSON.stringify(e.metrics),
+        created_at: e.createdAt
+      })
   }
 }
 

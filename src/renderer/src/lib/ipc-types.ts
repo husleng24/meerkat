@@ -587,6 +587,30 @@ export interface PromptProfilePayload {
   updatedAt: number
 }
 
+export interface PromptDryRunPayload {
+  markdown: string
+  model: string
+  degraded: boolean
+  issues: string[]
+  metrics: Record<string, number>
+  profileId: string
+  profileName: string
+  profileVersion: number
+  usedItems: number
+}
+
+export interface PromptEvaluationPayload {
+  id: string
+  topicId: string
+  profileId: string
+  profileName: string
+  profileVersion: number
+  rating: number
+  notes?: string
+  metrics: Record<string, number>
+  createdAt: number
+}
+
 export interface PromptVersionPayload {
   profileId: string
   version: number
@@ -733,6 +757,24 @@ export interface MeerkatBridge {
       profile?: PromptProfilePayload
       error?: string
     }>
+    dryRun: (input: {
+      topicId: string
+      systemMd?: string
+      profileId: string
+      profileName: string
+      profileVersion: number
+      selectionPolicy?: SelectionPolicy
+    }) => Promise<{ ok: boolean; result?: PromptDryRunPayload; error?: string }>
+    evaluate: (input: {
+      topicId: string
+      profileId: string
+      profileName: string
+      profileVersion: number
+      rating: number
+      notes?: string
+      metrics: Record<string, number>
+    }) => Promise<{ ok: boolean; error?: string }>
+    evaluations: (topicId: string) => Promise<PromptEvaluationPayload[]>
   }
   topics?: {
     list: () => Promise<TopicPayload[]>

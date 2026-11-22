@@ -1,6 +1,6 @@
 # 简报风格：主题级 PromptProfile
 
-> 状态：P0 + P1 已实现（2026-11-22）。评测与试跑留到 P2。
+> 状态：P0 + P1 + P2 已实现（2026-11-23）。A/B 对比仍可继续做。
 
 ## 为什么
 
@@ -90,8 +90,18 @@ topics.prompt_profile_id  -- 空 = 内置模板
 采集窗口、候选数、板块过滤、关键词加减分都在 `runDaily` / `recomposeDaily` 里生效。
 目标条数与板块列表通过 `{targetMin}` `{targetMax}` `{bucketList}` 注入 prompt。
 
-## P2（未做）
+## P2：试跑与评测（已实现）
 
-- Prompt 试跑：用最近一期素材预览成稿
-- 评测：链接率、重复率、人工评分
-- 把 boost/suppress 做成可视化词表编辑
+- **试跑**：设置 → 简报风格 →「试跑（最近素材）」；用主题最近窗口的素材走一遍成稿，
+  不落库、不标记已读，预览完整 markdown
+- **指标**：素材数、引用条目数、链接数、链接有效率、板块数、字数、是否截断、模型
+- **人工评分**：1–5 星 + 备注；写入 `prompt_evaluations`
+- **历史评测**：按主题列出最近 10 条，保存 profile 名称/版本与指标
+
+API：`prompts:dryRun` / `prompts:evaluate` / `prompts:evaluations`。
+
+## 还没做
+
+- 两份 prompt A/B 同时试跑
+- 基于历史评测的自动对比/趋势
+- boost/suppress 词表的可视化编辑

@@ -291,6 +291,21 @@ export interface PromptProfileVersion {
   createdAt: number
 }
 
+/** 一次提示词试跑的评测记录 */
+export interface PromptEvaluation {
+  id: string
+  topicId: string
+  profileId: string
+  profileName: string
+  profileVersion: number
+  /** 1–5 星，人工判断 */
+  rating: number
+  notes?: string
+  /** 链接率、引用数、板块数等，key 由发布端定义 */
+  metrics: Record<string, number>
+  createdAt: number
+}
+
 /** 被 agent 持续跟踪的事件 */
 export interface Story {
   id: string

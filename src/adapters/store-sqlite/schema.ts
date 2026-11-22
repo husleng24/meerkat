@@ -456,6 +456,24 @@ export const MIGRATIONS: Migration[] = [
       -- 主题级选材策略：窗口/候选数/目标条数/板块/关键词偏置
       ALTER TABLE topics ADD COLUMN selection_policy_json TEXT;
     `
+  },
+  {
+    version: 19,
+    name: 'prompt_evaluations',
+    up: `
+      CREATE TABLE prompt_evaluations (
+        id              TEXT PRIMARY KEY,
+        topic_id        TEXT NOT NULL,
+        profile_id      TEXT NOT NULL,
+        profile_name    TEXT NOT NULL,
+        profile_version INTEGER NOT NULL,
+        rating          INTEGER NOT NULL,
+        notes           TEXT,
+        metrics_json    TEXT NOT NULL,
+        created_at      INTEGER NOT NULL
+      );
+      CREATE INDEX idx_prompt_evaluations_topic ON prompt_evaluations(topic_id, created_at DESC);
+    `
   }
 ]
 

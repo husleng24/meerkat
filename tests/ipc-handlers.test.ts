@@ -151,7 +151,7 @@ describe('IPC：领域与主题的两层结构', () => {
     for (const key of ['items', 'briefs', 'read', 'saved', 'failingSources', 'totalSources', 'schemaVersion']) {
       expect(typeof r[key], key).toBe('number')
     }
-    expect(r.schemaVersion).toBe(18)
+    expect(r.schemaVersion).toBe(19)
   })
 
   it('sources:exportPack 取消保存时不写文件', async () => {
