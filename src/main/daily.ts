@@ -26,6 +26,7 @@ import { decideSave, type SaveDecision } from '../app/brief-save'
 import { RunCancelledError, isAbortError } from '../app/run-cancel'
 import { log } from './log'
 import { runStoriesAfterCollect } from './story-runner'
+import { promptTextForTopic } from '../app/prompt-profile'
 import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 
@@ -251,7 +252,7 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
         ? createChatComposer({
             provider,
             model: target.model,
-            systemPrompt: deps.promptText,
+            systemPrompt: promptTextForTopic(store, topic, deps.promptText),
             maxTokens: 32_000
           })
         : createNoopComposer()

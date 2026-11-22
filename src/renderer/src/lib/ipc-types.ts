@@ -577,6 +577,23 @@ export interface DomainPayload {
   topicCount: number
 }
 
+export interface PromptProfilePayload {
+  id: string
+  name: string
+  version: number
+  systemMd: string
+  builtin: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface PromptVersionPayload {
+  profileId: string
+  version: number
+  systemMd: string
+  createdAt: number
+}
+
 export interface TopicPayload {
   id: string
   name: string
@@ -586,6 +603,7 @@ export interface TopicPayload {
   minute: number
   /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
   editorialFocus?: string
+  promptProfileId?: string
   sourceCount: number
   hasBrief: boolean
   /** 最新一期简报的条目数；没有简报为 0，界面显示「—」 */
@@ -695,6 +713,26 @@ export interface MeerkatBridge {
     rename: (input: { id: string; name: string }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
   }
+  prompts?: {
+    list: () => Promise<PromptProfilePayload[]>
+    create: (input: { name: string; systemMd: string }) => Promise<{
+      ok: boolean
+      profile?: PromptProfilePayload
+      error?: string
+    }>
+    update: (input: { id: string; name?: string; systemMd?: string }) => Promise<{
+      ok: boolean
+      profile?: PromptProfilePayload
+      error?: string
+    }>
+    remove: (id: string) => Promise<{ ok: boolean; error?: string }>
+    versions: (id: string) => Promise<PromptVersionPayload[]>
+    restore: (input: { id: string; version: number }) => Promise<{
+      ok: boolean
+      profile?: PromptProfilePayload
+      error?: string
+    }>
+  }
   topics?: {
     list: () => Promise<TopicPayload[]>
     create: (input: {
@@ -704,7 +742,13 @@ export interface MeerkatBridge {
       sourceIds?: string[]
       editorialFocus?: string
     }) => Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }>
-    update: (input: { id: string; name?: string; enabled?: boolean; editorialFocus?: string }) => Promise<{ ok: boolean; error?: string }>
+    update: (input: {
+      id: string
+      name?: string
+      enabled?: boolean
+      editorialFocus?: string
+      promptProfileId?: string | null
+    }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
     sourceIds: (id: string) => Promise<string[]>
     setSources: (input: { topicId: string; sourceIds: string[] }) => Promise<{ ok: boolean; error?: string }>

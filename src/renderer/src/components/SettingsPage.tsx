@@ -10,6 +10,7 @@ import type {
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
+import { PromptSettings } from './PromptSettings'
 import { TopicManager } from './TopicManager'
 import { PushPanel } from './PushPanel'
 import { EmailPanel } from './EmailPanel'
@@ -273,6 +274,14 @@ export function SettingsPage({
           onChanged={onTopicsChanged}
           onManageSources={focusSources}
         />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">简报风格</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          每个主题可以绑定自己的提示词；内置模板只读，自定义版本会存本机并保留历史。
+        </p>
+        <PromptSettings topicId={topicId} topics={topics} onTopicsChanged={onTopicsChanged} />
       </section>
 
       <section className="mb-8">

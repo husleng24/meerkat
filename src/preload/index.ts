@@ -626,6 +626,38 @@ const api = {
     }
   },
 
+  prompts: {
+    list: (): Promise<
+      Array<{
+        id: string
+        name: string
+        version: number
+        systemMd: string
+        builtin: boolean
+        createdAt: number
+        updatedAt: number
+      }>
+    > => ipcRenderer.invoke('prompts:list'),
+    create: (input: { name: string; systemMd: string }): Promise<{
+      ok: boolean
+      profile?: { id: string; name: string; version: number; systemMd: string; createdAt: number; updatedAt: number }
+      error?: string
+    }> => ipcRenderer.invoke('prompts:create', input),
+    update: (input: { id: string; name?: string; systemMd?: string }): Promise<{
+      ok: boolean
+      profile?: { id: string; name: string; version: number; systemMd: string; createdAt: number; updatedAt: number }
+      error?: string
+    }> => ipcRenderer.invoke('prompts:update', input),
+    remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('prompts:remove', id),
+    versions: (id: string): Promise<Array<{ profileId: string; version: number; systemMd: string; createdAt: number }>> =>
+      ipcRenderer.invoke('prompts:versions', id),
+    restore: (input: { id: string; version: number }): Promise<{
+      ok: boolean
+      profile?: { id: string; name: string; version: number; systemMd: string }
+      error?: string
+    }> => ipcRenderer.invoke('prompts:restore', input)
+  },
+
   topics: {
     list: (): Promise<
       Array<{
@@ -636,6 +668,7 @@ const api = {
         hour: number
         minute: number
         editorialFocus?: string
+        promptProfileId?: string
         sourceCount: number
         hasBrief: boolean
         todayCount: number
@@ -644,7 +677,13 @@ const api = {
     > => ipcRenderer.invoke('topics:list'),
     create: (input: { id: string; name: string; domainId?: string; sourceIds?: string[]; editorialFocus?: string }): Promise<{ ok: boolean; id?: string; sourceCount?: number; error?: string }> =>
       ipcRenderer.invoke('topics:create', input),
-    update: (input: { id: string; name?: string; enabled?: boolean; editorialFocus?: string }): Promise<{ ok: boolean; error?: string }> =>
+    update: (input: {
+      id: string
+      name?: string
+      enabled?: boolean
+      editorialFocus?: string
+      promptProfileId?: string | null
+    }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:update', input),
     remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('topics:remove', id),
     sourceIds: (id: string): Promise<string[]> => ipcRenderer.invoke('topics:sourceIds', id),

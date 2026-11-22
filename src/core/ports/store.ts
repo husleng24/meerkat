@@ -5,7 +5,7 @@
  * 引入 async 只会让调用方到处 await 而没有收益。将来若换远程存储再改端口。
  */
 import type {
-  Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story,
+  Item, ItemFlags, Brief, RunRecord, Source, Topic, Domain, ChatThread, ChatStoredMessage, Story, PromptProfile, PromptProfileVersion,
   VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../domain/types'
 
@@ -106,6 +106,18 @@ export interface StoryStore {
   remove(id: string): void
 }
 
+export interface PromptProfileStore {
+  list(): PromptProfile[]
+  get(id: string): PromptProfile | undefined
+  create(profile: PromptProfile): void
+  /** 更新内容/名称；旧版本写入 versions */
+  update(id: string, patch: { name?: string; systemMd?: string }): PromptProfile | undefined
+  versions(id: string): PromptProfileVersion[]
+  /** 把历史版本恢复成新版本 */
+  restore(id: string, version: number): PromptProfile | undefined
+  remove(id: string): void
+}
+
 export interface RunStore {
   start(record: RunRecord): void
   finish(id: string, patch: Partial<RunRecord>): void
@@ -179,6 +191,7 @@ export interface Store {
   briefs: BriefStore
   chat: ChatStore
   stories: StoryStore
+  prompts: PromptProfileStore
   runs: RunStore
   flags: FlagStore
   settings: SettingsStore

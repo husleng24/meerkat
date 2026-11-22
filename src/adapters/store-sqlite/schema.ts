@@ -424,6 +424,30 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE chat_threads ADD COLUMN event_key TEXT;
       CREATE INDEX idx_chat_threads_event ON chat_threads(topic_id, event_key);
     `
+  },
+  {
+    version: 17,
+    name: 'prompt_profiles',
+    up: `
+      -- 简报风格：内置 profile 仍放在 resources/prompts；这张表只存用户自定义版本
+      CREATE TABLE prompt_profiles (
+        id         TEXT PRIMARY KEY,
+        name       TEXT NOT NULL,
+        version    INTEGER NOT NULL,
+        system_md  TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      CREATE TABLE prompt_profile_versions (
+        profile_id TEXT NOT NULL,
+        version    INTEGER NOT NULL,
+        system_md  TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (profile_id, version),
+        FOREIGN KEY (profile_id) REFERENCES prompt_profiles(id) ON DELETE CASCADE
+      );
+      ALTER TABLE topics ADD COLUMN prompt_profile_id TEXT;
+    `
   }
 ]
 

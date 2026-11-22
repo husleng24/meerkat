@@ -35,6 +35,7 @@ import { setEnabled as setAutoLaunch, state as autoLaunchState } from './autolau
 import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBrief } from './export'
 import { extractBriefSummary } from '../app/brief-summary'
+import { loadBuiltinPrompt } from './prompts'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
@@ -203,10 +204,22 @@ const topicUpdateSchema = z.object({
   id: z.string().min(1).max(40),
   name: z.string().min(1).max(30).optional(),
   enabled: z.boolean().optional(),
-  editorialFocus: z.string().max(200).optional()
+  editorialFocus: z.string().max(200).optional(),
+  promptProfileId: z.string().max(80).nullable().optional()
 })
 const onboardingStartSchema = z.object({ topicId: topicIdSchema })
 const onboardingCompleteSchema = z.object({ skipped: z.boolean().optional() })
+const promptCreateSchema = z.object({
+  name: z.string().min(1).max(40),
+  systemMd: z.string().min(1).max(200_000)
+})
+const promptUpdateSchema = z.object({
+  id: z.string().min(1).max(80),
+  name: z.string().min(1).max(40).optional(),
+  systemMd: z.string().min(1).max(200_000).optional()
+})
+const promptIdSchema = z.string().min(1).max(80)
+const promptRestoreSchema = z.object({ id: z.string().min(1).max(80), version: z.number().int().min(1) })
 const scheduleSetSchema = z.object({
   topicId: z.string().min(1).max(40),
   enabled: z.boolean(),
@@ -302,12 +315,7 @@ export async function checkUpdatesInBackground(): Promise<void> {
 
 /** 手动采集与定时任务共用同一份依赖构造 */
 export function dailyDeps(): DailyDeps {
-  let promptText = ''
-  try {
-    promptText = readFileSync(resourcePath('prompts/compose.zh.md'), 'utf8')
-  } catch {
-    promptText = '你是一份 AI 行业日报的主编。链接必须逐字复制素材里的 URL。'
-  }
+  const promptText = loadBuiltinPrompt()
   // 成稿也用同一套供应商：只配了 OpenAI/Anthropic 的机器不该被迫降级
   const keys: ProviderKeys = {}
   for (const p of availableProviders()) keys[p.id] = p.key
@@ -678,6 +686,69 @@ export function registerIpc(): void {
     return { ok: true }
   })
 
+  ipcMain.handle('prompts:list', () => {
+    const s = requireStore()
+    return [
+      {
+        id: 'builtin',
+        name: '内置 · 通用',
+        version: 0,
+        systemMd: loadBuiltinPrompt(),
+        builtin: true,
+        createdAt: 0,
+        updatedAt: 0
+      },
+      ...s.prompts.list().map((p) => ({ ...p, builtin: false }))
+    ]
+  })
+
+  ipcMain.handle('prompts:create', (_e, raw: unknown) => {
+    const parsed = promptCreateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const s = requireStore()
+    const now = Date.now()
+    const profile = {
+      id: `pp-${now}-${Math.random().toString(36).slice(2, 6)}`,
+      name: parsed.data.name.trim(),
+      version: 1,
+      systemMd: parsed.data.systemMd,
+      createdAt: now,
+      updatedAt: now
+    }
+    s.prompts.create(profile)
+    return { ok: true, profile }
+  })
+
+  ipcMain.handle('prompts:update', (_e, raw: unknown) => {
+    const parsed = promptUpdateSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const profile = requireStore().prompts.update(parsed.data.id, {
+      ...(parsed.data.name !== undefined ? { name: parsed.data.name.trim() } : {}),
+      ...(parsed.data.systemMd !== undefined ? { systemMd: parsed.data.systemMd } : {})
+    })
+    return profile ? { ok: true, profile } : { ok: false, error: '提示词不存在' }
+  })
+
+  ipcMain.handle('prompts:remove', (_e, raw: unknown) => {
+    const parsed = promptIdSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    requireStore().prompts.remove(parsed.data)
+    return { ok: true }
+  })
+
+  ipcMain.handle('prompts:versions', (_e, raw: unknown) => {
+    const parsed = promptIdSchema.safeParse(raw)
+    if (!parsed.success) return []
+    return requireStore().prompts.versions(parsed.data)
+  })
+
+  ipcMain.handle('prompts:restore', (_e, raw: unknown) => {
+    const parsed = promptRestoreSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    const profile = requireStore().prompts.restore(parsed.data.id, parsed.data.version)
+    return profile ? { ok: true, profile } : { ok: false, error: '版本不存在' }
+  })
+
   ipcMain.handle('schedule:get', (_e, raw: unknown) => {
     const parsed = briefTopicSchema.safeParse(raw)
     if (!parsed.success) return { enabled: false, hour: 8, minute: 30, lastRunAt: null }
@@ -794,7 +865,7 @@ export function registerIpc(): void {
     const s = requireStore()
     const topic = s.topics.get(parsed.data.id)
     if (!topic) return { ok: false, error: '主题不存在' }
-    s.topics.upsert({
+    const next = {
       ...topic,
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
       ...(parsed.data.enabled !== undefined ? { enabled: parsed.data.enabled } : {}),
@@ -806,7 +877,10 @@ export function registerIpc(): void {
           }
         : {}),
       updatedAt: Date.now()
-    })
+    }
+    if (parsed.data.promptProfileId === null) delete next.promptProfileId
+    else if (parsed.data.promptProfileId !== undefined) next.promptProfileId = parsed.data.promptProfileId
+    s.topics.upsert(next)
     return { ok: true }
   })
 

@@ -2,11 +2,12 @@ import type { DB } from './db'
 import { openDatabase, schemaVersion } from './db'
 import type {
   Store, SourceStore, ItemStore, BriefStore, RunStore, FlagStore, SettingsStore, SearchOptions, TopicStore,
-  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore, EventNoteStore, ManualEventStore
+  DomainStore, ChatStore, StoryStore, VideoStore, DecisionStore, EntityStore, EventNoteStore, ManualEventStore,
+  PromptProfileStore
 } from '../../core/ports/store'
 import type {
   Domain,
-  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story,
+  Item, ItemFlags, Brief, RunRecord, Source, SourceKind, Bucket, Tier, Topic, ChatThread, ChatStoredMessage, ChatRole, Story, PromptProfile, PromptProfileVersion,
   VideoCreator, VideoReport, DecisionNote, Entity, EventNote, ManualEvent
 } from '../../core/domain/types'
 
@@ -91,6 +92,7 @@ interface ChatMessageRow {
 interface TopicRow {
   id: string; name: string; domain_id: string; enabled: number; hour: number; minute: number
   editorial_focus: string | null
+  prompt_profile_id: string | null
   created_at: number; updated_at: number
 }
 
@@ -147,6 +149,7 @@ const toTopic = (r: TopicRow): Topic => ({
   ...(r.editorial_focus !== null && r.editorial_focus.trim() !== ''
     ? { editorialFocus: r.editorial_focus }
     : {}),
+  ...(r.prompt_profile_id !== null ? { promptProfileId: r.prompt_profile_id } : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -580,16 +583,20 @@ class SqliteTopicStore implements TopicStore {
   upsert(t: Topic): void {
     this.db
       .prepare(
-        `INSERT INTO topics (id,name,domain_id,enabled,hour,minute,editorial_focus,created_at,updated_at)
-         VALUES (@id,@name,@domain_id,@enabled,@hour,@minute,@editorial_focus,@created_at,@updated_at)
+        `INSERT INTO topics
+           (id,name,domain_id,enabled,hour,minute,editorial_focus,prompt_profile_id,created_at,updated_at)
+         VALUES
+           (@id,@name,@domain_id,@enabled,@hour,@minute,@editorial_focus,@prompt_profile_id,@created_at,@updated_at)
          ON CONFLICT(id) DO UPDATE SET name=excluded.name, domain_id=excluded.domain_id,
            enabled=excluded.enabled, hour=excluded.hour, minute=excluded.minute,
            editorial_focus=excluded.editorial_focus,
+           prompt_profile_id=excluded.prompt_profile_id,
            updated_at=excluded.updated_at`
       )
       .run({
         id: t.id, name: t.name, domain_id: t.domainId, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
         editorial_focus: t.editorialFocus ?? null,
+        prompt_profile_id: t.promptProfileId ?? null,
         created_at: t.createdAt, updated_at: t.updatedAt
       })
   }
@@ -1214,6 +1221,76 @@ class SqliteManualEventStore implements ManualEventStore {
   }
 }
 
+class SqlitePromptStore implements PromptProfileStore {
+  constructor(private db: DB) {}
+  list(): PromptProfile[] {
+    const rows = this.db.prepare('SELECT * FROM prompt_profiles ORDER BY created_at ASC').all() as Array<{
+      id: string; name: string; version: number; system_md: string; created_at: number; updated_at: number
+    }>
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      version: r.version,
+      systemMd: r.system_md,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at
+    }))
+  }
+  get(id: string): PromptProfile | undefined {
+    return this.list().find((p) => p.id === id)
+  }
+  create(profile: PromptProfile): void {
+    this.db
+      .prepare(
+        `INSERT INTO prompt_profiles (id,name,version,system_md,created_at,updated_at)
+         VALUES (@id,@name,@version,@system_md,@created_at,@updated_at)`
+      )
+      .run({
+        id: profile.id,
+        name: profile.name,
+        version: profile.version,
+        system_md: profile.systemMd,
+        created_at: profile.createdAt,
+        updated_at: profile.updatedAt
+      })
+  }
+  update(id: string, patch: { name?: string; systemMd?: string }): PromptProfile | undefined {
+    const cur = this.get(id)
+    if (!cur) return undefined
+    const now = Date.now()
+    const version = cur.version + 1
+    this.db
+      .prepare(
+        'INSERT OR REPLACE INTO prompt_profile_versions (profile_id,version,system_md,created_at) VALUES (?,?,?,?)'
+      )
+      .run(id, cur.version, cur.systemMd, cur.createdAt)
+    this.db
+      .prepare('UPDATE prompt_profiles SET name=?, system_md=?, version=?, updated_at=? WHERE id=?')
+      .run(patch.name ?? cur.name, patch.systemMd ?? cur.systemMd, version, now, id)
+    return this.get(id)
+  }
+  versions(id: string): PromptProfileVersion[] {
+    return (
+      this.db
+        .prepare('SELECT * FROM prompt_profile_versions WHERE profile_id = ? ORDER BY version DESC')
+        .all(id) as Array<{ profile_id: string; version: number; system_md: string; created_at: number }>
+    ).map((r) => ({
+      profileId: r.profile_id,
+      version: r.version,
+      systemMd: r.system_md,
+      createdAt: r.created_at
+    }))
+  }
+  restore(id: string, version: number): PromptProfile | undefined {
+    const old = this.versions(id).find((v) => v.version === version)
+    if (!old) return undefined
+    return this.update(id, { systemMd: old.systemMd })
+  }
+  remove(id: string): void {
+    this.db.prepare('DELETE FROM prompt_profiles WHERE id = ?').run(id)
+  }
+}
+
 class SqliteStore implements Store {
   readonly sources: SourceStore
   readonly domains: DomainStore
@@ -1222,6 +1299,7 @@ class SqliteStore implements Store {
   readonly briefs: BriefStore
   readonly chat: ChatStore
   readonly stories: StoryStore
+  readonly prompts: PromptProfileStore
   readonly runs: RunStore
   readonly flags: FlagStore
   readonly settings: SettingsStore
@@ -1239,6 +1317,7 @@ class SqliteStore implements Store {
     this.briefs = new SqliteBriefStore(db)
     this.chat = new SqliteChatStore(db)
     this.stories = new SqliteStoryStore(db)
+    this.prompts = new SqlitePromptStore(db)
     this.runs = new SqliteRunStore(db)
     this.flags = new SqliteFlagStore(db)
     this.settings = new SqliteSettingsStore(db)

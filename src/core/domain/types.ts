@@ -254,8 +254,28 @@ export interface Topic {
   minute: number
   /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
   editorialFocus?: string
+  /** 绑定的简报 PromptProfile；空 = 内置模板 */
+  promptProfileId?: string
   createdAt: number
   updatedAt: number
+}
+
+/** 可版本化的简报提示词 */
+export interface PromptProfile {
+  id: string
+  name: string
+  version: number
+  systemMd: string
+  createdAt: number
+  updatedAt: number
+}
+
+/** 旧版本快照，用于回滚 */
+export interface PromptProfileVersion {
+  profileId: string
+  version: number
+  systemMd: string
+  createdAt: number
 }
 
 /** 被 agent 持续跟踪的事件 */

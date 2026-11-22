@@ -104,6 +104,10 @@ model output fails citation checks — it falls back to a plain date-grouped ver
 
 ![A timeline requested from a comment](docs/assets/ui-item-timeline.png)
 
+### Brief styles
+
+Each topic can bind its own versioned prompt profile: built-in is read-only, custom profiles live locally with version history and variable preview. Hard rules and link validation stay in code.
+
 ### AI chat
 
 Bottom-right panel (`⌘J`): ask and summarize today's brief, switching between configured providers. One thread
