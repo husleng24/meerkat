@@ -78,6 +78,7 @@ vi.mock('electron', () => {
 
 // mock 必须在 import 之前生效，所以这里的 import 是"晚绑定"的
 const { initStore, registerIpc, closeStore } = await import('../src/main/ipc')
+const { beginRun, endRun, resetRunControl } = await import('../src/main/run-control')
 
 const dir = mkdtempSync(join(tmpdir(), 'meerkat-ipc-'))
 
@@ -417,5 +418,64 @@ describe('IPC 边界：非法入参必须返回结构化失败', () => {
       ok: false,
       error: '主题不存在'
     })
+  })
+})
+
+describe('IPC：首启引导', () => {
+  it('新库返回待引导；非法入参结构化失败', async () => {
+    const status = call('onboarding:get') as {
+      shouldShow: boolean
+      version: number
+      completedVersion: number
+    }
+    expect(status.shouldShow).toBe(true)
+    expect(status.version).toBe(1)
+    expect(status.completedVersion).toBe(0)
+
+    expect(call('onboarding:complete', 'nope')).toEqual({ ok: false, error: '参数非法' })
+    expect(await call('onboarding:start', null)).toEqual({ ok: false, error: '参数非法' })
+    expect(await call('onboarding:start', { topicId: 'nope' })).toEqual({
+      ok: false,
+      error: '主题不存在'
+    })
+    // 失败路径不能写完成标记
+    expect((call('onboarding:get') as { shouldShow: boolean }).shouldShow).toBe(true)
+  })
+
+  it('跳过写标记后不再出现', () => {
+    expect(call('onboarding:complete', { skipped: true })).toEqual({ ok: true })
+    const status = call('onboarding:get') as {
+      shouldShow: boolean
+      completedVersion: number
+    }
+    expect(status.shouldShow).toBe(false)
+    expect(status.completedVersion).toBe(1)
+  })
+})
+
+
+describe('IPC：运行状态', () => {
+  it('空闲时 running:false；开始后带类型、主题和开始时间', () => {
+    resetRunControl()
+    try {
+      expect(call('run:status')).toEqual({ running: false })
+
+      const handle = beginRun({ kind: 'collect', topicId: 'ai' })!
+      const status = call('run:status') as {
+        running: boolean
+        kind?: string
+        topicId?: string
+        startedAt?: number
+      }
+      expect(status.running).toBe(true)
+      expect(status.kind).toBe('collect')
+      expect(status.topicId).toBe('ai')
+      expect(status.startedAt).toBeGreaterThan(0)
+
+      endRun(handle)
+      expect(call('run:status')).toEqual({ running: false })
+    } finally {
+      resetRunControl()
+    }
   })
 })

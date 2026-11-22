@@ -9,7 +9,7 @@ and tells you what is different from yesterday.
 
 ![Sidebar: topics grouped by domain](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.3 · 530 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
+> v0.1.3 · 555 tests · typecheck / build green · built and run on macOS; Windows artifacts built by CI
 
 ## Download
 
@@ -215,9 +215,10 @@ The CLI only reads data and does not write to the app database.
 
 ### First launch
 
-Pick a few topics in onboarding → topics are created with default sources → one collection runs
-immediately (about 1–2 minutes). After that it runs on schedule; the header's **Update** button triggers a run
-manually.
+Onboarding is a single screen: pick a few directions → the first brief is generated immediately
+(about 1–2 minutes). Missing topics are created with recommended sources; a library that already has data
+skips onboarding. The run shows per-source progress, and Today offers a one-time "connect a model" prompt
+when none is configured. After that it runs on schedule; the header's **Update** button triggers a run manually.
 
 ### Three environment pitfalls
 
@@ -296,7 +297,7 @@ handlers return a Result shape instead of throwing into the renderer. Repository
 
 | Item | Status |
 |---|---|
-| Tests | `pnpm test`: **530 passing** (unit + jsdom + local HTTP stubs) |
+| Tests | `pnpm test`: **555 passing** (unit + jsdom + local HTTP stubs) |
 | Types | `pnpm typecheck`: both node and web tsconfigs |
 | Build | `pnpm build` passes; `pnpm dist` produces the Windows installer |
 | Real-device verification | Every feature was checked with screenshots; record in [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) (Chinese) |

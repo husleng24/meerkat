@@ -6,9 +6,17 @@ export interface TopicsState {
   /** 当前主题 id；主题列表为空时是空串 */
   activeId: string
   setActiveId: (id: string) => void
-  /** 建一个新主题（引导页用），成功后返回 id */
-  create: (input: { id: string; name: string; domainId?: string }) => Promise<string | null>
+  /** 建一个新主题（引导页用），成功后返回 id；主题已存在时按幂等处理返回原 id */
+  create: (input: {
+    id: string
+    name: string
+    domainId?: string
+    sourceIds?: string[]
+    editorialFocus?: string
+  }) => Promise<string | null>
   reload: () => void
+  /** 首次列表是否还在加载；首启门禁用它避免先闪一下今日页 */
+  loading: boolean
   /** 浏览器预览里没有 IPC，界面据此隐藏主题切换器 */
   available: boolean
 }
@@ -29,10 +37,12 @@ export function useTopics(): TopicsState {
     return localStorage.getItem(STORAGE_KEY) ?? ''
   })
   const [tick, setTick] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   const reload = useCallback(() => setTick((n) => n + 1), [])
 
   useEffect(() => {
+    setLoading(true)
     const api = window.meerkat?.topics
     if (!api) {
       const fallback: TopicPayload = {
@@ -49,6 +59,7 @@ export function useTopics(): TopicsState {
       }
       setTopics([fallback])
       setActiveIdState((cur) => cur || fallback.id)
+      setLoading(false)
       return
     }
     let cancelled = false
@@ -58,9 +69,13 @@ export function useTopics(): TopicsState {
         if (cancelled) return
         setTopics(list)
         setActiveIdState((cur) => (list.some((t) => t.id === cur) ? cur : (list[0]?.id ?? '')))
+        setLoading(false)
       })
       .catch(() => {
-        if (!cancelled) setTopics([])
+        if (!cancelled) {
+          setTopics([])
+          setLoading(false)
+        }
       })
     return () => {
       cancelled = true
@@ -76,14 +91,31 @@ export function useTopics(): TopicsState {
     }
   }, [])
 
-  const create = useCallback(async (input: { id: string; name: string }) => {
-    const api = window.meerkat?.topics
-    if (!api) return null
-    const res = await api.create(input)
-    if (!res.ok) return null
-    setTick((n) => n + 1)
-    return res.id ?? input.id
-  }, [])
+  const create = useCallback(
+    async (input: {
+      id: string
+      name: string
+      domainId?: string
+      sourceIds?: string[]
+      editorialFocus?: string
+    }) => {
+      const api = window.meerkat?.topics
+      if (!api) return null
+      const res = await api.create(input)
+      if (!res.ok) {
+        // 首启重试时主题可能已经建出来了：按幂等处理，返回原 id。
+        // 否则用户会卡在「创建失败」而实际主题已经存在。
+        if (res.error === '主题已存在') {
+          setTick((n) => n + 1)
+          return input.id
+        }
+        return null
+      }
+      setTick((n) => n + 1)
+      return res.id ?? input.id
+    },
+    []
+  )
 
   return {
     topics,
@@ -91,6 +123,7 @@ export function useTopics(): TopicsState {
     setActiveId,
     create,
     reload,
+    loading,
     available: typeof window !== 'undefined' && window.meerkat?.topics !== undefined
   }
 }

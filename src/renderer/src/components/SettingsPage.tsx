@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { describeNext, describeSchedule, type ScheduleConfig } from '../../../app/schedule'
-import type { AutoLaunchState, ChatProviderPayload, KeyStatusPayload, StatsOverviewPayload } from '../lib/ipc-types'
+import type {
+  AutoLaunchState,
+  ChatProviderPayload,
+  KeyStatusPayload,
+  RunProgressPayload,
+  StatsOverviewPayload
+} from '../lib/ipc-types'
 import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
@@ -34,7 +40,8 @@ export function SettingsPage({
   onRenameDomain,
   onRemoveDomain,
   onDomainsChanged,
-  onAddSource
+  onAddSource,
+  onReplayOnboarding
 }: {
   topicId: string
   topics: TopicPayload[]
@@ -46,6 +53,8 @@ export function SettingsPage({
   onRemoveDomain: (id: string) => Promise<boolean>
   onDomainsChanged: () => void
   onAddSource?: () => void
+  /** 回看首启引导；只展示，不写状态、不建主题 */
+  onReplayOnboarding?: () => void
 }): React.JSX.Element {
   const sourcesRef = useRef<HTMLElement | null>(null)
   const focusSources = (topicId: string): void => {
@@ -56,6 +65,7 @@ export function SettingsPage({
   const [origin, setOrigin] = useState<'ipc' | 'preview'>('preview')
   const [phase, setPhase] = useState<Phase>('idle')
   const [message, setMessage] = useState('')
+  const [runProgress, setRunProgress] = useState<RunProgressPayload | null>(null)
   const [overview, setOverview] = useState<StatsOverviewPayload | null>(null)
 
   // 设置页打开时取一次全局计数；只读，不参与每日流程
@@ -92,6 +102,16 @@ export function SettingsPage({
     }
   }, [topicId])
 
+  // 逐源进度：从设置页之外发起的运行也能看到 12/35
+  useEffect(() => {
+    setRunProgress(null)
+    const off = window.meerkat?.onRunProgress?.((p) => {
+      if (p.topicId && topicId && p.topicId !== topicId) return
+      setRunProgress(p)
+    })
+    return off
+  }, [topicId])
+
   const save = useCallback(
     async (next: ScheduleConfig & { enabled: boolean }) => {
       setCfg((prev) => ({ ...prev, ...next }))
@@ -109,6 +129,7 @@ export function SettingsPage({
       setMessage('预览模式下不可用：需要在桌面应用内运行')
       return
     }
+    setRunProgress(null)
     setPhase('running')
     setMessage('正在采集并生成简报，可能需要 1–2 分钟…')
     try {
@@ -134,6 +155,7 @@ export function SettingsPage({
       setMessage('预览模式下不可用：需要在桌面应用内运行')
       return
     }
+    setRunProgress(null)
     setPhase('running')
     setMessage('正在用已有素材重新成稿，不重新抓取…')
     try {
@@ -391,6 +413,13 @@ export function SettingsPage({
             </button>
           </div>
         </div>
+        {phase === 'running' && runProgress && (
+          <p className="mt-2 text-[11px] leading-5 text-ink-3">
+            {runProgress.done >= runProgress.total
+              ? '源抓取完成，正在写成简报…'
+              : `采集 ${runProgress.done}/${runProgress.total} · ${runProgress.name}`}
+          </p>
+        )}
         {message && (
           <p
             className={[
@@ -403,7 +432,7 @@ export function SettingsPage({
         )}
       </section>
 
-      <section>
+      <section id="model-keys" className="scroll-mt-6">
         <h2 className="mb-1 text-[14px] font-semibold text-ink">模型与密钥</h2>
         <p className="mb-4 text-[12px] text-ink-3">
           未接模型时自动退化为"仅聚合"简报——只列标题和链接，没有解读。
@@ -423,6 +452,15 @@ export function SettingsPage({
           检查 GitHub 上有没有新版本。只提示，不自动下载——两个平台的安装包目前都未签名。
         </p>
         <AboutCard />
+        {onReplayOnboarding && (
+          <div className="mt-4 border-t border-cream pt-4">
+            <div className="text-[11px] font-semibold text-ink-3">使用说明</div>
+            <button onClick={onReplayOnboarding} className={`mt-2 ${SECONDARY_BTN}`}>
+              重新看一遍开始使用
+            </button>
+            <p className="mt-1.5 text-[11px] text-ink-3">只展示引导，不会改动设置，也不会跑采集。</p>
+          </div>
+        )}
       </section>
 
       <section className="mt-8">

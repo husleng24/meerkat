@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { beginRun, cancelRun, currentSignal, endRun, isRunning, resetRunControl } from '../src/main/run-control'
+import { beginRun, cancelRun, currentRun, currentSignal, endRun, isRunning, resetRunControl } from '../src/main/run-control'
 import { RunCancelledError, isAbortError } from '../src/app/run-cancel'
 
 describe('运行开关', () => {
@@ -30,6 +30,32 @@ describe('运行开关', () => {
 
   it('没有在跑时取消返回 false', () => {
     expect(cancelRun()).toBe(false)
+  })
+
+  it('记录运行类型、主题和开始时间，结束后清空', () => {
+    const handle = beginRun({ kind: 'collect', topicId: 'ai' })!
+    expect(handle.meta.kind).toBe('collect')
+    expect(handle.meta.topicId).toBe('ai')
+    expect(handle.meta.startedAt).toBeGreaterThan(0)
+    expect(currentRun()).toMatchObject({ kind: 'collect', topicId: 'ai' })
+    endRun(handle)
+    expect(currentRun()).toBeNull()
+  })
+
+  it('默认类型是采集；成稿和定时任务各自带自己的 meta', () => {
+    const first = beginRun()!
+    expect(first.meta.kind).toBe('collect')
+    endRun(first)
+
+    const compose = beginRun({ kind: 'compose', topicId: 'chip' })!
+    expect(currentRun()).toMatchObject({ kind: 'compose', topicId: 'chip' })
+    endRun(compose)
+
+    const scheduled = beginRun({ kind: 'scheduled' })!
+    expect(currentRun()?.kind).toBe('scheduled')
+    expect(currentRun()?.topicId).toBeUndefined()
+    endRun(scheduled)
+    expect(currentRun()).toBeNull()
   })
 
   it('旧一轮的 finally 不会把新一轮的状态清掉', () => {

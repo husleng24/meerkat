@@ -20,6 +20,7 @@ import { parseBriefTrace } from '../app/brief-trace'
 import { seedSources as seedSourcesFrom } from '../app/seed-sources'
 import { seedDefaultMembership } from '../app/topics'
 import { seedVideoTopic } from '../app/seed-video-topic'
+import { grandfatherOnboarding, markOnboardingComplete, onboardingStatus } from '../app/onboarding'
 import { bootstrapEntities } from '../app/entities'
 import { createEntity, updateEntity, rebuildEntityIndex } from '../app/entities'
 import { buildEntityEventClusters, classifyEntityEvent, entityPeriods } from '../app/entity-events'
@@ -75,7 +76,7 @@ import { renderVideoSummary, summarizeVideo } from '../app/video-summary'
 import { markStoryPrompted, setStoryStatus, storiesToReview } from '../app/story-tracking'
 import { PROVIDERS, providerMeta } from '../core/chat/providers'
 import { chatLatch } from './run-control'
-import { beginRun, cancelRun, endRun } from './run-control'
+import { beginRun, cancelRun, currentRun, endRun } from './run-control'
 import { RunCancelledError } from '../app/run-cancel'
 import { resourcePath } from './paths'
 import { log } from './log'
@@ -92,6 +93,20 @@ let store: Store | null = null
 function broadcastBriefUpdated(): void {
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) w.webContents.send('brief:updated')
+  }
+}
+
+/** 逐源进度：设置页和首启引导都用它显示 12/35，而不是只转圈 */
+function broadcastRunProgress(payload: {
+  topicId: string
+  done: number
+  total: number
+  name: string
+  ok: boolean
+  n: number
+}): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('run:progress', payload)
   }
 }
 
@@ -172,7 +187,7 @@ const topicCreateSchema = z.object({
   name: z.string().min(1).max(30),
   /** 所属领域；不传落到默认领域 */
   domainId: z.string().min(1).max(40).optional(),
-  /** 新主题默认收录的源；不传就是全部 */
+  /** 新主题默认收录的源；不传走推荐源（8 个） */
   sourceIds: z.array(z.string().min(1)).max(200).optional(),
   editorialFocus: z.string().max(200).optional()
 })
@@ -190,6 +205,8 @@ const topicUpdateSchema = z.object({
   enabled: z.boolean().optional(),
   editorialFocus: z.string().max(200).optional()
 })
+const onboardingStartSchema = z.object({ topicId: topicIdSchema })
+const onboardingCompleteSchema = z.object({ skipped: z.boolean().optional() })
 const scheduleSetSchema = z.object({
   topicId: z.string().min(1).max(40),
   enabled: z.boolean(),
@@ -305,6 +322,61 @@ export function chatDeps(): ChatDeps {
   return { keys, overrides: store ? readModelOverrides(store) : {} }
 }
 
+interface RunNowResult {
+  ok: boolean
+  nKept?: number
+  nOk?: number
+  nSources?: number
+  degraded?: boolean
+  noChange?: boolean
+  linkGood?: number
+  linkTotal?: number
+  error?: string
+}
+
+/**
+ * 手动采集的唯一实现：设置页 / 今日页的「立即采集」，以及首启引导的 CTA。
+ *
+ * `onStarted` 在拿到运行锁之后、真正开跑之前调用：首启引导用它写完成标记，
+ * 这样「拿到锁了但没跑」不会留下一个假的完成状态。
+ */
+async function runNowForTopic(topicId: string, opts: { onStarted?: () => void } = {}): Promise<RunNowResult> {
+  const handle = beginRun({ kind: 'collect', topicId })
+  if (!handle) return { ok: false, error: '正在运行中，先取消或等它跑完' }
+  const s = requireStore()
+  try {
+    opts.onStarted?.()
+    const out = await runDaily(s, dailyDeps(), {
+      topicId,
+      signal: handle.controller.signal,
+      onProgress: (p) => broadcastRunProgress({ topicId, ...p })
+    })
+    // 两个 key 都写：主题自己的用于排程，全局的用于诊断包/反馈材料
+    s.settings.set(lastRunKey(topicId), Date.now())
+    s.settings.set('schedule.lastRunAt', Date.now())
+    broadcastBriefUpdated()
+    return {
+      ok: true,
+      nKept: out.collect.nKept,
+      nOk: out.collect.nOk,
+      nSources: out.collect.nSources,
+      degraded: out.degraded,
+      noChange: out.noChange,
+      linkGood: out.linkCheck.good,
+      linkTotal: out.linkCheck.total
+    }
+  } catch (e) {
+    if (e instanceof RunCancelledError) {
+      log('info', '手动采集已取消')
+      return { ok: false, error: '已取消' }
+    }
+    log('error', `手动采集失败：${e instanceof Error ? e.message : String(e)}`)
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  } finally {
+    endRun(handle)
+  }
+}
+
 export function initStore(dbPath: string): Store {
   store = createStore(dbPath)
   seedSources(store)
@@ -312,6 +384,8 @@ export function initStore(dbPath: string): Store {
   seedDefaultMembership(store)
   // 预置「YouTube 博主」主题；在默认归属之后执行，避免新源被挂进 AI 综合
   seedVideoTopic(store)
+  // 老库有使用痕迹就视为已完成首启引导；新库保持待引导
+  grandfatherOnboarding(store)
   // 实体词表与倒排：首次启动回填历史条目，之后只有新条目增量索引
   bootstrapEntities(store)
   return store
@@ -774,32 +848,37 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const topicId = resolveTopic(parsed.data)
     if (!topicId) return { ok: false, error: '还没有主题' }
-    const handle = beginRun()
-    if (!handle) return { ok: false, error: '正在运行中，先取消或等它跑完' }
+    return runNowForTopic(topicId)
+  })
+
+  // ── 首启引导 ──────────────────────────────────────────
+  ipcMain.handle('onboarding:get', () => onboardingStatus(requireStore()))
+
+  ipcMain.handle('onboarding:complete', (_e, raw: unknown) => {
+    const parsed = onboardingCompleteSchema.safeParse(raw ?? {})
+    if (!parsed.success) return { ok: false, error: '参数非法' }
+    markOnboardingComplete(requireStore(), { skipped: parsed.data.skipped === true })
+    log('info', parsed.data.skipped ? '首启引导跳过' : '首启引导标记完成')
+    return { ok: true }
+  })
+
+  /**
+   * 首启引导的「生成第一份简报」。
+   *
+   * 复用 runNowForTopic，不复制采集逻辑；完成标记只在拿到运行锁之后写，
+   * 拿不到锁（已有运行）时返回错误，避免留下“标记完成但没跑”的状态。
+   */
+  ipcMain.handle('onboarding:start', async (_e, raw: unknown) => {
+    const parsed = onboardingStartSchema.safeParse(raw)
+    if (!parsed.success) return { ok: false, error: '参数非法' }
     const s = requireStore()
-    try {
-      const out = await runDaily(s, dailyDeps(), { topicId, signal: handle.controller.signal })
-      // 两个 key 都写：主题自己的用于排程，全局的用于诊断包/反馈材料
-      s.settings.set(lastRunKey(topicId), Date.now())
-      s.settings.set('schedule.lastRunAt', Date.now())
-      broadcastBriefUpdated()
-      return {
-        ok: true,
-        nKept: out.collect.nKept,
-        nOk: out.collect.nOk,
-        nSources: out.collect.nSources,
-        degraded: out.degraded
+    if (!s.topics.get(parsed.data.topicId)) return { ok: false, error: '主题不存在' }
+    return runNowForTopic(parsed.data.topicId, {
+      onStarted: () => {
+        markOnboardingComplete(s)
+        log('info', `首启引导已记录，开始生成「${s.topics.get(parsed.data.topicId)?.name ?? parsed.data.topicId}」`)
       }
-    } catch (e) {
-      if (e instanceof RunCancelledError) {
-        log('info', '手动采集已取消')
-        return { ok: false, error: '已取消' }
-      }
-      log('error', `手动采集失败：${e instanceof Error ? e.message : String(e)}`)
-      return { ok: false, error: e instanceof Error ? e.message : String(e) }
-    } finally {
-      endRun(handle)
-    }
+    })
   })
 
   /** 不下网络：用库里最近 48 小时的素材重新成稿 */
@@ -808,7 +887,7 @@ export function registerIpc(): void {
     if (!parsed.success) return { ok: false, error: '参数非法' }
     const topicId = resolveTopic(parsed.data)
     if (!topicId) return { ok: false, error: '还没有主题' }
-    const handle = beginRun()
+    const handle = beginRun({ kind: 'compose', topicId })
     if (!handle) return { ok: false, error: '正在运行中，先取消或等它跑完' }
     try {
       const out = await recomposeDaily(requireStore(), dailyDeps(), {
@@ -821,7 +900,10 @@ export function registerIpc(): void {
         nKept: out.collect.nKept,
         nOk: out.collect.nOk,
         nSources: out.collect.nSources,
-        degraded: out.degraded
+        degraded: out.degraded,
+        noChange: out.noChange,
+        linkGood: out.linkCheck.good,
+        linkTotal: out.linkCheck.total
       }
     } catch (e) {
       if (e instanceof RunCancelledError) return { ok: false, error: '已取消' }
@@ -832,6 +914,11 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('run:cancel', () => ({ ok: true, cancelled: cancelRun() }))
+
+  ipcMain.handle('run:status', () => {
+    const meta = currentRun()
+    return meta ? { running: true, ...meta } : { running: false }
+  })
 
   // ── 对话 ──────────────────────────────────────────────
   ipcMain.handle('chat:models', () => chatModels(chatDeps()))

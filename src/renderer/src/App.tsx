@@ -25,6 +25,9 @@ import { TimelineOverlay } from './components/TimelineOverlay'
 import { useTopics } from './lib/useTopics'
 import { useDomains } from './lib/useDomains'
 import { useStoriesSummary } from './lib/useStoriesSummary'
+import { useOnboarding } from './lib/useOnboarding'
+import { useRunStatus } from './lib/useRunStatus'
+import { ModelPrompt } from './components/ModelPrompt'
 
 const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent)
 
@@ -49,6 +52,7 @@ export default function App(): React.JSX.Element {
     setActiveId,
     create: createTopic,
     reload: reloadTopics,
+    loading: topicsLoading,
     available: topicsAvailable
   } = useTopics()
   const {
@@ -58,19 +62,31 @@ export default function App(): React.JSX.Element {
     remove: removeDomain,
     reload: reloadDomains
   } = useDomains()
+  const onboarding = useOnboarding()
 
   // 只有一个选择状态：当前主题。领域由主题推导，不再单独选。
   const activeTopic = topics.find((t) => t.id === activeId)
   const activeDomain = activeTopic?.domainId ?? domains[0]?.id ?? ''
   useEffect(() => {
+    // 首启引导自己管当前主题：新建主题后的 reload 有延迟，
+    // 这里如果按旧列表回退，会把刚切过去的 chip 又切回 ai。
+    if (onboarding.shouldShow) return
     if (topics.length === 0) return
     if (!topics.some((t) => t.id === activeId)) setActiveId(topics[0]!.id)
-  }, [topics, activeId, setActiveId])
+  }, [topics, activeId, setActiveId, onboarding.shouldShow])
 
-  const { brief, raw, date: briefDate, loading, urlToId, trace, noChange, comparison, previousDate } = useBriefData(
-    viewDate,
-    activeId || undefined
-  )
+  const {
+    brief,
+    raw,
+    date: briefDate,
+    model: briefModel,
+    loading,
+    urlToId,
+    trace,
+    noChange,
+    comparison,
+    previousDate
+  } = useBriefData(viewDate, activeId || undefined)
   const flags = useFlags(brief, urlToId)
   const tracking = useStoriesSummary()
   const sourceState = useSources()
@@ -81,6 +97,13 @@ export default function App(): React.JSX.Element {
   const [helpOpen, setHelpOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState('')
+  const [modelPromptDismissed, setModelPromptDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('meerkat.modelPromptDismissed') === '1'
+    } catch {
+      return false
+    }
+  })
   const [nav, setNav] = useState<string>(() => {
     const head = hashParts[0]
     // 未知路由一律回落到今日，避免深链写错时界面一片空白
@@ -91,6 +114,30 @@ export default function App(): React.JSX.Element {
     setNav(id)
     if (typeof location !== 'undefined') history.replaceState(null, '', '#' + id)
   }, [])
+
+  // 今日页空状态：如果已有一轮在跑，显示“正在采集”而不是让用户再点一次
+  const runStatus = useRunStatus(nav === 'today' && !brief && !loading)
+
+  const cancelRun = async (): Promise<void> => {
+    await window.meerkat?.cancelRun?.()
+  }
+
+  /** 首份仅聚合简报之后：跳到设置并滚到「模型与密钥」 */
+  const openModelSettings = (): void => {
+    go('settings')
+    if (typeof document !== 'undefined') {
+      setTimeout(() => document.getElementById('model-keys')?.scrollIntoView({ block: 'start' }), 80)
+    }
+  }
+
+  const dismissModelPrompt = (): void => {
+    setModelPromptDismissed(true)
+    try {
+      localStorage.setItem('meerkat.modelPromptDismissed', '1')
+    } catch {
+      /* 隐私模式下写不进去，忽略 */
+    }
+  }
 
   /** 跳到源页并直接展开"新增源"表单（表单里会默认勾上当前主题） */
   const goAddSource = (): void => {
@@ -112,7 +159,8 @@ export default function App(): React.JSX.Element {
     setRefreshError('')
     try {
       const r = await api(activeId || undefined)
-      if (r && !r.ok) setRefreshError(r.error ?? '更新失败')
+      // 取消是用户的动作，不是错误；不要在报头下面留一条红色横幅
+      if (r && !r.ok && r.error !== '已取消') setRefreshError(r.error ?? '更新失败')
     } catch (e) {
       setRefreshError(e instanceof Error ? e.message : '更新失败')
     } finally {
@@ -129,6 +177,7 @@ export default function App(): React.JSX.Element {
   // ⌘1–9 直接切主题：侧栏是扁平列表，序号就是列表顺序（跨领域也成立）
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      if (onboarding.shouldShow || nav === 'onboarding') return
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
       const n = Number(e.key)
       if (!Number.isInteger(n) || n < 1 || n > 9) return
@@ -140,11 +189,12 @@ export default function App(): React.JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [topics, setActiveId, go])
+  }, [topics, setActiveId, go, onboarding.shouldShow, nav])
 
   // Ctrl/Cmd+K 跳到搜索：这是阅读器里最常用的一个动作
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
+      if (onboarding.shouldShow || nav === 'onboarding') return
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         go('search')
@@ -158,7 +208,42 @@ export default function App(): React.JSX.Element {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [go])
+  }, [go, onboarding.shouldShow, nav])
+
+  // 首启门禁：先等状态和主题列表，避免先闪一下今日页
+  if (onboarding.loading || (topicsAvailable && topicsLoading && topics.length === 0)) {
+    return (
+      <div className="relative grid h-full place-items-center overflow-hidden bg-paper">
+        {IS_MAC && <div className="app-drag-strip" aria-hidden="true" />}
+        <div className="lumen-glow" />
+        <div className="relative z-10 flex items-center gap-3 text-ink-3">
+          <img src="./icon-meerkat-64.png" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="text-[12px]">正在打开…</span>
+        </div>
+      </div>
+    )
+  }
+
+  // `#onboarding` 在已完成首启的用户上进入回看模式；新用户仍然走首启。
+  const replayOnboarding = nav === 'onboarding' && !onboarding.shouldShow
+  if (replayOnboarding || onboarding.shouldShow) {
+    return (
+      <Onboarding
+        mode={replayOnboarding ? 'replay' : 'first-run'}
+        topics={topics}
+        topicsAvailable={topicsAvailable}
+        activeDomain={activeDomain}
+        createTopic={createTopic}
+        onPickTopic={setActiveId}
+        startRun={onboarding.start}
+        complete={onboarding.complete}
+        onDone={() => {
+          onboarding.hide()
+          go('today')
+        }}
+      />
+    )
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -218,15 +303,32 @@ export default function App(): React.JSX.Element {
           {!loading && nav === 'today' && !brief && (
             <div className="px-10 py-16">
               <div className="text-[13px] text-ink-3">
-                「{topics.find((t) => t.id === activeId)?.name ?? '这个领域'}」还没有简报
+                「{activeTopic?.name ?? '这个领域'}」还没有简报
               </div>
-              <button
-                onClick={() => void refresh()}
-                disabled={refreshing}
-                className="mt-3 rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
-              >
-                {refreshing ? '运行中…' : '立即采集'}
-              </button>
+              {runStatus.running ? (
+                <>
+                  <div className="mt-3 flex items-center gap-2 text-[12px] text-ink-2">
+                    <span className="h-[7px] w-[7px] rounded-full bg-accent" />
+                    {runStatus.topicId && runStatus.topicId !== activeId
+                      ? `「${topics.find((t) => t.id === runStatus.topicId)?.name ?? '另一个主题'}」正在采集`
+                      : '正在采集，完成后会自动出现'}
+                  </div>
+                  <button
+                    onClick={() => void cancelRun()}
+                    className="mt-3 rounded-lg border border-cream px-4 py-2 text-[12px] text-ink-2 transition-colors hover:border-alert hover:text-alert"
+                  >
+                    取消
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => void refresh()}
+                  disabled={refreshing}
+                  className="mt-3 rounded-lg bg-ink px-4 py-2 text-[12px] font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-40"
+                >
+                  {refreshing ? '运行中…' : '立即采集'}
+                </button>
+              )}
             </div>
           )}
 
@@ -250,6 +352,12 @@ export default function App(): React.JSX.Element {
               refreshing={refreshing}
               onOpenSources={() => go('sources')}
             />
+          )}
+
+          {!loading && brief && !noChange && nav === 'today' && !viewDate && briefModel === 'none' && !modelPromptDismissed && (
+            <div className="mx-auto max-w-[780px] px-9 pt-4">
+              <ModelPrompt onOpenSettings={openModelSettings} onDismiss={dismissModelPrompt} />
+            </div>
           )}
 
           {!loading && brief && !noChange && nav === 'today' && (
@@ -300,11 +408,8 @@ export default function App(): React.JSX.Element {
               onRemoveDomain={removeDomain}
               onDomainsChanged={reloadDomains}
               onAddSource={goAddSource}
+              onReplayOnboarding={() => go('onboarding')}
             />
-          )}
-
-          {nav === 'onboarding' && (
-            <Onboarding sourceCount={summary.total} createTopic={createTopic} onDone={() => go('today')} />
           )}
 
           {nav === 'stories' && (

@@ -594,6 +594,48 @@ export interface TopicPayload {
   unreadCount: number
 }
 
+export interface OnboardingStatusPayload {
+  shouldShow: boolean
+  /** 当前引导版本 */
+  version: number
+  /** 用户完成的版本；没完成过是 0 */
+  completedVersion: number
+  /** 这次是按老用户放行的 */
+  grandfathered: boolean
+}
+
+export type RunKindPayload = 'collect' | 'compose' | 'scheduled'
+
+export interface RunStatusPayload {
+  running: boolean
+  kind?: RunKindPayload
+  topicId?: string
+  startedAt?: number
+}
+
+export interface RunProgressPayload {
+  topicId?: string
+  done: number
+  total: number
+  name: string
+  ok: boolean
+  n: number
+}
+
+/** 手动采集 / 首启生成第一份简报的统一返回 */
+export interface RunNowPayload {
+  ok: boolean
+  nKept?: number
+  nOk?: number
+  nSources?: number
+  degraded?: boolean
+  noChange?: boolean
+  /** 链接校验通过数 / 总数；没有链接时为 0 */
+  linkGood?: number
+  linkTotal?: number
+  error?: string
+}
+
 export interface StatsOverviewPayload {
   items: number
   briefs: number
@@ -724,13 +766,16 @@ export interface MeerkatBridge {
     get: () => Promise<{ autoLaunch: AutoLaunchState }>
     setAutoLaunch: (enabled: boolean) => Promise<{ ok: boolean; error?: string; autoLaunch?: AutoLaunchState }>
   }
-  runNow?: (
-    topicId?: string
-  ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
-  composeNow?: (
-    topicId?: string
-  ) => Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }>
+  onboarding?: {
+    get: () => Promise<OnboardingStatusPayload>
+    start: (input: { topicId: string }) => Promise<RunNowPayload>
+    complete: (input: { skipped?: boolean }) => Promise<{ ok: boolean; error?: string }>
+  }
+  runNow?: (topicId?: string) => Promise<RunNowPayload>
+  composeNow?: (topicId?: string) => Promise<RunNowPayload>
   cancelRun?: () => Promise<{ ok: boolean; cancelled: boolean }>
+  runStatus?: () => Promise<RunStatusPayload>
+  onRunProgress?: (cb: (p: RunProgressPayload) => void) => () => void
   exportBrief?: (
     input:
       | { format: 'md'; topicId: string; date: string }

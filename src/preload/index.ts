@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   BriefPayload,
+  OnboardingStatusPayload,
+  RunNowPayload,
+  RunProgressPayload,
+  RunStatusPayload,
   SourcePackApplyResult,
   SourcePackExportResult,
   SourcePackImportResult,
@@ -670,18 +674,28 @@ const api = {
     }> => ipcRenderer.invoke('prefs:setAutoLaunch', enabled)
   },
 
-  runNow: (
-    topicId?: string
-  ): Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }> =>
-    ipcRenderer.invoke('run:now', topicId),
+  onboarding: {
+    get: (): Promise<OnboardingStatusPayload> => ipcRenderer.invoke('onboarding:get'),
+    start: (input: { topicId: string }): Promise<RunNowPayload> => ipcRenderer.invoke('onboarding:start', input),
+    complete: (input: { skipped?: boolean }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('onboarding:complete', input)
+  },
+
+  runNow: (topicId?: string): Promise<RunNowPayload> => ipcRenderer.invoke('run:now', topicId),
 
   /** 不重新抓取，用库里已有的素材重新成稿 */
-  composeNow: (
-    topicId?: string
-  ): Promise<{ ok: boolean; nKept?: number; nOk?: number; nSources?: number; degraded?: boolean; error?: string }> =>
-    ipcRenderer.invoke('run:compose', topicId),
+  composeNow: (topicId?: string): Promise<RunNowPayload> => ipcRenderer.invoke('run:compose', topicId),
 
   cancelRun: (): Promise<{ ok: boolean; cancelled: boolean }> => ipcRenderer.invoke('run:cancel'),
+
+  runStatus: (): Promise<RunStatusPayload> => ipcRenderer.invoke('run:status'),
+
+  /** 订阅逐源采集进度；返回取消订阅函数 */
+  onRunProgress: (cb: (p: RunProgressPayload) => void): (() => void) => {
+    const handler = (_e: unknown, payload: RunProgressPayload): void => cb(payload)
+    ipcRenderer.on('run:progress', handler)
+    return () => ipcRenderer.removeListener('run:progress', handler)
+  },
 
   /**
    * 导出某一期简报。

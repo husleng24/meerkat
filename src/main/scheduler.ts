@@ -8,6 +8,7 @@ import { BrowserWindow, Menu, Notification, Tray, app, nativeImage } from 'elect
 import { log } from './log'
 import { existsSync } from 'node:fs'
 import { decideDue, describeNext, describeSchedule, type ScheduleConfig } from '../app/schedule'
+import { shouldDeferSchedule } from '../app/onboarding'
 import { brandPath } from './paths'
 import { exportBrief } from './export'
 import type { Store } from '../core/ports/store'
@@ -80,6 +81,10 @@ export class Scheduler {
   constructor(private deps: SchedulerDeps) {}
 
   start(): void {
+    if (shouldDeferSchedule(this.deps.store)) {
+      this.lastSummary = '先完成开始使用'
+      log('info', '引导未完成，定时采集暂缓')
+    }
     this.createTray()
     this.timer = setInterval(() => void this.tick(), CHECK_INTERVAL_MS)
     // 启动时先查一次：处理"关机错过了时间点"的情况
@@ -107,13 +112,16 @@ export class Scheduler {
   }
 
   private async tick(): Promise<void> {
+    // 首启引导未完成：先不碰定时采集。新库的 ai/youtube 都没有 lastRunAt，
+    // 早上启动会同时 due，用户还在看引导后台就已经跑起来了。
+    if (shouldDeferSchedule(this.deps.store)) return
     if (isRunning()) return
     const now = Date.now()
     const due = this.dueTopics(now)
     this.refreshTray(due.length > 0 ? '准备运行…' : this.lastSummary)
     if (due.length === 0) return
 
-    const handle = beginRun()
+    const handle = beginRun({ kind: 'scheduled' })
     if (!handle) return
     try {
       for (const { topic, reason } of due) {
@@ -216,6 +224,10 @@ export class Scheduler {
   private refreshTray(status: string): void {
     if (!this.tray) return
     const now = Date.now()
+    const deferred = shouldDeferSchedule(this.deps.store)
+    // 引导完成后，第一次刷新时 lastSummary 还停留在「先完成开始使用」。
+    // 这里把它换成就绪，避免托盘一直显示一句已经过时的话。
+    const displayStatus = !deferred && status === '先完成开始使用' ? '就绪' : status
     const topics = this.deps.store.topics.list().filter((t) => t.enabled)
     const scheduleLines = topics.map((t) => {
       const cfg = readSchedule(this.deps.store, t.id)
@@ -223,14 +235,16 @@ export class Scheduler {
     })
     this.tray.setContextMenu(
       Menu.buildFromTemplate([
-        { label: status, enabled: false },
+        { label: displayStatus, enabled: false },
         { type: 'separator' },
         ...(scheduleLines.length > 0 ? scheduleLines : [{ label: '排程：未启用任何主题', enabled: false }]),
         { type: 'separator' },
         { label: '打开简报', click: () => this.deps.showWindow() },
         isRunning()
           ? { label: '取消当前运行', click: () => this.cancelCurrent() }
-          : { label: '立即采集', click: () => void this.runNow() },
+          : deferred
+            ? { label: '先完成开始使用', enabled: false }
+            : { label: '立即采集', click: () => void this.runNow() },
         { type: 'separator' },
         { label: '导出今日简报', click: () => void this.exportLatest() },
         { type: 'separator' },
@@ -267,8 +281,13 @@ export class Scheduler {
 
   /** 托盘"立即采集"：不带主题就跑全部启用的主题 */
   async runNow(topicId?: string): Promise<void> {
+    if (shouldDeferSchedule(this.deps.store)) {
+      this.lastSummary = '先完成开始使用'
+      this.refreshTray(this.lastSummary)
+      return
+    }
     if (isRunning()) return
-    const handle = beginRun()
+    const handle = beginRun({ kind: 'collect', ...(topicId ? { topicId } : {}) })
     if (!handle) return
     try {
       const topics = topicId

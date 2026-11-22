@@ -6,16 +6,27 @@
  * 这里做成一个模块级状态，所有入口共用。
  */
 
+export type RunKind = 'collect' | 'compose' | 'scheduled'
+
+export interface RunMeta {
+  kind: RunKind
+  /** 采集/成稿对应的主题；定时任务一次可能跑多个主题，因此可缺省 */
+  topicId?: string
+  startedAt: number
+}
+
 export interface RunHandle {
   controller: AbortController
+  meta: RunMeta
 }
 
 export interface Latch {
-  begin(): RunHandle | null
+  begin(meta?: { kind?: RunKind; topicId?: string }): RunHandle | null
   end(handle: RunHandle): void
   cancel(): boolean
   isRunning(): boolean
   signal(): AbortSignal | undefined
+  current(): RunMeta | null
   reset(): void
 }
 
@@ -26,24 +37,33 @@ export interface Latch {
  * 但两把闩的语义完全相同，所以只写一份实现。
  */
 export function createLatch(): Latch {
-  let active: AbortController | null = null
+  let active: RunHandle | null = null
   return {
-    begin() {
+    begin(meta = {}) {
       if (active) return null
-      active = new AbortController()
-      return { controller: active }
+      const controller = new AbortController()
+      active = {
+        controller,
+        meta: {
+          kind: meta.kind ?? 'collect',
+          ...(meta.topicId ? { topicId: meta.topicId } : {}),
+          startedAt: Date.now()
+        }
+      }
+      return active
     },
     end(handle) {
       // 只清理自己那一轮：取消后立刻开始的新一轮不该被旧的 finally 清掉
-      if (active === handle.controller) active = null
+      if (active === handle) active = null
     },
     cancel() {
       if (!active) return false
-      active.abort()
+      active.controller.abort()
       return true
     },
     isRunning: () => active !== null,
-    signal: () => active?.signal,
+    signal: () => active?.controller.signal,
+    current: () => active?.meta ?? null,
     reset() {
       active = null
     }
@@ -53,8 +73,8 @@ export function createLatch(): Latch {
 /** 采集用的闩（保持原有的函数式 API，测试与调用方都在用） */
 const collectLatch = createLatch()
 
-export function beginRun(): RunHandle | null {
-  return collectLatch.begin()
+export function beginRun(meta?: { kind?: RunKind; topicId?: string }): RunHandle | null {
+  return collectLatch.begin(meta)
 }
 
 export function endRun(handle: RunHandle): void {
@@ -71,6 +91,11 @@ export function isRunning(): boolean {
 
 export function currentSignal(): AbortSignal | undefined {
   return collectLatch.signal()
+}
+
+/** 当前采集/成稿的运行信息；空闲时为 null */
+export function currentRun(): RunMeta | null {
+  return collectLatch.current()
 }
 
 /** 测试用：把状态清干净 */

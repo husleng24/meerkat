@@ -16,6 +16,8 @@ export interface BriefData {
   urlToId: Record<string, string>
   /** 这期简报自己的日期；无变化页不能拿“今天”冒充历史 */
   date: string
+  /** 成稿模型；'none' 表示这是降级的「仅聚合」版 */
+  model: string
   /** 这期引用的条目证据；旧简报没有 */
   trace: BriefPayload['trace']
   /** 这期明确判定「今天没有变化」 */
@@ -37,6 +39,7 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
   const [raw, setRaw] = useState('')
   const [urlToId, setUrlToId] = useState<Record<string, string>>({})
   const [briefDate, setBriefDate] = useState('')
+  const [briefModel, setBriefModel] = useState('')
   const [trace, setTrace] = useState<BriefPayload['trace']>(undefined)
   const [noChange, setNoChange] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -60,6 +63,7 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
         if (!cancelled && res?.markdown) {
           setRaw(res.markdown)
           setBriefDate(res.date ?? '')
+          setBriefModel(res.model ?? '')
           setUrlToId(res.urlToId ?? {})
           setTrace(res.trace)
           setNoChange(res.noChange === true)
@@ -74,6 +78,7 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
         if (!cancelled && hasBridge) {
           setRaw('')
           setBriefDate('')
+          setBriefModel('')
           setUrlToId({})
           setTrace(undefined)
           setNoChange(false)
@@ -88,6 +93,7 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
       if (!cancelled) {
         setRaw(sampleMd)
         setBriefDate('')
+        setBriefModel('')
         setUrlToId({})
         setTrace(undefined)
         setNoChange(false)
@@ -122,6 +128,7 @@ export function useBriefData(date?: string | null, topicId?: string): BriefData 
     brief,
     raw,
     date: briefDate,
+    model: briefModel,
     loading,
     origin,
     bridgeAvailable,

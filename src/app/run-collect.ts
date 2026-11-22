@@ -17,6 +17,14 @@ export interface CollectDeps {
   fetchSource: (source: Source, ctx: FetchContext) => Promise<FetchResult>
 }
 
+export interface CollectProgress {
+  done: number
+  total: number
+  name: string
+  ok: boolean
+  n: number
+}
+
 export interface CollectOptions {
   now: number
   /** 只采这些源（按主题收录）；不传就是全部启用的源 */
@@ -27,7 +35,7 @@ export interface CollectOptions {
   maxItems: number
   arxivKeep: number
   concurrency: number
-  onProgress?: (p: { done: number; total: number; name: string; ok: boolean; n: number }) => void
+  onProgress?: (p: CollectProgress) => void
 }
 
 export interface CollectResult {

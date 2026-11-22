@@ -1,0 +1,362 @@
+<!doctype html>
+<!--
+  首启引导静态稿（不是应用代码）。
+  首屏截图：
+    Chrome --headless=new --window-size=1180,820 --hide-scrollbars \
+      --screenshot=onboarding-choose.png "file:///.../onboarding.html?frame=1"
+  四态总览：
+    Chrome --headless=new --window-size=1244,3560 --hide-scrollbars \
+      --screenshot=onboarding-states.png "file:///.../onboarding.html"
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Meerkat · 首启引导</title>
+<style>
+  :root{
+    --paper:#f7f8fb;
+    --panel:#ffffff;
+    --ink:#0b1220;
+    --ink-2:#5a6472;
+    --ink-3:#646e7b;
+    --rule:#e6eaf2;
+    --cream:#f3f5fa;
+    --accent:#4f46e5;
+    --accent-soft:#eef0ff;
+    --lumen:#06b6d4;
+    --alert:#dc2626;
+    --font:'Segoe UI','Microsoft YaHei UI','PingFang SC',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    background:#e9ebf1;
+    color:var(--ink);
+    font-family:var(--font);
+    font-synthesis:none;
+    -webkit-font-smoothing:antialiased;
+    padding:32px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:28px;
+  }
+  .frame-wrap{width:1180px}
+  .caption{display:flex;align-items:baseline;gap:10px;margin:0 0 10px 2px}
+  .caption b{font-size:12px;letter-spacing:.06em;color:#4b5563}
+  .caption span{font-size:11.5px;color:#7b8494}
+  .frame{
+    position:relative;width:1180px;height:820px;overflow:hidden;
+    background:var(--paper);
+    border-radius:20px;
+    box-shadow:0 30px 80px -40px rgba(17,24,39,.45);
+  }
+  .glow{
+    position:absolute;inset:-160px -80px auto -80px;height:460px;
+    background:
+      radial-gradient(58% 62% at 26% 22%,rgba(99,102,241,.24),transparent 66%),
+      radial-gradient(50% 56% at 78% 6%,rgba(6,182,212,.20),transparent 68%);
+    pointer-events:none;
+  }
+  .content{
+    position:relative;z-index:1;
+    width:680px;margin:0 auto;
+    padding:74px 0 44px;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand img{width:40px;height:40px;border-radius:10px;display:block}
+  .brand-name{font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+  .brand-tag{margin-top:4px;font-size:11px;color:var(--ink-3);letter-spacing:.01em}
+  h1{
+    margin-top:36px;
+    font-size:28px;line-height:1.45;font-weight:700;letter-spacing:-.02em;
+    color:var(--ink);
+  }
+  .lede{
+    margin-top:14px;max-width:680px;
+    font-size:13.5px;line-height:1.75;color:var(--ink-2);
+  }
+  .section-head{margin-top:32px}
+  .section-head h2{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .section-head p{margin-top:3px;font-size:11.5px;color:var(--ink-3)}
+  .choices{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .choice{
+    position:relative;display:flex;flex-direction:column;align-items:flex-start;
+    min-height:98px;padding:15px 16px 13px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:14px;
+    font-family:var(--font);text-align:left;cursor:pointer;
+    transition:border-color .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease;
+  }
+  .choice:hover{border-color:#c9d0ff;transform:translateY(-1px);box-shadow:0 12px 30px -22px rgba(79,70,229,.6)}
+  .choice.selected{border-color:var(--accent);background:#f7f8ff}
+  .choice.selected:hover{border-color:var(--accent);box-shadow:none;transform:none}
+  .choice .name{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.2}
+  .choice .desc{margin-top:4px;font-size:11.5px;line-height:1.5;color:var(--ink-3)}
+  .choice .count{margin-top:auto;padding-top:10px;font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .check{
+    position:absolute;top:13px;right:13px;width:18px;height:18px;border-radius:50%;
+    border:1.5px solid #d7dce6;background:#fff;
+    display:grid;place-items:center;
+  }
+  .choice.selected .check{border-color:var(--accent);background:var(--accent)}
+  .check svg{display:none}
+  .choice.selected .check svg{display:block}
+  .actions{margin-top:30px;display:flex;align-items:center;gap:16px}
+  .skip{
+    border:0;background:none;padding:8px 0;font-family:var(--font);
+    font-size:12.5px;color:var(--ink-3);cursor:pointer;
+  }
+  .skip:hover{color:var(--ink)}
+  .primary{
+    margin-left:auto;height:44px;padding:0 22px;border:0;border-radius:11px;
+    background:var(--ink);color:var(--paper);
+    font-family:var(--font);font-size:13px;font-weight:600;letter-spacing:.01em;
+    cursor:pointer;transition:opacity .18s ease;
+  }
+  .primary:hover{opacity:.9}
+  .hint{margin-top:12px;text-align:right;font-size:11px;color:var(--ink-3)}
+  .footer{
+    position:absolute;left:0;right:0;bottom:32px;z-index:1;
+    text-align:center;font-size:11px;color:var(--ink-3);letter-spacing:.01em;
+  }
+
+  /* 运行 / 完成 / 失败三个状态共用 */
+  .content.state{width:620px;padding-top:86px}
+  .state-title{margin-top:38px;font-size:24px;line-height:1.35;font-weight:700;letter-spacing:-.02em}
+  .state-title + .lede{margin-top:12px}
+  .state-card{
+    margin-top:28px;width:620px;
+    background:var(--panel);border:1px solid var(--rule);border-radius:14px;
+    padding:20px;
+  }
+  .state-row{display:flex;align-items:center;gap:9px}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+  .error-dot{width:7px;height:7px;border-radius:50%;background:var(--alert);flex:0 0 auto}
+  .state-label{font-size:12.5px;font-weight:600;color:var(--ink)}
+  .elapsed{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .state-note{margin-top:13px;font-size:11.5px;line-height:1.7;color:var(--ink-3)}
+  .result-stats{display:flex;align-items:stretch;gap:0}
+  .stat{flex:1;padding:2px 0}
+  .stat + .stat{border-left:1px solid var(--rule);padding-left:20px}
+  .stat b{display:block;font-size:21px;line-height:1.1;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat span{display:block;margin-top:5px;font-size:10.5px;color:var(--ink-3)}
+  .degraded{
+    margin-top:18px;padding:11px 12px;border-radius:10px;background:var(--cream);
+    display:flex;align-items:flex-start;gap:9px;
+  }
+  .chip{
+    flex:0 0 auto;display:inline-block;padding:2px 6px;border-radius:5px;
+    background:var(--accent-soft);color:var(--accent);
+    font-size:10px;font-weight:600;line-height:1.4;
+  }
+  .degraded p{font-size:11.5px;line-height:1.65;color:var(--ink-2)}
+  .error-card .state-label{color:var(--alert)}
+  .error-card .state-note{margin-top:10px}
+
+  /* 单帧截图模式：?frame=1 */
+  body.solo{padding:0;display:block;background:var(--paper);overflow:hidden}
+  body.solo .frame-wrap{display:none;width:1180px}
+  body.solo .frame-wrap[data-frame="1"]{display:block}
+  body.solo .caption{display:none}
+  body.solo .frame{border-radius:0;box-shadow:none}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+  <!-- 01 选方向 -->
+  <div class="frame-wrap" data-frame="1">
+    <div class="caption"><b>01 · 选方向</b><span>首屏只有一个决策；AI 综合默认选中。</span></div>
+    <div class="frame">
+      <div class="glow"></div>
+      <div class="content">
+        <div class="brand">
+          <img src="../../brand/icon-meerkat-128.png" alt="" />
+          <div>
+            <div class="brand-name">Meerkat</div>
+            <div class="brand-tag">只留真正变了的那几条</div>
+          </div>
+        </div>
+
+        <h1>每天 5 分钟，<br />知道你在意的领域昨天真正变了什么</h1>
+        <p class="lede">
+          Meerkat 抓取公开信号源，只保留 48 小时内真正变化的内容，写成一份能读完的中文简报。<br />
+          数据留在本机，不需要账号。
+        </p>
+
+        <div class="section-head">
+          <h2>先盯哪些方向？</h2>
+          <p>选一个或多个；每个方向有自己的源和简报，之后随时可改。</p>
+        </div>
+
+        <div class="choices">
+          <button class="choice selected" type="button" aria-pressed="true">
+            <span class="check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5.2 4.1 7.3 8 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="name">AI 综合</span>
+            <span class="desc">模型 / Agent / 研究 / 产品</span>
+            <span class="count">35 个源</span>
+          </button>
+
+          <button class="choice" type="button" aria-pressed="false">
+            <span class="check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5.2 4.1 7.3 8 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="name">芯片与算力</span>
+            <span class="desc">GPU、代工、数据中心</span>
+            <span class="count">推荐约 8 个源</span>
+          </button>
+
+          <button class="choice" type="button" aria-pressed="false">
+            <span class="check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5.2 4.1 7.3 8 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="name">具身智能</span>
+            <span class="desc">人形、灵巧手、世界模型</span>
+            <span class="count">推荐约 8 个源</span>
+          </button>
+
+          <button class="choice" type="button" aria-pressed="false">
+            <span class="check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5.2 4.1 7.3 8 3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="name">开发者工具</span>
+            <span class="desc">IDE、CLI、SDK、Agent 框架</span>
+            <span class="count">推荐约 8 个源</span>
+          </button>
+        </div>
+
+        <div class="actions">
+          <button class="skip" type="button">跳过，先进入</button>
+          <button class="primary" type="button">生成第一份简报</button>
+        </div>
+        <p class="hint">第一份大约需要 1–2 分钟；不接模型也能出「仅聚合」版。</p>
+      </div>
+      <div class="footer">Meerkat · 只留真正变了的那几条</div>
+    </div>
+  </div>
+
+  <!-- 02 运行 -->
+  <div class="frame-wrap" data-frame="2">
+    <div class="caption"><b>02 · 运行</b><span>不伪造进度；用已用时间说明还要多久。</span></div>
+    <div class="frame">
+      <div class="glow"></div>
+      <div class="content state">
+        <div class="brand">
+          <img src="../../brand/icon-meerkat-128.png" alt="" />
+          <div>
+            <div class="brand-name">Meerkat</div>
+            <div class="brand-tag">只留真正变了的那几条</div>
+          </div>
+        </div>
+
+        <h1 class="state-title">正在生成第一份简报</h1>
+        <p class="lede">抓取「AI 综合」的 35 个源，通常 1–2 分钟。可以最小化窗口，采集会在后台继续。</p>
+
+        <div class="state-card">
+          <div class="state-row">
+            <span class="status-dot"></span>
+            <span class="state-label">正在抓取公开信号源</span>
+            <span class="elapsed">已用 00:23</span>
+          </div>
+          <p class="state-note">跑完这里会显示结果；也可以先关掉窗口，稍后再回来。</p>
+        </div>
+
+        <div class="actions">
+          <button class="skip" type="button">取消</button>
+        </div>
+      </div>
+      <div class="footer">Meerkat · 只留真正变了的那几条</div>
+    </div>
+  </div>
+
+  <!-- 03 完成 -->
+  <div class="frame-wrap" data-frame="3">
+    <div class="caption"><b>03 · 完成</b><span>把成功数、降级和下一步说清楚。</span></div>
+    <div class="frame">
+      <div class="glow"></div>
+      <div class="content state">
+        <div class="brand">
+          <img src="../../brand/icon-meerkat-128.png" alt="" />
+          <div>
+            <div class="brand-name">Meerkat</div>
+            <div class="brand-tag">只留真正变了的那几条</div>
+          </div>
+        </div>
+
+        <h1 class="state-title">第一份简报好了</h1>
+        <p class="lede">「AI 综合」· 2026-11-22 · 24 条。之后每天 08:30 自动跑，也可以在报头点「更新」。</p>
+
+        <div class="state-card">
+          <div class="result-stats">
+            <div class="stat"><b>34/35</b><span>源成功</span></div>
+            <div class="stat"><b>24</b><span>条内容</span></div>
+            <div class="stat"><b>23/24</b><span>链接校验</span></div>
+          </div>
+          <div class="degraded">
+            <span class="chip">仅聚合</span>
+            <p>这次没接模型：先列标题、来源和链接。接上模型后，会写成三句话速览。</p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" type="button">去读简报</button>
+        </div>
+      </div>
+      <div class="footer">Meerkat · 只留真正变了的那几条</div>
+    </div>
+  </div>
+
+  <!-- 04 失败 -->
+  <div class="frame-wrap" data-frame="4">
+    <div class="caption"><b>04 · 失败</b><span>失败不挡路：错误可读，可重试，也可跳过。</span></div>
+    <div class="frame">
+      <div class="glow"></div>
+      <div class="content state">
+        <div class="brand">
+          <img src="../../brand/icon-meerkat-128.png" alt="" />
+          <div>
+            <div class="brand-name">Meerkat</div>
+            <div class="brand-tag">只留真正变了的那几条</div>
+          </div>
+        </div>
+
+        <h1 class="state-title">这次没跑完</h1>
+        <p class="lede">采集过程中出错了。已经抓到的内容不会丢，可以重试；也可以先进入应用，之后在设置里再跑。</p>
+
+        <div class="state-card error-card">
+          <div class="state-row">
+            <span class="error-dot"></span>
+            <span class="state-label">网络连接失败</span>
+            <span class="elapsed">17:45</span>
+          </div>
+          <p class="state-note">检查网络后重试；也可以先跳过，今日页的「立即采集」还能再跑一次。</p>
+        </div>
+
+        <div class="actions">
+          <button class="skip" type="button">跳过，先进入</button>
+          <button class="primary" type="button">重试</button>
+        </div>
+      </div>
+      <div class="footer">Meerkat · 只留真正变了的那几条</div>
+    </div>
+  </div>
+
+  <script>
+    // ?frame=1 → 只保留第一帧，body 去掉展厅留白，用于 1180×820 截图
+    const frame = new URLSearchParams(location.search).get('frame')
+    if (frame === '1') document.body.classList.add('solo')
+  </script>
+</body>
+</html>

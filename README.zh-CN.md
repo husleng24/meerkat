@@ -8,7 +8,7 @@
 
 ![侧栏：领域分组与主题列表](docs/assets/ui-two-level-sidebar.png)
 
-> v0.1.3 · 530 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
+> v0.1.3 · 555 个测试 · typecheck / build 通过 · macOS 本机构建与运行，Windows 由 CI 出包
 
 ## 下载
 
@@ -196,7 +196,9 @@ pnpm brief search "LangChain"
 
 ### 首次启动
 
-引导页选几个主题 → 自动建主题并挂上默认源 → 立即采集一次（约 1–2 分钟）。
+首启引导只有一屏：选方向 → 立即生成第一份简报（约 1–2 分钟）。
+缺失的主题会自动建出来并挂上推荐源；已有数据的库不会出现引导。
+运行态会显示逐源进度；没接模型时，今日页会给一次「去设置接模型」的提示。
 之后每天按排程自动跑；也可以在报头点「更新」手动触发。
 
 ### 三个容易踩的环境坑
@@ -271,7 +273,7 @@ renderer (React)  ──IPC──▶  main（Electron 组装）
 
 | 项 | 现状 |
 |---|---|
-| 测试 | `pnpm test`：**530 通过**（单元 + jsdom + 本地 HTTP stub） |
+| 测试 | `pnpm test`：**555 通过**（单元 + jsdom + 本地 HTTP stub） |
 | 类型 | `pnpm typecheck`：node 与 web 两套 tsconfig 都过 |
 | 构建 | `pnpm build` 通过；`pnpm dist` 产出 Windows 安装包 |
 | 真机验收 | 每条功能都截图核对过，记录见 [docs/VERIFICATION-RESULT.md](docs/VERIFICATION-RESULT.md) |

@@ -20,7 +20,7 @@ import { buildBriefTrace, buildNoChangeTrace } from '../app/brief-trace'
 import { allSourcesFailed, renderNoChangeBrief, shouldSkipBrief } from '../app/no-change'
 import { indexEntityItems } from '../app/entities'
 import { briefTitle } from '../app/brief-identity'
-import { runCollect, COLLECT_DEFAULTS, type CollectResult } from '../app/run-collect'
+import { runCollect, COLLECT_DEFAULTS, type CollectProgress, type CollectResult } from '../app/run-collect'
 import { citedItemIds, filterAlreadyBriefed } from '../app/brief-selection'
 import { decideSave, type SaveDecision } from '../app/brief-save'
 import { RunCancelledError, isAbortError } from '../app/run-cancel'
@@ -63,6 +63,8 @@ export interface RunOptions {
   topicId: string
   now?: number
   signal?: AbortSignal
+  /** 逐源进度；只有采集阶段有，成稿阶段没有 */
+  onProgress?: (p: CollectProgress) => void
 }
 
 export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions): Promise<DailyOutcome> {
@@ -72,7 +74,13 @@ export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions):
   const sourceIds = store.topics.sourceIds(topic.id)
   const collect = await runCollect(
     { store, fetchSource },
-    { now, sourceIds, ...COLLECT_DEFAULTS, ...(opts.signal ? { signal: opts.signal } : {}) }
+    {
+      now,
+      sourceIds,
+      ...COLLECT_DEFAULTS,
+      ...(opts.signal ? { signal: opts.signal } : {}),
+      ...(opts.onProgress ? { onProgress: opts.onProgress } : {})
+    }
   )
   if (opts.signal?.aborted) throw new RunCancelledError('collect')
   log(
