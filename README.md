@@ -85,6 +85,10 @@ consecutive failures and unstable feeds, and suggests replacements. When adding 
 **✨ recommended for this topic** to fill gaps. Sources can be exported as a JSON pack (with topic membership)
 and imported on another machine or for a new topic; see [docs/SOURCE-PACK.md](docs/SOURCE-PACK.md).
 
+### Selection policy
+
+Each topic can tune its own window (default 48h), candidate cap, target item range, enabled sections, and boost/suppress keywords. Changes apply to the next collect/compose and are injected into the prompt as target counts and section list.
+
 ### Comments and event timelines
 
 Every item can be commented on, and selecting text in the brief pops up "ask the agent / track" so the

@@ -36,6 +36,7 @@ import { lastRunKey, readSchedule, writeSchedule } from './scheduler'
 import { copyBriefRichText, exportBrief } from './export'
 import { extractBriefSummary } from '../app/brief-summary'
 import { loadBuiltinPrompt } from './prompts'
+import { resolveSelectionPolicy } from '../app/selection-policy'
 import { recomposeDaily, runDaily, type DailyDeps } from './daily'
 import { checkForUpdate, type UpdateCheckResult } from './update-check'
 import {
@@ -205,7 +206,18 @@ const topicUpdateSchema = z.object({
   name: z.string().min(1).max(30).optional(),
   enabled: z.boolean().optional(),
   editorialFocus: z.string().max(200).optional(),
-  promptProfileId: z.string().max(80).nullable().optional()
+  promptProfileId: z.string().max(80).nullable().optional(),
+  selectionPolicy: z
+    .object({
+      windowHours: z.number(),
+      maxItems: z.number(),
+      targetMin: z.number(),
+      targetMax: z.number(),
+      buckets: z.array(z.string()).max(20),
+      boostKeywords: z.array(z.string()).max(50),
+      suppressKeywords: z.array(z.string()).max(50)
+    })
+    .optional()
 })
 const onboardingStartSchema = z.object({ topicId: topicIdSchema })
 const onboardingCompleteSchema = z.object({ skipped: z.boolean().optional() })
@@ -880,6 +892,9 @@ export function registerIpc(): void {
     }
     if (parsed.data.promptProfileId === null) delete next.promptProfileId
     else if (parsed.data.promptProfileId !== undefined) next.promptProfileId = parsed.data.promptProfileId
+    if (parsed.data.selectionPolicy !== undefined) {
+      next.selectionPolicy = resolveSelectionPolicy(parsed.data.selectionPolicy as never)
+    }
     s.topics.upsert(next)
     return { ok: true }
   })

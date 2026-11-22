@@ -31,6 +31,9 @@ export function createChatComposer(opts: ChatComposerOptions): Composer {
         .replace(/\{date\}/g, input.dateLabel)
         .replace(/\{weekday\}/g, input.weekday)
         .replace(/\{editorialFocus\}/g, input.editorialFocus?.trim() || '（未设置，按通用编辑标准）')
+        .replace(/\{targetMin\}/g, String(input.targetMin ?? 15))
+        .replace(/\{targetMax\}/g, String(input.targetMax ?? 24))
+        .replace(/\{bucketList\}/g, input.bucketList ?? '')
 
       const res = await opts.provider.chat(
         {

@@ -93,6 +93,7 @@ interface TopicRow {
   id: string; name: string; domain_id: string; enabled: number; hour: number; minute: number
   editorial_focus: string | null
   prompt_profile_id: string | null
+  selection_policy_json: string | null
   created_at: number; updated_at: number
 }
 
@@ -150,6 +151,9 @@ const toTopic = (r: TopicRow): Topic => ({
     ? { editorialFocus: r.editorial_focus }
     : {}),
   ...(r.prompt_profile_id !== null ? { promptProfileId: r.prompt_profile_id } : {}),
+  ...(r.selection_policy_json !== null
+    ? { selectionPolicy: JSON.parse(r.selection_policy_json) as Topic['selectionPolicy'] }
+    : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at
 })
@@ -584,19 +588,21 @@ class SqliteTopicStore implements TopicStore {
     this.db
       .prepare(
         `INSERT INTO topics
-           (id,name,domain_id,enabled,hour,minute,editorial_focus,prompt_profile_id,created_at,updated_at)
+           (id,name,domain_id,enabled,hour,minute,editorial_focus,prompt_profile_id,selection_policy_json,created_at,updated_at)
          VALUES
-           (@id,@name,@domain_id,@enabled,@hour,@minute,@editorial_focus,@prompt_profile_id,@created_at,@updated_at)
+           (@id,@name,@domain_id,@enabled,@hour,@minute,@editorial_focus,@prompt_profile_id,@selection_policy_json,@created_at,@updated_at)
          ON CONFLICT(id) DO UPDATE SET name=excluded.name, domain_id=excluded.domain_id,
            enabled=excluded.enabled, hour=excluded.hour, minute=excluded.minute,
            editorial_focus=excluded.editorial_focus,
            prompt_profile_id=excluded.prompt_profile_id,
+           selection_policy_json=excluded.selection_policy_json,
            updated_at=excluded.updated_at`
       )
       .run({
         id: t.id, name: t.name, domain_id: t.domainId, enabled: t.enabled ? 1 : 0, hour: t.hour, minute: t.minute,
         editorial_focus: t.editorialFocus ?? null,
         prompt_profile_id: t.promptProfileId ?? null,
+        selection_policy_json: t.selectionPolicy ? JSON.stringify(t.selectionPolicy) : null,
         created_at: t.createdAt, updated_at: t.updatedAt
       })
   }

@@ -27,6 +27,7 @@ import { RunCancelledError, isAbortError } from '../app/run-cancel'
 import { log } from './log'
 import { runStoriesAfterCollect } from './story-runner'
 import { promptTextForTopic } from '../app/prompt-profile'
+import { applySelectionPolicy, resolveSelectionPolicy } from '../app/selection-policy'
 import type { Store } from '../core/ports/store'
 import type { Topic } from '../core/domain/types'
 
@@ -72,6 +73,7 @@ export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions):
   const now = opts.now ?? Date.now()
   const topic = store.topics.get(opts.topicId)
   if (!topic) throw new Error(`主题不存在：${opts.topicId}`)
+  const policy = resolveSelectionPolicy(topic.selectionPolicy)
   const sourceIds = store.topics.sourceIds(topic.id)
   const collect = await runCollect(
     { store, fetchSource },
@@ -80,7 +82,9 @@ export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions):
       sourceIds,
       ...COLLECT_DEFAULTS,
       ...(opts.signal ? { signal: opts.signal } : {}),
-      ...(opts.onProgress ? { onProgress: opts.onProgress } : {})
+      ...(opts.onProgress ? { onProgress: opts.onProgress } : {}),
+      windowHours: policy.windowHours,
+      maxItems: policy.maxItems
     }
   )
   if (opts.signal?.aborted) throw new RunCancelledError('collect')
@@ -92,18 +96,20 @@ export async function runDaily(store: Store, deps: DailyDeps, opts: RunOptions):
   // ── 跨天去重 ──────────────────────────────────────────
   // 去重按主题算：A 主题推过的内容，B 主题仍然该看到
   const briefed = store.items.briefedIds(now - BRIEFED_TTL_MS, topic.id)
-  const filtered = filterAlreadyBriefed(collect.items, briefed)
+  const selected = applySelectionPolicy(collect.items, policy)
+  const filtered = filterAlreadyBriefed(selected, briefed)
 
   return finishBrief(store, deps, {
     kind: 'collect',
     topic,
+    policy,
     items: filtered.items,
     droppedAsBriefed: filtered.dropped,
     filterOverridden: filtered.overridden,
     sourceStats: collect.sourceStats,
     collect,
     now,
-    windowHours: COLLECT_DEFAULTS.windowHours,
+    windowHours: policy.windowHours,
     elapsedMs: collect.elapsedMs,
     ...(opts.signal ? { signal: opts.signal } : {})
   })
@@ -123,8 +129,10 @@ export async function recomposeDaily(
   const now = opts.now ?? Date.now()
   const topic = store.topics.get(opts.topicId)
   if (!topic) throw new Error(`主题不存在：${opts.topicId}`)
+  const policy = resolveSelectionPolicy(topic.selectionPolicy)
 
-  const pool = collectReusableItems(store, topic.id, now)
+  const pool = collectReusableItems(store, topic.id, now, policy.windowHours)
+  pool.items = applySelectionPolicy(pool.items, policy)
   if (pool.items.length === 0) {
     throw new Error('最近 48 小时没有可用素材，先跑一次「立即采集」')
   }
@@ -145,13 +153,14 @@ export async function recomposeDaily(
   return finishBrief(store, deps, {
     kind: 'recompose',
     topic,
+    policy,
     items: pool.items,
     droppedAsBriefed: 0,
     filterOverridden: false,
     sourceStats: pool.sourceStats,
     collect,
     now,
-    windowHours: COLLECT_DEFAULTS.windowHours,
+    windowHours: policy.windowHours,
     elapsedMs: 0,
     ...(opts.signal ? { signal: opts.signal } : {})
   })
@@ -168,7 +177,7 @@ export function collectReusableItems(
   store: Store,
   topicId: string,
   now: number,
-  windowHours = COLLECT_DEFAULTS.windowHours
+  windowHours: number = COLLECT_DEFAULTS.windowHours
 ): { items: BriefItem[]; sourceStats: BriefSourceStats[] } {
   const sourceIds = new Set(store.topics.sourceIds(topicId))
   const sources = store.sources.list().filter((s) => sourceIds.has(s.id))
@@ -195,6 +204,7 @@ export function collectReusableItems(
 interface FinishInput {
   kind: 'collect' | 'recompose'
   topic: Topic
+  policy: ReturnType<typeof resolveSelectionPolicy>
   items: BriefItem[]
   droppedAsBriefed: number
   filterOverridden: boolean
@@ -267,6 +277,7 @@ async function finishBrief(store: Store, deps: DailyDeps, input: FinishInput): P
           dateLabel,
           weekday: weekdayOf(now),
           topicName: topic.name,
+          policy: input.policy,
           ...(topic.editorialFocus ? { editorialFocus: topic.editorialFocus } : {}),
           sourceStats: input.sourceStats,
           elapsedMs: input.elapsedMs

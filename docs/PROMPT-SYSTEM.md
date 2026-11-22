@@ -1,6 +1,6 @@
 # 简报风格：主题级 PromptProfile
 
-> 状态：P0 已实现（2026-11-22）。选材策略仍是代码常量，P1 再做。
+> 状态：P0 + P1 已实现（2026-11-22）。评测与试跑留到 P2。
 
 ## 为什么
 
@@ -50,7 +50,9 @@ topics.prompt_profile_id  -- 空 = 内置模板
 | 内置模板加载 | `src/main/prompts.ts` |
 | 成稿使用 | `src/main/daily.ts` → `promptTextForTopic()` |
 | 存储 | `src/adapters/store-sqlite/store.ts`（schema v17） |
-| UI | `src/renderer/src/components/PromptSettings.tsx` |
+| UI（提示词） | `src/renderer/src/components/PromptSettings.tsx` |
+| 选材策略 | `src/app/selection-policy.ts` |
+| UI（选材） | `src/renderer/src/components/SelectionPolicySettings.tsx` |
 
 ## UI
 
@@ -71,8 +73,25 @@ topics.prompt_profile_id  -- 空 = 内置模板
 - 标题由程序规范化
 - 输出条数、板块标签由程序约束
 
-## P1（未做）
+## P1：选材策略（已实现）
 
-- 把窗口、条数、板块、信号词抽成 SelectionPolicy，按主题覆盖
+每个主题可配置：
+
+| 字段 | 默认 | 作用 |
+|---|---|---|
+| `windowHours` | 48 | 回看窗口 |
+| `maxItems` | 80 | 候选上限 |
+| `targetMin/Max` | 15/24 | 注入 prompt 的目标条数 |
+| `buckets` | 全部 | 参与选材的板块 |
+| `boostKeywords` | 空 | 命中 +1.5 分 |
+| `suppressKeywords` | 空 | 命中 −2.5 分 |
+
+入口：设置 → 选材策略。策略存 `topics.selection_policy_json`（schema v18），
+采集窗口、候选数、板块过滤、关键词加减分都在 `runDaily` / `recomposeDaily` 里生效。
+目标条数与板块列表通过 `{targetMin}` `{targetMax}` `{bucketList}` 注入 prompt。
+
+## P2（未做）
+
 - Prompt 试跑：用最近一期素材预览成稿
 - 评测：链接率、重复率、人工评分
+- 把 boost/suppress 做成可视化词表编辑

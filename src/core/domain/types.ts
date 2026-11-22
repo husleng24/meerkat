@@ -256,8 +256,21 @@ export interface Topic {
   editorialFocus?: string
   /** 绑定的简报 PromptProfile；空 = 内置模板 */
   promptProfileId?: string
+  /** 该主题的选材策略；空 = 默认值 */
+  selectionPolicy?: SelectionPolicy
   createdAt: number
   updatedAt: number
+}
+
+/** 主题级选材策略：窗口、候选数、目标条数、板块与关键词偏置 */
+export interface SelectionPolicy {
+  windowHours: number
+  maxItems: number
+  targetMin: number
+  targetMax: number
+  buckets: Bucket[]
+  boostKeywords: string[]
+  suppressKeywords: string[]
 }
 
 /** 可版本化的简报提示词 */

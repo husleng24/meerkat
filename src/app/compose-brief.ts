@@ -8,7 +8,7 @@
  * 还有一条降级路径：没有 key 或模型失败时，仍产出"仅聚合"简报——
  * 没有模型也要能用，这是产品的一等形态（ADR-5），不是容错补丁。
  */
-import type { Bucket, Item } from '../core/domain/types'
+import type { Bucket, Item, SelectionPolicy } from '../core/domain/types'
 import { BUCKETS, BUCKET_LABEL } from '../core/domain/types'
 import type { ComposeInput, Composer, TokenUsage } from '../core/ports/composer'
 import { briefTitle } from './brief-identity'
@@ -42,6 +42,8 @@ export interface ComposeBriefContext {
   topicName: string
   /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
   editorialFocus?: string
+  /** 选材策略：影响目标条数与板块提示 */
+  policy: SelectionPolicy
   sourceStats: BriefSourceStats[]
   /** 本次消耗的 wall time，由调用方传 */
   elapsedMs?: number
@@ -163,6 +165,9 @@ function toComposeInput(items: BriefItem[], ctx: ComposeBriefContext): ComposeIn
     weekday: ctx.weekday,
     topicName: ctx.topicName,
     ...(ctx.editorialFocus ? { editorialFocus: ctx.editorialFocus } : {}),
+    targetMin: ctx.policy.targetMin,
+    targetMax: ctx.policy.targetMax,
+    bucketList: ctx.policy.buckets.map((b) => PROMPT_BUCKET_LABEL[b]).join(' / '),
     windowHours: ctx.windowHours,
     bucketLabels: PROMPT_BUCKET_LABEL,
     items: items.map((it) => ({

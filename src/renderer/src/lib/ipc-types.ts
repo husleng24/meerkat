@@ -5,7 +5,7 @@
  * 实际开发中几乎必然漂移（P1-4 与 P1-5 就撞过一次）。
  */
 import type { EventTimeline } from '../../../app/event-timeline'
-import type { BriefTrace, Source } from '../../../core/domain/types'
+import type { BriefTrace, SelectionPolicy, Source } from '../../../core/domain/types'
 
 export interface ProbeProgress {
   id: string
@@ -604,6 +604,7 @@ export interface TopicPayload {
   /** 这个主题的编辑重点；只影响选题与解读，不改变简报格式 */
   editorialFocus?: string
   promptProfileId?: string
+  selectionPolicy?: SelectionPolicy
   sourceCount: number
   hasBrief: boolean
   /** 最新一期简报的条目数；没有简报为 0，界面显示「—」 */
@@ -748,6 +749,7 @@ export interface MeerkatBridge {
       enabled?: boolean
       editorialFocus?: string
       promptProfileId?: string | null
+      selectionPolicy?: SelectionPolicy
     }) => Promise<{ ok: boolean; error?: string }>
     remove: (id: string) => Promise<{ ok: boolean; error?: string }>
     sourceIds: (id: string) => Promise<string[]>

@@ -12,6 +12,7 @@ import {
 } from '../src/app/compose-brief'
 import { buildUserPrompt } from '../src/adapters/llm/deepseek'
 import type { Composer, ComposeResult } from '../src/core/ports/composer'
+import { DEFAULT_SELECTION_POLICY } from '../src/app/selection-policy'
 
 const NOW = Date.parse('2026-10-30T10:00:00Z')
 
@@ -39,6 +40,7 @@ function ctx(over: Partial<ComposeBriefContext> = {}): ComposeBriefContext {
     dateLabel: '2026-10-30',
     weekday: '周四',
     topicName: 'AI 综合',
+    policy: DEFAULT_SELECTION_POLICY,
     sourceStats: [
       { name: 'OpenAI', ok: true, n: 5, note: '' },
       { name: 'Reddit', ok: false, n: 0, note: 'HTTP 429' }
@@ -170,6 +172,7 @@ describe('用户提示词构建', () => {
       dateLabel: '2026-10-30',
       weekday: '周四',
       topicName: 'AI 综合',
+      policy: DEFAULT_SELECTION_POLICY,
       windowHours: 48,
       bucketLabels: { product: '① 模型与产品', agent: '②', business: '③', research: '④', infra: '⑤', policy: '⑥', opinion: '⑦', video: '⑧', community: '⑨' },
       items: [

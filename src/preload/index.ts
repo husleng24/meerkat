@@ -669,6 +669,15 @@ const api = {
         minute: number
         editorialFocus?: string
         promptProfileId?: string
+        selectionPolicy?: {
+          windowHours: number
+          maxItems: number
+          targetMin: number
+          targetMax: number
+          buckets: string[]
+          boostKeywords: string[]
+          suppressKeywords: string[]
+        }
         sourceCount: number
         hasBrief: boolean
         todayCount: number
@@ -683,6 +692,15 @@ const api = {
       enabled?: boolean
       editorialFocus?: string
       promptProfileId?: string | null
+      selectionPolicy?: {
+        windowHours: number
+        maxItems: number
+        targetMin: number
+        targetMax: number
+        buckets: string[]
+        boostKeywords: string[]
+        suppressKeywords: string[]
+      }
     }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('topics:update', input),
     remove: (id: string): Promise<{ ok: boolean; error?: string }> => ipcRenderer.invoke('topics:remove', id),

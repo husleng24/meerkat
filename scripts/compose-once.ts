@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createStore } from '../src/adapters/store-sqlite/store'
 import { createDeepSeekComposer, resolveApiKey } from '../src/adapters/llm/deepseek'
+import { DEFAULT_SELECTION_POLICY } from '../src/app/selection-policy'
 import { composeBrief, weekdayOf, type BriefItem, type BriefSourceStats } from '../src/app/compose-brief'
 import { briefFileName } from '../src/app/brief-identity'
 import type { Brief } from '../src/core/domain/types'
@@ -58,6 +59,7 @@ async function main(): Promise<void> {
     dateLabel,
     weekday: weekdayOf(now),
     topicName: TOPIC_NAME,
+    policy: DEFAULT_SELECTION_POLICY,
     sourceStats
   })
   const elapsed = Date.now() - t0

@@ -11,6 +11,7 @@ import { parseBrief } from '../lib/parseBrief'
 import { renderBriefDocument } from '../lib/briefHtml'
 import { TopicSources } from './TopicSources'
 import { PromptSettings } from './PromptSettings'
+import { SelectionPolicySettings } from './SelectionPolicySettings'
 import { TopicManager } from './TopicManager'
 import { PushPanel } from './PushPanel'
 import { EmailPanel } from './EmailPanel'
@@ -282,6 +283,14 @@ export function SettingsPage({
           每个主题可以绑定自己的提示词；内置模板只读，自定义版本会存本机并保留历史。
         </p>
         <PromptSettings topicId={topicId} topics={topics} onTopicsChanged={onTopicsChanged} />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-1 text-[14px] font-semibold text-ink">选材策略</h2>
+        <p className="mb-4 text-[12px] text-ink-3">
+          决定模型从什么范围里选：回看窗口、候选上限、目标条数、板块和关键词偏置。下次采集/成稿生效。
+        </p>
+        <SelectionPolicySettings topicId={topicId} topics={topics} onTopicsChanged={onTopicsChanged} />
       </section>
 
       <section className="mb-8">

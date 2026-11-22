@@ -448,6 +448,14 @@ export const MIGRATIONS: Migration[] = [
       );
       ALTER TABLE topics ADD COLUMN prompt_profile_id TEXT;
     `
+  },
+  {
+    version: 18,
+    name: 'topic_selection_policy',
+    up: `
+      -- 主题级选材策略：窗口/候选数/目标条数/板块/关键词偏置
+      ALTER TABLE topics ADD COLUMN selection_policy_json TEXT;
+    `
   }
 ]
 

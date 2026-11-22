@@ -32,6 +32,9 @@ export interface ComposeInput {
   topicName: string
   /** 这个主题的编辑重点；只影响选题与解读，不改变输出格式 */
   editorialFocus?: string
+  targetMin?: number
+  targetMax?: number
+  bucketList?: string
   windowHours: number
   items: ComposeItem[]
   /** 传给适配器做模板替换，例如板块名映射 */
